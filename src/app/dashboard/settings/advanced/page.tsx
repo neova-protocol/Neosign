@@ -7,13 +7,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import Link from "next/link"
 
 const settingsMenuItems = [
-  { name: "Profile", active: false, href: "/settings" },
-  { name: "Security", active: false, href: "/settings/security" },
-  { name: "Signatures", active: false, href: "/settings/signatures" },
-  { name: "Notifications", active: false, href: "/settings/notifications" },
-  { name: "Contact", active: false, href: "/settings/contact" },
-  { name: "Advanced", active: true, href: "/settings/advanced" },
-  { name: "Billing", active: false, href: "/settings/billing" },
+  { name: "Profile", active: false, href: "/dashboard/settings" },
+  { name: "Security", active: false, href: "/dashboard/settings/security" },
+  { name: "Signatures", active: false, href: "/dashboard/settings/sign" },
+  { name: "Notifications", active: false, href: "/dashboard/settings/notifications" },
+  { name: "Contact", active: false, href: "/dashboard/settings/contact" },
+  { name: "Advanced", active: true, href: "/dashboard/settings/advanced" },
+  { name: "Billing", active: false, href: "/dashboard/settings/billing" },
 ]
 
 // Sample data for the chart
