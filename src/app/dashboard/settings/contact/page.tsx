@@ -9,13 +9,13 @@ import Link from "next/link"
 import { useState } from "react"
 
 const settingsMenuItems = [
-  { name: "Profile", active: false, href: "/settings" },
-  { name: "Security", active: false, href: "/settings/security" },
-  { name: "Signatures", active: false, href: "/settings/signatures" },
-  { name: "Notifications", active: false, href: "/settings/notifications" },
-  { name: "Contact", active: true, href: "/settings/contact" },
-  { name: "Advanced", active: false, href: "/settings/advanced" },
-  { name: "Billing", active: false, href: "/settings/billing" },
+  { name: "Profile", active: false, href: "dashboard/settings" },
+  { name: "Security", active: false, href: "dashboard/settings/security" },
+  { name: "Signatures", active: false, href: "dashboard/settings/sign" },
+  { name: "Notifications", active: false, href: "dashboard/settings/notifications" },
+  { name: "Contact", active: true, href: "dashboard/settings/contact" },
+  { name: "Advanced", active: false, href: "dashboard/settings/advanced" },
+  { name: "Billing", active: false, href: "dashboard/settings/billing" },
 ]
 
 export default function ContactPage() {

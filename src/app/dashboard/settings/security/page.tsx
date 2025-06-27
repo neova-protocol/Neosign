@@ -10,13 +10,13 @@ import { useState } from "react"
 
 // Update the settingsMenuItems array to replace "Data & Backups" with "Signatures"
 const settingsMenuItems = [
-  { name: "Profile", active: false, href: "/settings" },
-  { name: "Security", active: true, href: "/settings/security" },
-  { name: "Signatures", active: false, href: "/settings/signatures" },
-  { name: "Notifications", active: false, href: "/settings/notifications" },
-  { name: "Contact", active: false, href: "/settings/contact" },
-  { name: "Advanced", active: false, href: "/settings/advanced" },
-  { name: "Billing", active: false, href: "/settings/billing" },
+  { name: "Profile", active: false, href: "dashboard/settings" },
+  { name: "Security", active: true, href: "dashboard/settings/security" },
+  { name: "Signatures", active: false, href: "dashboard/settings/sign" },
+  { name: "Notifications", active: false, href: "dashboard/settings/notifications" },
+  { name: "Contact", active: false, href: "dashboard/settings/contact" },
+  { name: "Advanced", active: false, href: "dashboard/settings/advanced" },
+  { name: "Billing", active: false, href: "dashboard/settings/billing" },
 ]
 
 export default function SecurityPage() {
