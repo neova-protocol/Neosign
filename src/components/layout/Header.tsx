@@ -1,9 +1,14 @@
 "use client"
-import { Search, Grid3x3 } from "lucide-react"
+import { Search, Grid3x3, User as UserIcon, ChevronsUpDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { useAuth } from "@/contexts/AuthContext"
+import CustomDropdown from "@/components/ui/CustomDropdown"
 
 export default function Header() {
+  const { currentUser, users, switchUser } = useAuth();
+  const dropdownItems = users.map(user => ({ id: user.id, label: user.name }));
+
   return (
     <header className="bg-white/30 backdrop-blur-md border-b border-gray-200/80 px-8 py-4 sticky top-0 z-10">
       <div className="flex items-center justify-between">
@@ -38,9 +43,17 @@ export default function Header() {
             </Button>
           </nav>
           <div className="flex items-center space-x-4 pr-2">
-            <Button className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-5 py-2 rounded-lg text-sm">
-              Connect Wallet
-            </Button>
+            <CustomDropdown 
+              items={dropdownItems}
+              onSelect={switchUser}
+              trigger={
+                <Button variant="outline" className="flex items-center space-x-2">
+                  <UserIcon className="h-4 w-4" />
+                  <span>{currentUser.name}</span>
+                  <ChevronsUpDown className="h-4 w-4 opacity-50" />
+                </Button>
+              }
+            />
           </div>
         </div>
       </div>

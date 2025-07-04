@@ -1,5 +1,13 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
-import { SignatureData } from '@/components/signature/SignatureDialog';
+import { useAuth } from './AuthContext';
+
+export interface DocumentEvent {
+  id: string;
+  type: 'created' | 'sent' | 'consulted' | 'signed' | 'reminder';
+  date: Date;
+  userId: string;
+  userName: string;
+}
 
 export interface Signatory {
   id: string;
@@ -7,20 +15,22 @@ export interface Signatory {
   email: string;
   role: string;
   color: string;
-  signatures: SignatureData[];
-  status: 'pending' | 'signed' | 'declined';
+  signatures: string[];
+  status: 'preparing' | 'pending' | 'signed' | 'declined';
 }
 
 export interface Document {
   id: string;
   name: string;
   file: File | null;
+  fileUrl?: string;
   pages: number;
   fields: SignatureField[];
   signatories: Signatory[];
   status: 'draft' | 'sent' | 'completed';
   createdAt: Date;
   updatedAt: Date;
+  events: DocumentEvent[];
 }
 
 export interface SignatureField {
@@ -32,6 +42,7 @@ export interface SignatureField {
   width: number;
   height: number;
   signatoryId: string | null;
+  value?: string;
 }
 
 interface SignatureContextType {
@@ -39,11 +50,11 @@ interface SignatureContextType {
   setCurrentDocument: (document: Document | null) => void;
   
   // Document management
-  createDocument: (file: File) => Document;
+  createDocument: (file: File) => Promise<Document>;
   updateDocument: (document: Document) => void;
   
   // Signatory management
-  addSignatory: (signatory: Omit<Signatory, 'id' | 'signatures' | 'status'>) => void;
+  addSignatory: (signatory: Partial<Signatory> & Omit<Signatory, 'signatures' | 'status'>) => void;
   updateSignatory: (id: string, updates: Partial<Signatory>) => void;
   removeSignatory: (id: string) => void;
   
@@ -53,7 +64,7 @@ interface SignatureContextType {
   removeField: (id: string) => void;
   
   // Signature management
-  addSignature: (signatoryId: string, signature: SignatureData) => void;
+  addSignature: (signatoryId: string, signature: string) => void;
   getSignatoryFields: (signatoryId: string) => SignatureField[];
 }
 
@@ -73,41 +84,72 @@ interface SignatureProviderProps {
 
 export const SignatureProvider: React.FC<SignatureProviderProps> = ({ children }) => {
   const [currentDocument, setCurrentDocument] = useState<Document | null>(null);
+  const { currentUser } = useAuth();
 
-  const createDocument = useCallback((file: File): Document => {
+  const fileToDataUrl = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const createDocument = useCallback(async (file: File): Promise<Document> => {
+    const fileUrl = await fileToDataUrl(file);
     const document: Document = {
       id: `doc-${Date.now()}`,
       name: file.name,
       file,
+      fileUrl,
       pages: 1, // Will be updated when PDF loads
       fields: [],
       signatories: [],
       status: 'draft',
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
+      events: [
+        {
+          id: `evt-${Date.now()}`,
+          type: 'created',
+          date: new Date(),
+          userId: currentUser.id,
+          userName: currentUser.name,
+        },
+      ],
     };
     
     setCurrentDocument(document);
     return document;
-  }, []);
+  }, [currentUser]);
 
   const updateDocument = useCallback((document: Document) => {
     setCurrentDocument(document);
   }, []);
 
-  const addSignatory = useCallback((signatoryData: Omit<Signatory, 'id' | 'signatures' | 'status'>) => {
+  const addSignatory = useCallback((signatoryData: Partial<Signatory> & Omit<Signatory, 'signatures' | 'status'>) => {
     const newSignatory: Signatory = {
-      ...signatoryData,
-      id: `sig-${Date.now()}`,
+      id: signatoryData.id || `sig-${Date.now()}`,
+      name: signatoryData.name,
+      email: signatoryData.email,
+      role: signatoryData.role,
+      color: signatoryData.color,
       signatures: [],
-      status: 'pending'
+      status: 'preparing',
     };
 
-    setCurrentDocument(doc => doc ? {
-      ...doc,
-      signatories: [...doc.signatories, newSignatory],
-      updatedAt: new Date()
-    } : null);
+    setCurrentDocument(doc => {
+      if (!doc) return null;
+      // Prevent adding duplicates
+      if (doc.signatories.some(s => s.id === newSignatory.id)) {
+        return doc;
+      }
+      return {
+        ...doc,
+        signatories: [...doc.signatories, newSignatory],
+        updatedAt: new Date()
+      };
+    });
   }, []);
 
   const updateSignatory = useCallback((id: string, updates: Partial<Signatory>) => {
@@ -160,7 +202,7 @@ export const SignatureProvider: React.FC<SignatureProviderProps> = ({ children }
     } : null);
   }, []);
 
-  const addSignature = useCallback((signatoryId: string, signature: SignatureData) => {
+  const addSignature = useCallback((signatoryId: string, signature: string) => {
     setCurrentDocument(doc => doc ? {
       ...doc,
       signatories: doc.signatories.map(sig =>
