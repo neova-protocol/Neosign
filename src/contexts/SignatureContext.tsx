@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
 import { SignatureData } from '@/components/signature/SignatureDialog';
 
 export interface Signatory {
@@ -74,7 +74,7 @@ interface SignatureProviderProps {
 export const SignatureProvider: React.FC<SignatureProviderProps> = ({ children }) => {
   const [currentDocument, setCurrentDocument] = useState<Document | null>(null);
 
-  const createDocument = (file: File): Document => {
+  const createDocument = useCallback((file: File): Document => {
     const document: Document = {
       id: `doc-${Date.now()}`,
       name: file.name,
@@ -89,15 +89,13 @@ export const SignatureProvider: React.FC<SignatureProviderProps> = ({ children }
     
     setCurrentDocument(document);
     return document;
-  };
+  }, []);
 
-  const updateDocument = (document: Document) => {
+  const updateDocument = useCallback((document: Document) => {
     setCurrentDocument(document);
-  };
+  }, []);
 
-  const addSignatory = (signatoryData: Omit<Signatory, 'id' | 'signatures' | 'status'>) => {
-    if (!currentDocument) return;
-
+  const addSignatory = useCallback((signatoryData: Omit<Signatory, 'id' | 'signatures' | 'status'>) => {
     const newSignatory: Signatory = {
       ...signatoryData,
       id: `sig-${Date.now()}`,
@@ -105,108 +103,82 @@ export const SignatureProvider: React.FC<SignatureProviderProps> = ({ children }
       status: 'pending'
     };
 
-    const updatedDocument = {
-      ...currentDocument,
-      signatories: [...currentDocument.signatories, newSignatory],
+    setCurrentDocument(doc => doc ? {
+      ...doc,
+      signatories: [...doc.signatories, newSignatory],
       updatedAt: new Date()
-    };
+    } : null);
+  }, []);
 
-    setCurrentDocument(updatedDocument);
-  };
-
-  const updateSignatory = (id: string, updates: Partial<Signatory>) => {
-    if (!currentDocument) return;
-
-    const updatedDocument = {
-      ...currentDocument,
-      signatories: currentDocument.signatories.map(sig =>
+  const updateSignatory = useCallback((id: string, updates: Partial<Signatory>) => {
+    setCurrentDocument(doc => doc ? {
+      ...doc,
+      signatories: doc.signatories.map(sig =>
         sig.id === id ? { ...sig, ...updates } : sig
       ),
       updatedAt: new Date()
-    };
+    } : null);
+  }, []);
 
-    setCurrentDocument(updatedDocument);
-  };
-
-  const removeSignatory = (id: string) => {
-    if (!currentDocument) return;
-
-    const updatedDocument = {
-      ...currentDocument,
-      signatories: currentDocument.signatories.filter(sig => sig.id !== id),
-      fields: currentDocument.fields.filter(field => field.signatoryId !== id),
+  const removeSignatory = useCallback((id: string) => {
+    setCurrentDocument(doc => doc ? {
+      ...doc,
+      signatories: doc.signatories.filter(sig => sig.id !== id),
+      fields: doc.fields.filter(field => field.signatoryId !== id),
       updatedAt: new Date()
-    };
+    } : null);
+  }, []);
 
-    setCurrentDocument(updatedDocument);
-  };
-
-  const addField = (fieldData: Omit<SignatureField, 'id'>) => {
-    if (!currentDocument) return;
-
+  const addField = useCallback((fieldData: Omit<SignatureField, 'id'>) => {
     const newField: SignatureField = {
       ...fieldData,
       id: `field-${Date.now()}`
     };
 
-    const updatedDocument = {
-      ...currentDocument,
-      fields: [...currentDocument.fields, newField],
+    setCurrentDocument(doc => doc ? {
+      ...doc,
+      fields: [...doc.fields, newField],
       updatedAt: new Date()
-    };
+    } : null);
+  }, []);
 
-    setCurrentDocument(updatedDocument);
-  };
-
-  const updateField = (id: string, updates: Partial<SignatureField>) => {
-    if (!currentDocument) return;
-
-    const updatedDocument = {
-      ...currentDocument,
-      fields: currentDocument.fields.map(field =>
+  const updateField = useCallback((id: string, updates: Partial<SignatureField>) => {
+    setCurrentDocument(doc => doc ? {
+      ...doc,
+      fields: doc.fields.map(field =>
         field.id === id ? { ...field, ...updates } : field
       ),
       updatedAt: new Date()
-    };
+    } : null);
+  }, []);
 
-    setCurrentDocument(updatedDocument);
-  };
-
-  const removeField = (id: string) => {
-    if (!currentDocument) return;
-
-    const updatedDocument = {
-      ...currentDocument,
-      fields: currentDocument.fields.filter(field => field.id !== id),
+  const removeField = useCallback((id: string) => {
+    setCurrentDocument(doc => doc ? {
+      ...doc,
+      fields: doc.fields.filter(field => field.id !== id),
       updatedAt: new Date()
-    };
+    } : null);
+  }, []);
 
-    setCurrentDocument(updatedDocument);
-  };
-
-  const addSignature = (signatoryId: string, signature: SignatureData) => {
-    if (!currentDocument) return;
-
-    const updatedDocument = {
-      ...currentDocument,
-      signatories: currentDocument.signatories.map(sig =>
+  const addSignature = useCallback((signatoryId: string, signature: SignatureData) => {
+    setCurrentDocument(doc => doc ? {
+      ...doc,
+      signatories: doc.signatories.map(sig =>
         sig.id === signatoryId
           ? { ...sig, signatures: [...sig.signatures, signature] }
           : sig
       ),
       updatedAt: new Date()
-    };
+    } : null);
+  }, []);
 
-    setCurrentDocument(updatedDocument);
-  };
-
-  const getSignatoryFields = (signatoryId: string): SignatureField[] => {
+  const getSignatoryFields = useCallback((signatoryId: string): SignatureField[] => {
     if (!currentDocument) return [];
     
     return currentDocument.fields.filter(
       field => field.signatoryId === signatoryId
     );
-  };
+  }, [currentDocument]);
 
   const value: SignatureContextType = {
     currentDocument,

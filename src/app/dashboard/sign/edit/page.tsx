@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { useSignature } from '@/contexts/SignatureContext';
 import { useRouter } from 'next/navigation';
@@ -26,11 +26,16 @@ export default function EditSignaturePage() {
     }
   }, [currentDocument, router]);
 
-  if (!currentDocument || !currentDocument.file) {
+  const fileUrl = useMemo(() => {
+    if (currentDocument?.file) {
+      return URL.createObjectURL(currentDocument.file);
+    }
+    return null;
+  }, [currentDocument?.file]);
+
+  if (!currentDocument || !fileUrl) {
     return <div>Loading...</div>;
   }
-
-  const fileUrl = URL.createObjectURL(currentDocument.file);
 
   return (
     <div className="flex h-screen">

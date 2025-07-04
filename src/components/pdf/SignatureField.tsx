@@ -10,7 +10,7 @@ interface SignatureFieldProps {
   pageNumber: number;
 }
 
-export const SignatureFieldComponent: React.FC<SignatureFieldProps> = ({
+const SignatureField: React.FC<SignatureFieldProps> = ({
   field,
   onUpdate,
   onRemove,
@@ -24,8 +24,13 @@ export const SignatureFieldComponent: React.FC<SignatureFieldProps> = ({
 
   const handleMouseDown = (e: MouseEvent) => {
     e.stopPropagation();
+    e.preventDefault();
     setDragStart({ x: e.clientX - field.x, y: e.clientY - field.y });
     setIsDragging(true);
+  };
+
+  const handleFieldClick = (e: MouseEvent) => {
+    e.stopPropagation();
   };
 
   useEffect(() => {
@@ -41,15 +46,17 @@ export const SignatureFieldComponent: React.FC<SignatureFieldProps> = ({
     };
 
     if (isDragging) {
+      document.body.style.userSelect = 'none';
       window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
     }
 
     return () => {
+      document.body.style.userSelect = 'auto';
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isDragging, dragStart, onUpdate, field.id, field.x, field.y]);
+  }, [isDragging, dragStart, onUpdate, field.id]);
   
   const fieldColor = signatory ? signatory.color : '#A0A0A0';
 
@@ -62,6 +69,7 @@ export const SignatureFieldComponent: React.FC<SignatureFieldProps> = ({
         zIndex: isDragging ? 1000 : 100,
       }}
       onMouseDown={handleMouseDown}
+      onClick={handleFieldClick}
     >
       {signatory && (
         <div 
@@ -96,4 +104,6 @@ export const SignatureFieldComponent: React.FC<SignatureFieldProps> = ({
       </div>
     </div>
   );
-}; 
+};
+
+export const SignatureFieldComponent = React.memo(SignatureField); 
