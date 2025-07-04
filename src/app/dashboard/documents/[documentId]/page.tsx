@@ -4,17 +4,17 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useSignature } from '@/contexts/SignatureContext';
-import { getDocumentById } from '@/lib/api';
-import { Document as AppDocument } from '@/contexts/SignatureContext';
-import { FileText, Download, CheckCircle, Users, Clock, Edit } from 'lucide-react';
+import { getDocumentById, deleteDocument } from '@/lib/api';
+import { Document as AppDocument, Signatory, DocumentEvent } from '@/types';
+import { FileText, Download, CheckCircle, Users, Clock, Edit, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 
 // This will be a new component we create
-const DocumentTimeline = ({ events }: { events: AppDocument['events'] }) => (
+const DocumentTimeline = ({ events }: { events: DocumentEvent[] }) => (
     <div className="mt-8">
         <h3 className="text-lg font-semibold mb-4">Activity</h3>
         <div className="border-l-2 border-gray-300 pl-4">
-            {events.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(event => (
+            {events.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((event: DocumentEvent) => (
                 <div key={event.id} className="mb-4 relative">
                     <div className="absolute -left-5 w-4 h-4 bg-gray-300 rounded-full"></div>
                     <p className="font-semibold text-gray-700 capitalize">{event.type.replace('_', ' ')}</p>
@@ -42,9 +42,24 @@ export default function DocumentDetailPage() {
                     setLocalDocument(doc);
                 }
                 setIsLoading(false);
+            }).catch(err => {
+                console.error(err);
+                setIsLoading(false);
             });
         }
     }, [documentId]);
+
+    const handleDelete = async () => {
+        if (localDocument && window.confirm('Are you sure you want to delete this draft?')) {
+            try {
+                await deleteDocument(localDocument.id);
+                router.push('/dashboard/sign');
+            } catch (error) {
+                console.error('Failed to delete document:', error);
+                alert('Failed to delete document.');
+            }
+        }
+    };
 
     if (isLoading) {
         return <div className="p-8">Loading document details...</div>;
@@ -56,11 +71,11 @@ export default function DocumentDetailPage() {
 
     const { name, status, signatories, events } = localDocument;
 
-    const selfAsSignatory = session?.user ? signatories.find(s => s.userId === session.user.id) : null;
+    const selfAsSignatory = session?.user ? signatories.find((s: Signatory) => s.userId === session.user!.id) : null;
     const canSign = selfAsSignatory && selfAsSignatory.status === 'pending';
 
     const getStatusIcon = (docStatus: string) => {
-        switch(docStatus) {
+        switch(docStatus.toLowerCase()) {
             case 'completed': return <CheckCircle className="text-green-500" />;
             case 'sent': return <Clock className="text-yellow-500" />;
             default: return <Users className="text-gray-500" />;
@@ -89,6 +104,11 @@ export default function DocumentDetailPage() {
                         <a href={localDocument.fileUrl} target="_blank" rel="noopener noreferrer" className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 flex items-center gap-2">
                             <FileText size={18} /> View
                         </a>
+                        {localDocument.status.toLowerCase() === 'draft' && (
+                            <button onClick={handleDelete} className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 flex items-center gap-2">
+                                <Trash2 size={18} /> Delete
+                            </button>
+                        )}
                         <a href={`/api/documents/${documentId}/download`} className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 flex items-center gap-2">
                             <Download size={18} /> Download
                         </a>
@@ -102,7 +122,7 @@ export default function DocumentDetailPage() {
                     <div>
                          <h3 className="text-lg font-semibold mb-4">Signatories</h3>
                          <div className="space-y-4">
-                             {signatories.map(s => (
+                             {signatories.map((s: Signatory) => (
                                  <div key={s.id} className="p-4 border rounded-md">
                                      <p className="font-bold">{s.name}</p>
                                      <p className="text-sm text-gray-600">{s.email}</p>

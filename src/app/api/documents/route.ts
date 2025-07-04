@@ -6,25 +6,23 @@ import { authOptions } from '../auth/[...nextauth]/route';
 
 const prisma = new PrismaClient();
 
-export async function GET(req: NextRequest) {
+export async function GET(request: NextRequest) {
     const session = await getServerSession(authOptions);
-
-    if (!session || !session.user || !session.user.id) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!session?.user?.id) {
+        return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
+    const userId = session.user.id;
 
     try {
         const documents = await prisma.document.findMany({
             where: {
                 OR: [
-                    { creatorId: session.user.id },
-                    { signatories: { some: { userId: session.user.id } } },
-                ],
+                    { creatorId: userId },
+                    { signatories: { some: { userId: userId } } }
+                ]
             },
             include: {
                 signatories: true,
-                fields: true,
-                events: true,
             },
             orderBy: {
                 updatedAt: 'desc',
@@ -32,8 +30,8 @@ export async function GET(req: NextRequest) {
         });
         return NextResponse.json(documents);
     } catch (error) {
-        console.error(`Failed to fetch documents for user ${session.user.id}:`, error);
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+        console.error("Failed to fetch documents", error);
+        return NextResponse.json({ message: "Failed to fetch documents" }, { status: 500 });
     }
 }
 

@@ -1,79 +1,105 @@
 "use client";
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
-import { getDocumentsForUser } from '@/lib/api';
-import { Document } from '@/contexts/SignatureContext';
-import { FileText, Clock, CheckCircle, Loader, Edit, AlertCircle } from 'lucide-react';
+import { getDocuments, deleteDocument } from '@/lib/api';
+import { Document } from '@prisma/client';
+import { FileText, Clock, CheckCircle, AlertTriangle, Edit, MoreVertical } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 
-const DocumentStatus: React.FC<{ doc: Document, userId: string }> = ({ doc, userId }) => {
-    let statusConfig = {
-        text: "Draft",
-        Icon: FileText,
-        colorClass: "text-gray-500",
+type DocumentWithSignatories = Document & {
+  signatories: { id: string; userId: string | null; status: string }[];
+};
+
+const getStatus = (doc: DocumentWithSignatories, userId: string) => {
+  switch (doc.status.toLowerCase()) {
+    case 'draft':
+      return { text: 'Draft', color: 'gray', Icon: Edit };
+    case 'completed':
+      return { text: 'Completed', color: 'green', Icon: CheckCircle };
+    case 'sent':
+      const userSignatory = doc.signatories.find(s => s.userId === userId);
+      if (userSignatory && userSignatory.status === 'PENDING') {
+        return { text: 'Signature Required', color: 'orange', Icon: AlertTriangle };
+      }
+      return { text: 'In Progress', color: 'blue', Icon: Clock };
+    default:
+      return { text: 'Unknown', color: 'gray', Icon: AlertTriangle };
+  }
+};
+
+const DocumentStatus: React.FC<{ doc: DocumentWithSignatories, userId: string }> = ({ doc, userId }) => {
+    const status = getStatus(doc, userId);
+    const colorVariants: { [key: string]: string } = {
+        gray: 'text-gray-500 bg-gray-100',
+        green: 'text-green-600 bg-green-100',
+        orange: 'text-orange-600 bg-orange-100',
+        blue: 'text-blue-600 bg-blue-100',
     };
-
-    switch (doc.status) {
-        case 'completed':
-            statusConfig = { text: "Completed", Icon: CheckCircle, colorClass: "text-green-600" };
-            break;
-        case 'sent':
-            const mySignatoryInfo = doc.signatories.find(s => s.userId === userId);
-            if (mySignatoryInfo && mySignatoryInfo.status === 'pending') {
-                statusConfig = { text: "Signature Required", Icon: Edit, colorClass: "text-orange-500" };
-            } else {
-                statusConfig = { text: "In Progress", Icon: Clock, colorClass: "text-blue-500" };
-            }
-            break;
-        case 'draft':
-            // Already default
-            break;
-        // case 'cancelled': // For future use
-        //     statusConfig = { text: "Cancelled", Icon: AlertCircle, colorClass: "text-red-600" };
-        //     break;
-    }
-
     return (
-        <span className={`flex items-center text-sm font-semibold ${statusConfig.colorClass}`}>
-            <statusConfig.Icon className="w-4 h-4 mr-1" />
-            {statusConfig.text}
+        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colorVariants[status.color]}`}>
+            <status.Icon className="w-4 h-4 mr-1.5" />
+            {status.text}
         </span>
     );
 };
 
 const DocumentList: React.FC = () => {
   const { data: session } = useSession();
-  const [documents, setDocuments] = useState<Document[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [documents, setDocuments] = useState<DocumentWithSignatories[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (session?.user) {
-      const loadDocuments = async () => {
-        setIsLoading(true);
-        const userDocs = await getDocumentsForUser();
-        setDocuments(userDocs);
-        setIsLoading(false);
-      };
-      loadDocuments();
+  const fetchDocuments = useCallback(async () => {
+    if (session) {
+      try {
+        setLoading(true);
+        const docs = await getDocuments();
+        // sort documents by updatedAt date
+        docs.sort((a: DocumentWithSignatories, b: DocumentWithSignatories) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+        setDocuments(docs);
+      } catch (error) {
+        console.error('Failed to fetch documents:', error);
+      } finally {
+        setLoading(false);
+      }
     }
   }, [session]);
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center p-10">
-        <Loader className="w-6 h-6 animate-spin" />
-        <span className="ml-2">Loading documents...</span>
-      </div>
-    );
+  useEffect(() => {
+    fetchDocuments();
+  }, [fetchDocuments]);
+  
+  useEffect(() => {
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (openMenuId && !(event.target as HTMLElement).closest('.menu-container')) {
+        setOpenMenuId(null);
+      }
+    };
+    document.addEventListener('click', handleOutsideClick);
+    return () => document.removeEventListener('click', handleOutsideClick);
+  }, [openMenuId]);
+
+
+  const handleDelete = async (docId: string) => {
+    if (window.confirm('Are you sure you want to delete this draft?')) {
+      try {
+        await deleteDocument(docId);
+        setDocuments(prevDocs => prevDocs.filter(d => d.id !== docId));
+        setOpenMenuId(null);
+      } catch (error) {
+        console.error('Failed to delete document:', error);
+        alert('Failed to delete document. See console for details.');
+      }
+    }
+  };
+
+  if (loading) {
+    return <div className="text-center p-10">Loading documents...</div>;
   }
 
-  if (!session?.user) {
-    return (
-      <div className="flex items-center justify-center p-10">
-        <p>Please log in to see your documents.</p>
-      </div>
-    )
+  if (!session) {
+    return <div className="text-center p-10">Please log in to see your documents.</div>;
   }
 
   return (
@@ -87,9 +113,9 @@ const DocumentList: React.FC = () => {
             <Link 
               key={doc.id} 
               href={`/dashboard/documents/${doc.id}`} 
-              className="block p-4 border-b hover:bg-gray-50 cursor-pointer"
+              className="group block"
             >
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between p-4 border-b hover:bg-gray-50">
                 <div className="flex items-center">
                   <FileText className="w-6 h-6 mr-3 text-blue-500" />
                   <div>
@@ -99,8 +125,55 @@ const DocumentList: React.FC = () => {
                     </p>
                   </div>
                 </div>
+
                 <div className="flex items-center">
-                  <DocumentStatus doc={doc} userId={session.user.id!} />
+                  <div className="group-hover:hidden">
+                    <DocumentStatus doc={doc} userId={session.user.id!} />
+                  </div>
+                  <div className="hidden group-hover:block relative menu-container">
+                    <button
+                      onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setOpenMenuId(openMenuId === doc.id ? null : doc.id);
+                      }}
+                      className="p-1 rounded-full hover:bg-gray-200"
+                    >
+                      <MoreVertical className="w-5 h-5 text-gray-600" />
+                    </button>
+                    {openMenuId === doc.id && (
+                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border">
+                          <ul className="py-1">
+                              <li>
+                                  <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => alert('Reminders sent!')}>
+                                      Relancer les signataires
+                                  </button>
+                              </li>
+                              <li>
+                                  <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => alert('Workflow cancelled!')}>
+                                      Annuler les signatures
+                                  </button>
+                              </li>
+                              {doc.status.toLowerCase() === 'draft' && (
+                                  <>
+                                    <div className="border-t my-1"></div>
+                                    <li>
+                                        <button 
+                                            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleDelete(doc.id);
+                                            }}
+                                        >
+                                            Supprimer
+                                        </button>
+                                    </li>
+                                  </>
+                              )}
+                          </ul>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </Link>
