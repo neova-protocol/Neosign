@@ -98,7 +98,7 @@ export default function DocumentStatusPage() {
                          <div className="flex-grow w-full bg-white border flex items-center justify-center">
                             <p className="text-xs text-gray-400">Preview</p>
                          </div>
-                         <Button size="sm" className="mt-2 w-full">See</Button>
+                         <Button size="sm" className="mt-2 w-full" onClick={() => router.push(`/dashboard/sign/document/${documentId}`)}>See</Button>
                     </div>
                     <div>
                         <h1 className="text-2xl font-bold text-gray-800">{document.name}</h1>

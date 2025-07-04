@@ -1,15 +1,15 @@
 "use client"
 import React, { useState, useEffect, useRef } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
-import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
-import 'react-pdf/dist/esm/Page/TextLayer.css';
+import 'react-pdf/dist/Page/AnnotationLayer.css';
+import 'react-pdf/dist/Page/TextLayer.css';
 import { useSignature } from '@/contexts/SignatureContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { SignatureFieldComponent } from '@/components/pdf/SignatureField';
 import { SignatureField } from '@/contexts/SignatureContext';
 
-// Configure PDF.js worker from an official CDN
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
+// Configure PDF.js worker from a local path
+pdfjs.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.js`;
 
 interface PDFViewerProps {
   fileUrl: string;

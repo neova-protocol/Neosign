@@ -8,6 +8,7 @@ import { getDocumentById, saveDocument } from '@/lib/api';
 import { Document, SignatureField } from '@/contexts/SignatureContext';
 import SignatureDialog from '@/components/signature/SignatureDialog';
 import { Button } from '@/components/ui/button';
+import { v4 as uuidv4 } from 'uuid';
 
 const PDFViewerWithNoSSR = dynamic(
   () => import('@/components/pdf/PDFViewer'),
@@ -68,7 +69,17 @@ export default function SignDocumentPage() {
         const updatedSignatories = updatedDocument.signatories.map(s => 
             s.id === currentUser.id ? { ...s, status: 'signed' as const } : s
         );
-        updatedDocument = { ...updatedDocument, signatories: updatedSignatories };
+
+        const newEvent = {
+            id: uuidv4(),
+            type: 'signed' as const,
+            date: new Date(),
+            userId: currentUser.id,
+            userName: currentUser.name,
+        };
+        const events = updatedDocument.events ? [...updatedDocument.events, newEvent] : [newEvent];
+
+        updatedDocument = { ...updatedDocument, signatories: updatedSignatories, events };
     }
 
     const allFieldsSigned = updatedDocument.fields.every(f => !!f.value);
@@ -78,6 +89,10 @@ export default function SignDocumentPage() {
 
     await saveDocument(updatedDocument);
     setDocument(updatedDocument);
+
+    if (allMyFieldsSigned) {
+        router.push(`/dashboard/sign/status/${document.id}`);
+    }
   };
 
   const signatoryForDialog = useMemo(() => {
@@ -97,14 +112,25 @@ export default function SignDocumentPage() {
     .filter(f => f.signatoryId === currentUser.id)
     .every(f => !!f.value);
 
+  const handleSignAll = () => {
+      const firstUnsignedField = document?.fields.find(f => f.signatoryId === currentUser.id && !f.value);
+      if(firstUnsignedField) {
+          handleSignClick(firstUnsignedField);
+      }
+  }
 
   return (
     <div className="flex flex-col h-screen bg-gray-100">
         <header className="flex items-center justify-between p-4 bg-white border-b">
             <h1 className="text-xl font-semibold">{document.name}</h1>
-            <Button onClick={handleFinishSigning} disabled={!allCurrentUserFieldsSigned}>
-                Finish & Close
-            </Button>
+            <div className="flex items-center space-x-2">
+                {!allCurrentUserFieldsSigned && (
+                    <Button onClick={handleSignAll} variant="default">Sign Document</Button>
+                )}
+                <Button onClick={handleFinishSigning} variant="outline">
+                    Finish & Close
+                </Button>
+            </div>
         </header>
       <div className="flex-1 overflow-y-auto">
         <PDFViewerWithNoSSR
