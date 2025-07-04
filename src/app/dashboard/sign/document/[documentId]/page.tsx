@@ -1,153 +1,102 @@
 "use client";
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import { useSignature } from '@/contexts/SignatureContext';
+import { getDocumentById, updateSignatureField } from '@/lib/api';
 import dynamic from 'next/dynamic';
-import { useAuth } from '@/contexts/AuthContext';
-import { getDocumentById, saveDocument } from '@/lib/api';
-import { Document, SignatureField } from '@/contexts/SignatureContext';
-import SignatureDialog from '@/components/signature/SignatureDialog';
+import { Document as AppDocument, SignatureField } from '@/contexts/SignatureContext';
 import { Button } from '@/components/ui/button';
-import { v4 as uuidv4 } from 'uuid';
 
-const PDFViewerWithNoSSR = dynamic(
-  () => import('@/components/pdf/PDFViewer'),
-  { ssr: false }
-);
+// Dynamically import heavy components
+const PDFViewer = dynamic(() => import('@/components/pdf/PDFViewer'), { ssr: false });
+const SignatureModal = dynamic(() => import('@/components/signature/SignatureModal'), { ssr: false });
 
 export default function SignDocumentPage() {
-  const { documentId } = useParams();
-  const { currentUser } = useAuth();
-  const router = useRouter();
+    const params = useParams();
+    const router = useRouter();
+    const documentId = params.documentId as string;
+    const { data: session } = useSession();
+    const { currentDocument, setCurrentDocument } = useSignature();
 
-  const [document, setDocument] = useState<Document | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [fieldToSign, setFieldToSign] = useState<SignatureField | null>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [fieldToSign, setFieldToSign] = useState<SignatureField | null>(null);
 
-  useEffect(() => {
-    const fetchDocument = async () => {
-      if (typeof documentId !== 'string') return;
-      try {
-        setIsLoading(true);
-        const doc = await getDocumentById(documentId as string);
-        if (!doc) {
-          router.push('/dashboard/sign');
-          return;
+    useEffect(() => {
+        if (documentId && (!currentDocument || currentDocument.id !== documentId)) {
+            getDocumentById(documentId).then(doc => {
+                if (doc) setCurrentDocument(doc);
+            });
         }
-        setDocument(doc);
-      } catch (error) {
-        console.error("Failed to fetch document", error);
-      } finally {
-        setIsLoading(false);
-      }
+    }, [documentId, currentDocument, setCurrentDocument]);
+
+    const handleSignClick = (field: SignatureField) => {
+        setFieldToSign(field);
+        setIsModalOpen(true);
     };
-    fetchDocument();
-  }, [documentId, router]);
 
-  const handleSignClick = (field: SignatureField) => {
-    if (field.signatoryId === currentUser.id) {
-      setFieldToSign(field);
-    }
-  };
+    const handleSaveSignature = async (signatureDataUrl: string) => {
+        if (!currentDocument || !fieldToSign || !session?.user) return;
+        
+        // Here you would call an API to update the field and signatory status
+        console.log("Saving signature for field:", fieldToSign.id);
+        
+        // For now, let's just optimistically update the UI
+        // In a real app, this logic would be much more robust, likely in a context or custom hook
+        const updatedField = await updateSignatureField(currentDocument.id, fieldToSign.id, { value: signatureDataUrl });
 
-  const handleConfirmSignature = async (signatureDataUrl: string) => {
-    if (!fieldToSign || !document) return;
+        if (updatedField) {
+            // Refetch document to get all updates (field value, signatory status, events)
+            const updatedDoc = await getDocumentById(currentDocument.id);
+            if(updatedDoc) setCurrentDocument(updatedDoc);
+        } else {
+            alert("Failed to save signature.");
+        }
 
-    const updatedFields = document.fields.map(f =>
-      f.id === fieldToSign.id ? { ...f, value: signatureDataUrl } : f
-    );
-    
-    let updatedDocument = { ...document, fields: updatedFields };
-    setDocument(updatedDocument);
-    setFieldToSign(null);
 
-    const allMyFieldsSigned = updatedDocument.fields
-      .filter(f => f.signatoryId === currentUser.id)
-      .every(f => !!f.value);
+        setIsModalOpen(false);
+        setFieldToSign(null);
+    };
 
-    if (allMyFieldsSigned) {
-        const updatedSignatories = updatedDocument.signatories.map(s => 
-            s.id === currentUser.id ? { ...s, status: 'signed' as const } : s
-        );
-
-        const newEvent = {
-            id: uuidv4(),
-            type: 'signed' as const,
-            date: new Date(),
-            userId: currentUser.id,
-            userName: currentUser.name,
-        };
-        const events = updatedDocument.events ? [...updatedDocument.events, newEvent] : [newEvent];
-
-        updatedDocument = { ...updatedDocument, signatories: updatedSignatories, events };
+    if (!currentDocument || !currentDocument.fileUrl) {
+        return <div className="p-8 text-center">Loading document...</div>;
     }
 
-    const allFieldsSigned = updatedDocument.fields.every(f => !!f.value);
-    if (allFieldsSigned) {
-        updatedDocument.status = 'completed';
+    const selfAsSignatory = session?.user ? currentDocument.signatories.find(s => s.userId === session.user.id) : null;
+    if (!selfAsSignatory) {
+        return <div className="p-8 text-center">You are not a signatory on this document.</div>;
     }
 
-    await saveDocument(updatedDocument);
-    setDocument(updatedDocument);
+    const allMyFieldsSigned = currentDocument.fields
+        .filter(f => f.signatoryId === selfAsSignatory.id)
+        .every(f => !!f.value);
 
-    if (allMyFieldsSigned) {
-        router.push(`/dashboard/sign/status/${document.id}`);
-    }
-  };
-
-  const signatoryForDialog = useMemo(() => {
-    if (!fieldToSign || !document) return null;
-    return document.signatories.find((s: any) => s.id === fieldToSign.signatoryId);
-  }, [fieldToSign, document]);
-
-  const handleFinishSigning = () => {
-      router.push('/dashboard/sign');
-  }
-
-  if (isLoading || !document) {
-    return <div>Loading document...</div>;
-  }
-
-  const allCurrentUserFieldsSigned = document.fields
-    .filter(f => f.signatoryId === currentUser.id)
-    .every(f => !!f.value);
-
-  const handleSignAll = () => {
-      const firstUnsignedField = document?.fields.find(f => f.signatoryId === currentUser.id && !f.value);
-      if(firstUnsignedField) {
-          handleSignClick(firstUnsignedField);
-      }
-  }
-
-  return (
-    <div className="flex flex-col h-screen bg-gray-100">
-        <header className="flex items-center justify-between p-4 bg-white border-b">
-            <h1 className="text-xl font-semibold">{document.name}</h1>
-            <div className="flex items-center space-x-2">
-                {!allCurrentUserFieldsSigned && (
-                    <Button onClick={handleSignAll} variant="default">Sign Document</Button>
+    return (
+        <div className="flex flex-col h-screen bg-gray-100">
+            <header className="flex items-center justify-between p-4 bg-white border-b shadow-sm">
+                <h1 className="text-xl font-semibold">{currentDocument.name}</h1>
+                {allMyFieldsSigned && (
+                    <Button onClick={() => router.push(`/dashboard/documents/${documentId}`)} variant="default">
+                        Finish & Close
+                    </Button>
                 )}
-                <Button onClick={handleFinishSigning} variant="outline">
-                    Finish & Close
-                </Button>
-            </div>
-        </header>
-      <div className="flex-1 overflow-y-auto">
-        <PDFViewerWithNoSSR
-          fileUrl={document.fileUrl!}
-          document={document}
-          onSignClick={handleSignClick}
-        />
-      </div>
-
-      {fieldToSign && signatoryForDialog && (
-        <SignatureDialog
-          open={!!fieldToSign}
-          onOpenChange={(open) => !open && setFieldToSign(null)}
-          onConfirm={handleConfirmSignature}
-          signatoryName={signatoryForDialog.name}
-        />
-      )}
-    </div>
-  );
+            </header>
+            <main className="flex-1 overflow-y-auto">
+                {isModalOpen && fieldToSign && (
+                    <SignatureModal 
+                        isOpen={isModalOpen} 
+                        onClose={() => setIsModalOpen(false)} 
+                        onSave={handleSaveSignature} 
+                    />
+                )}
+                <PDFViewer
+                    fileUrl={currentDocument.fileUrl}
+                    document={currentDocument}
+                    activeSignatoryId={session?.user?.id}
+                    onSignClick={handleSignClick}
+                />
+            </main>
+        </div>
+    );
 } 

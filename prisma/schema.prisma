@@ -1,0 +1,140 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  hashedPassword String?
+  accounts      Account[]
+  sessions      Session[]
+
+  // Document-related fields
+  createdDocuments Document[]
+  signatoryEntries Signatory[]
+  events           DocumentEvent[]
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ---- Document Models ----
+
+model Document {
+  id        String   @id @default(cuid())
+  name      String
+  fileUrl   String
+  status    String   @default("draft") // e.g., draft, sent, completed
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  creatorId String
+  creator   User     @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  signatories Signatory[]
+  fields      SignatureField[]
+  events      DocumentEvent[]
+
+  @@index([creatorId])
+}
+
+model Signatory {
+  id     String @id @default(cuid())
+  name   String
+  email  String
+  role   String
+  color  String
+  status String @default("preparing") // e.g., preparing, pending, signed, declined
+
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  // Optional link to a platform user
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  fields SignatureField[]
+
+  @@index([documentId])
+  @@index([userId])
+}
+
+model SignatureField {
+  id     String @id @default(cuid())
+  type   String // e.g., signature, text, date
+  page   Int
+  x      Float
+  y      Float
+  width  Float
+  height Float
+  value  String?
+
+  documentId  String
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  signatoryId String?
+  signatory   Signatory? @relation(fields: [signatoryId], references: [id], onDelete: SetNull)
+
+  @@index([documentId])
+  @@index([signatoryId])
+}
+
+model DocumentEvent {
+  id       String   @id @default(cuid())
+  type     String // e.g., created, sent, consulted, signed
+  date     DateTime @default(now())
+  userName String
+
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  // The user who performed the action, if they are a platform user
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([documentId])
+  @@index([userId])
+}

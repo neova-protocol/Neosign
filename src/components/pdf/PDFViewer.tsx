@@ -4,9 +4,9 @@ import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 import { useSignature } from '@/contexts/SignatureContext';
-import { useAuth } from '@/contexts/AuthContext';
+import { useSession } from 'next-auth/react';
 import { SignatureFieldComponent } from '@/components/pdf/SignatureField';
-import { SignatureField } from '@/contexts/SignatureContext';
+import { SignatureField, Signatory } from '@/contexts/SignatureContext';
 
 // Configure PDF.js worker from a local path
 pdfjs.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.js`;
@@ -19,7 +19,8 @@ interface PDFViewerProps {
 }
 
 export default function PDFViewer({ fileUrl, document, activeSignatoryId, onSignClick }: PDFViewerProps) {
-  const { currentUser } = useAuth();
+  const { data: session } = useSession();
+  const currentUser = session?.user;
   const { addField, updateField, removeField } = useSignature();
   const [numPages, setNumPages] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -30,25 +31,34 @@ export default function PDFViewer({ fileUrl, document, activeSignatoryId, onSign
   }
 
   const handlePageClick = (e: React.MouseEvent<HTMLDivElement>, pageNumber: number) => {
-    if (isSigningMode || !activeSignatoryId) return;
+    const target = e.target as HTMLElement;
+    if (target.closest('.signature-field-wrapper')) {
+      return;
+    }
+
+    if (isSigningMode || !activeSignatoryId || !document) return;
 
     const pageElement = e.currentTarget;
     const rect = pageElement.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    addField({
-      type: 'signature',
+    const fieldData = {
+      type: 'signature' as const,
       page: pageNumber,
       x,
       y,
       width: 150,
-      height: 75, // A bit taller to accomodate text
+      height: 75,
       signatoryId: activeSignatoryId,
-    });
+      value: undefined,
+    };
+    
+    // Call the context function, which handles the API call
+    addField(fieldData);
   };
 
-  const fields = isSigningMode ? document?.fields : document?.fields;
+  const fields = document?.fields || [];
 
   return (
     <div ref={containerRef} className="relative w-full h-full overflow-auto p-4 bg-gray-200">
@@ -69,8 +79,11 @@ export default function PDFViewer({ fileUrl, document, activeSignatoryId, onSign
               {fields
                 .filter((field: SignatureField) => field.page === index + 1)
                 .map((field: SignatureField) => {
+                  const signatory = document.signatories.find((s: Signatory) => s.id === field.signatoryId);
+
                   if (isSigningMode) {
-                    const isCurrentUserField = field.signatoryId === currentUser.id;
+                    if (!currentUser) return null;
+                    const isCurrentUserField = signatory?.userId === currentUser.id;
                     const hasBeenSigned = !!field.value;
                     
                     if (hasBeenSigned) {
@@ -83,7 +96,7 @@ export default function PDFViewer({ fileUrl, document, activeSignatoryId, onSign
 
                     if (isCurrentUserField) {
                         return (
-                          <div key={field.id} style={{ position: 'absolute', left: field.x, top: field.y, width: field.width, height: field.height, zIndex: 10 }}>
+                          <div key={field.id} className="signature-field-wrapper" style={{ position: 'absolute', left: field.x, top: field.y, width: field.width, height: field.height, zIndex: 10 }}>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -98,10 +111,9 @@ export default function PDFViewer({ fileUrl, document, activeSignatoryId, onSign
                     }
 
                     // For other signatories, show a placeholder
-                    const signatory = document.signatories.find((s: any) => s.id === field.signatoryId);
                     return (
                         <div key={field.id} 
-                            className="absolute flex items-center justify-center border-2 border-dashed rounded-md"
+                            className="absolute flex items-center justify-center border-2 border-dashed rounded-md signature-field-wrapper"
                             style={{
                                 left: field.x, top: field.y, width: field.width, height: field.height,
                                 borderColor: signatory?.color || '#cccccc',

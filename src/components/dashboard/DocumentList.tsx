@@ -1,106 +1,115 @@
 "use client";
 import React, { useEffect, useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useSession } from 'next-auth/react';
 import { getDocumentsForUser } from '@/lib/api';
-import { Document, Signatory } from '@/contexts/SignatureContext';
-import { FileText, Clock, CheckCircle, Loader } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { Document } from '@/contexts/SignatureContext';
+import { FileText, Clock, CheckCircle, Loader, Edit, AlertCircle } from 'lucide-react';
+import Link from 'next/link';
+import { format } from 'date-fns';
 
-const DocumentStatus: React.FC<{ document: Document; currentUserId: string }> = ({ document, currentUserId }) => {
-  const userSignatory = document.signatories.find(s => s.id === currentUserId);
+const DocumentStatus: React.FC<{ doc: Document, userId: string }> = ({ doc, userId }) => {
+    let statusConfig = {
+        text: "Draft",
+        Icon: FileText,
+        colorClass: "text-gray-500",
+    };
 
-  if (document.status === 'completed') {
+    switch (doc.status) {
+        case 'completed':
+            statusConfig = { text: "Completed", Icon: CheckCircle, colorClass: "text-green-600" };
+            break;
+        case 'sent':
+            const mySignatoryInfo = doc.signatories.find(s => s.userId === userId);
+            if (mySignatoryInfo && mySignatoryInfo.status === 'pending') {
+                statusConfig = { text: "Signature Required", Icon: Edit, colorClass: "text-orange-500" };
+            } else {
+                statusConfig = { text: "In Progress", Icon: Clock, colorClass: "text-blue-500" };
+            }
+            break;
+        case 'draft':
+            // Already default
+            break;
+        // case 'cancelled': // For future use
+        //     statusConfig = { text: "Cancelled", Icon: AlertCircle, colorClass: "text-red-600" };
+        //     break;
+    }
+
     return (
-      <div className="flex items-center space-x-2 text-sm text-green-600">
-        <CheckCircle className="h-4 w-4" />
-        <span>Completed</span>
-      </div>
+        <span className={`flex items-center text-sm font-semibold ${statusConfig.colorClass}`}>
+            <statusConfig.Icon className="w-4 h-4 mr-1" />
+            {statusConfig.text}
+        </span>
     );
-  }
-
-  if (userSignatory?.status === 'signed') {
-    return (
-      <div className="flex items-center space-x-2 text-sm text-blue-600">
-        <Loader className="h-4 w-4 animate-spin" />
-        <span>Waiting for others</span>
-      </div>
-    );
-  }
-
-  if (userSignatory?.status === 'pending') {
-    return (
-      <div className="flex items-center space-x-2 text-sm text-yellow-600">
-        <Clock className="h-4 w-4" />
-        <span>Awaiting your signature</span>
-      </div>
-    );
-  }
-  
-  return null; // Should not happen in this view
 };
 
 const DocumentList: React.FC = () => {
-  const { currentUser } = useAuth();
+  const { data: session } = useSession();
   const [documents, setDocuments] = useState<Document[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const router = useRouter();
 
   useEffect(() => {
-    const fetchDocuments = async () => {
-      if (!currentUser) return;
-      setIsLoading(true);
-      const userDocs = await getDocumentsForUser(currentUser.id);
-      setDocuments(userDocs);
-      setIsLoading(false);
-    };
-    fetchDocuments();
-  }, [currentUser]);
-
-  const handleDocumentClick = (doc: Document) => {
-    const userSignatory = doc.signatories.find(s => s.id === currentUser.id);
-
-    if(userSignatory?.status === 'pending') {
-      router.push(`/dashboard/sign/document/${doc.id}`);
-    } else {
-      router.push(`/dashboard/sign/status/${doc.id}`);
+    if (session?.user) {
+      const loadDocuments = async () => {
+        setIsLoading(true);
+        const userDocs = await getDocumentsForUser();
+        setDocuments(userDocs);
+        setIsLoading(false);
+      };
+      loadDocuments();
     }
-  };
+  }, [session]);
 
   if (isLoading) {
-    return <div>Loading documents...</div>;
-  }
-
-  if (documents.length === 0) {
     return (
-      <div className="text-center py-12">
-        <h3 className="text-lg font-medium">No documents to sign or track</h3>
-        <p className="text-gray-500">You're all caught up!</p>
+      <div className="flex items-center justify-center p-10">
+        <Loader className="w-6 h-6 animate-spin" />
+        <span className="ml-2">Loading documents...</span>
       </div>
     );
   }
 
+  if (!session?.user) {
+    return (
+      <div className="flex items-center justify-center p-10">
+        <p>Please log in to see your documents.</p>
+      </div>
+    )
+  }
+
   return (
-    <div className="space-y-4">
-      <h2 className="text-xl font-semibold">Documents</h2>
-      <div className="bg-white rounded-lg border">
-        {documents.map(doc => (
-          <div 
-            key={doc.id} 
-            className="flex items-center justify-between p-4 border-b last:border-b-0 hover:bg-gray-50 cursor-pointer"
-            onClick={() => handleDocumentClick(doc)}
-          >
-            <div className="flex items-center space-x-4">
-              <FileText className="h-6 w-6 text-gray-400" />
-              <div>
-                <p className="font-medium">{doc.name}</p>
-                <p className="text-sm text-gray-500">
-                  Sent on {new Date(doc.createdAt).toLocaleDateString()}
-                </p>
+    <div className="bg-white rounded-lg shadow">
+      <div className="p-4 border-b">
+        <h2 className="text-lg font-semibold">My Documents</h2>
+      </div>
+      <div>
+        {documents.length > 0 ? (
+          documents.map(doc => (
+            <Link 
+              key={doc.id} 
+              href={`/dashboard/documents/${doc.id}`} 
+              className="block p-4 border-b hover:bg-gray-50 cursor-pointer"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <FileText className="w-6 h-6 mr-3 text-blue-500" />
+                  <div>
+                    <p className="font-semibold">{doc.name}</p>
+                    <p className="text-sm text-gray-500">
+                      Last updated: {format(new Date(doc.updatedAt), 'PPpp')}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center">
+                  <DocumentStatus doc={doc} userId={session.user.id!} />
+                </div>
               </div>
-            </div>
-            <DocumentStatus document={doc} currentUserId={currentUser.id} />
+            </Link>
+          ))
+        ) : (
+          <div className="text-center p-10">
+            <p>You have no documents yet.</p>
           </div>
-        ))}
+        )}
       </div>
     </div>
   );

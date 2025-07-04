@@ -1,12 +1,11 @@
 "use client"
 import React, { useState } from 'react';
 import { useSignature } from '@/contexts/SignatureContext';
-import { useAuth } from '@/contexts/AuthContext';
+import { useSession } from 'next-auth/react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Plus, X, Save, Send, Loader2, Trash2, UserPlus } from 'lucide-react';
 import { Signatory } from '@/contexts/SignatureContext';
-import { saveDocument, sendDocumentForSignature } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 
 interface SignatoryPanelProps {
@@ -17,7 +16,8 @@ interface SignatoryPanelProps {
 const colors = ["#FF5733", "#33FF57", "#3357FF", "#F1C40F", "#9B59B6"];
 
 const SignatoryPanel: React.FC<SignatoryPanelProps> = ({ selectedSignatoryId, onSelectSignatory }) => {
-  const { currentUser } = useAuth();
+  const { data: session } = useSession();
+  const currentUser = session?.user;
   const { currentDocument, addSignatory, removeSignatory } = useSignature();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -25,54 +25,67 @@ const SignatoryPanel: React.FC<SignatoryPanelProps> = ({ selectedSignatoryId, on
   const router = useRouter();
 
   const handleAddMyself = () => {
-    if (currentUser && currentDocument) {
-      if (currentDocument.signatories.some(s => s.id === currentUser.id)) {
-        return; // Already in the list
-      }
-      const nextColor = colors[currentDocument.signatories.length % colors.length];
-      addSignatory({
-        id: currentUser.id, // Use the stable user ID
-        name: currentUser.name,
-        email: currentUser.email,
-        role: 'Sender',
-        color: nextColor,
-      });
+    if (currentUser && currentUser.name && currentUser.email) {
+      handleAddSignatory(currentUser.name, currentUser.email);
     }
   };
 
-  const handleAddSignatory = () => {
-    if (name && email && currentDocument) {
-      const nextColor = colors[currentDocument.signatories.length % colors.length];
-      addSignatory({
-        id: `sig-${Date.now()}`, // Keep this for external signatories
-        name,
-        email,
+  const handleAddSignatory = async (nameToAdd?: string, emailToAdd?: string) => {
+    const finalName = nameToAdd || name;
+    const finalEmail = emailToAdd || email;
+
+    if (finalName && finalEmail && currentDocument) {
+      const signatoryData = {
+        name: finalName,
+        email: finalEmail,
         role: 'Signatory',
-        color: nextColor,
+        color: colors[currentDocument.signatories.length % colors.length],
+      };
+      
+      const res = await fetch(`/api/documents/${currentDocument.id}/signatories`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(signatoryData),
       });
-      setName('');
-      setEmail('');
+
+      if (res.ok) {
+          const newSignatory = await res.json();
+          addSignatory(newSignatory);
+          if (!nameToAdd) {
+            setName('');
+            setEmail('');
+          }
+      } else {
+          alert('Failed to add signatory.');
+      }
     }
   };
   
   const handleSend = async () => {
-    if (!currentDocument) return;
+    if (!currentDocument || !currentUser) return;
     setIsSending(true);
     try {
-      const result = await sendDocumentForSignature(currentDocument, currentUser);
-      if (result.success) {
-        router.push("/dashboard/sign");
+      const res = await fetch(`/api/send-document`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documentId: currentDocument.id }),
+      });
+
+      if (res.ok) {
+        router.push("/dashboard");
       } else {
-        console.error("Failed to send document");
+        const errorData = await res.json();
+        alert(`Failed to send document: ${errorData.error}`);
       }
     } catch (error) {
       console.error("Error sending document:", error);
+      alert("An error occurred while sending the document.");
     } finally {
       setIsSending(false);
     }
   };
 
-  const isCurrentUserSignatory = currentDocument?.signatories.some(s => s.id === currentUser.id) ?? false;
+  const isCurrentUserSignatory = currentDocument?.signatories.some(s => s.id === currentUser?.id) ?? false;
 
   if (!currentDocument) return null;
 
@@ -104,7 +117,7 @@ const SignatoryPanel: React.FC<SignatoryPanelProps> = ({ selectedSignatoryId, on
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
-        <Button onClick={handleAddSignatory} className="w-full">
+        <Button onClick={() => handleAddSignatory()} className="w-full">
           <Plus className="mr-2 h-4 w-4" /> Add Signatory
         </Button>
       </div>
@@ -128,9 +141,19 @@ const SignatoryPanel: React.FC<SignatoryPanelProps> = ({ selectedSignatoryId, on
             <Button
                 variant="ghost"
                 size="icon"
-                onClick={(e) => {
+                onClick={async (e) => {
                     e.stopPropagation();
-                    removeSignatory(signatory.id);
+                    if (!currentDocument) return;
+
+                    const res = await fetch(`/api/documents/${currentDocument.id}/signatories/${signatory.id}`, {
+                        method: 'DELETE',
+                    });
+
+                    if (res.ok) {
+                        removeSignatory(signatory.id);
+                    } else {
+                        alert('Failed to remove signatory.');
+                    }
                 }}
             >
                 <Trash2 className="h-4 w-4 text-gray-400 hover:text-red-500" />
