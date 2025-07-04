@@ -3,7 +3,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { getDocuments, deleteDocument } from '@/lib/api';
 import { Document } from '@prisma/client';
-import { FileText, Clock, CheckCircle, AlertTriangle, Edit, MoreVertical } from 'lucide-react';
+import { FileText, Clock, CheckCircle, AlertTriangle, Edit, MoreVertical, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 
@@ -17,12 +17,14 @@ const getStatus = (doc: DocumentWithSignatories, userId: string) => {
       return { text: 'Draft', color: 'gray', Icon: Edit };
     case 'completed':
       return { text: 'Completed', color: 'green', Icon: CheckCircle };
+    case 'cancelled':
+      return { text: 'Cancelled', color: 'red', Icon: XCircle };
     case 'sent':
       const userSignatory = doc.signatories.find(s => s.userId === userId);
-      if (userSignatory && userSignatory.status === 'PENDING') {
+      if (userSignatory && userSignatory.status.toLowerCase() === 'pending') {
         return { text: 'Signature Required', color: 'orange', Icon: AlertTriangle };
       }
-      return { text: 'In Progress', color: 'blue', Icon: Clock };
+      return { text: 'Waiting for Others', color: 'blue', Icon: Clock };
     default:
       return { text: 'Unknown', color: 'gray', Icon: AlertTriangle };
   }
@@ -35,6 +37,7 @@ const DocumentStatus: React.FC<{ doc: DocumentWithSignatories, userId: string }>
         green: 'text-green-600 bg-green-100',
         orange: 'text-orange-600 bg-orange-100',
         blue: 'text-blue-600 bg-blue-100',
+        red: 'text-red-600 bg-red-100',
     };
     return (
         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colorVariants[status.color]}`}>
