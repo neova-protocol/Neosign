@@ -18,7 +18,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     }
     
     try {
-        const { documentId } = params;
+        const { documentId } = await params;
         const { name, email, role, color, id: potentialUserId } = await req.json();
 
         if (!name || !email) {

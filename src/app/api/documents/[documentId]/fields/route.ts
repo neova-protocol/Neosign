@@ -12,10 +12,12 @@ export async function POST(req: NextRequest, { params }: { params: { documentId:
     }
 
     try {
-        const { documentId } = params;
+        const { documentId } = await params;
         const body = await req.json();
 
         const { type, page, x, y, width, height, signatoryId } = body;
+
+        console.log(`Received request to create field for document ${documentId} with signatoryId: ${signatoryId}`);
 
         if (!type || page === undefined || x === undefined || y === undefined || width === undefined || height === undefined) {
             return NextResponse.json({ error: 'Missing required field properties' }, { status: 400 });

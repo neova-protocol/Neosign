@@ -6,7 +6,7 @@ import 'react-pdf/dist/Page/TextLayer.css';
 import { useSignature } from '@/contexts/SignatureContext';
 import { useSession } from 'next-auth/react';
 import { SignatureFieldComponent } from '@/components/pdf/SignatureField';
-import { SignatureField, Signatory } from '@/contexts/SignatureContext';
+import { SignatureField, Signatory } from '@/types';
 
 // Configure PDF.js worker from a local path
 pdfjs.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.js`;
@@ -37,6 +37,10 @@ export default function PDFViewer({ fileUrl, document, activeSignatoryId, onSign
     }
 
     if (isSigningMode || !activeSignatoryId || !document) return;
+
+    console.log("Creating field for document:", document.id);
+    console.log("Current signatories in viewer:", document.signatories);
+    console.log("Active signatoryId:", activeSignatoryId);
 
     const pageElement = e.currentTarget;
     const rect = pageElement.getBoundingClientRect();
@@ -84,9 +88,8 @@ export default function PDFViewer({ fileUrl, document, activeSignatoryId, onSign
                   if (isSigningMode) {
                     if (!currentUser) return null;
                     const isCurrentUserField = signatory?.userId === currentUser.id;
-                    const hasBeenSigned = !!field.value;
                     
-                    if (hasBeenSigned) {
+                    if (field.value) {
                       return (
                         <div key={field.id} style={{ position: 'absolute', left: field.x, top: field.y, width: field.width, height: field.height, zIndex: 10 }}>
                           <img src={field.value} alt="Signature" className="w-full h-full object-contain" />

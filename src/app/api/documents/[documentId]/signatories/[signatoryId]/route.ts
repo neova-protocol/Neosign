@@ -8,7 +8,7 @@ export async function DELETE(
   { params }: { params: { documentId: string; signatoryId: string } }
 ) {
   try {
-    const { signatoryId } = params;
+    const { signatoryId } = await params;
 
     // Optional: You could add extra validation here to ensure the user
     // has permission to delete this signatory from this document.

@@ -19,7 +19,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
     }
 
     try {
-        const { documentId, fieldId } = params;
+        const { documentId, fieldId } = await params;
         const { x, y, value } = await req.json();
 
         if (x === undefined && y === undefined && value === undefined) {
@@ -93,7 +93,7 @@ export async function DELETE(req: NextRequest, { params }: Params) {
     }
 
     try {
-        const { documentId, fieldId } = params;
+        const { documentId, fieldId } = await params;
 
         const document = await prisma.document.findUnique({
             where: { id: documentId },

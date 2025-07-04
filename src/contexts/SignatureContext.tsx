@@ -17,7 +17,8 @@ type SignatureContextType = {
   setDocuments: React.Dispatch<React.SetStateAction<Document[]>>;
   currentDocument: Document | null;
   setCurrentDocument: React.Dispatch<React.SetStateAction<Document | null>>;
-  addSignatory: (signatory: Omit<Signatory, 'id' | 'status' | 'userId'>) => Promise<void>;
+  addSignatory: (signatory: Omit<Signatory, 'id' | 'status' | 'userId'>) => Promise<Signatory | null>;
+  removeSignatory: (signatoryId: string) => void;
   addField: (field: Omit<SignatureField, 'id'>) => Promise<void>;
   updateField: (id: string, updates: Partial<SignatureField>) => Promise<void>;
   removeField: (id: string) => Promise<void>;
@@ -32,26 +33,25 @@ export const SignatureProvider: React.FC<{ children: ReactNode }> = ({ children 
   const addSignatory = useCallback(async (signatory: Omit<Signatory, 'id' | 'status' | 'userId'>) => {
     if (!currentDocument) return;
 
-    const newSignatory: Signatory = {
-      ...signatory,
-      id: uuidv4(),
-      status: 'preparing',
-      userId: null,
-    };
-
-    setCurrentDocument(prev => {
-      if (!prev) return null;
-      return {
-        ...prev,
-        signatories: [...prev.signatories, newSignatory]
-      };
-    });
-
     try {
-      await apiAddSignatory(currentDocument.id, newSignatory);
+      // Call the API first to get the real database ID
+      const newSignatory = await apiAddSignatory(currentDocument.id, signatory);
+      
+      if (newSignatory) {
+        // Update the local state with the signatory that has the correct database ID
+        setCurrentDocument(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            signatories: [...prev.signatories, newSignatory]
+          };
+        });
+      }
+      
+      return newSignatory;
     } catch (error) {
       console.error("Failed to add signatory", error);
-      // Optionally rollback UI change
+      return null;
     }
   }, [currentDocument]);
 
@@ -95,12 +95,23 @@ export const SignatureProvider: React.FC<{ children: ReactNode }> = ({ children 
     });
   }, [currentDocument]);
 
+  const removeSignatory = useCallback((signatoryId: string) => {
+    setCurrentDocument(prev => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        signatories: prev.signatories.filter(s => s.id !== signatoryId)
+      };
+    });
+  }, []);
+
   const value = {
     documents,
     setDocuments,
     currentDocument,
     setCurrentDocument,
     addSignatory,
+    removeSignatory,
     addField,
     updateField,
     removeField,

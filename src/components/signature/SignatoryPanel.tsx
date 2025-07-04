@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Plus, X, Save, Send, Loader2, Trash2, UserPlus } from 'lucide-react';
-import { Signatory } from '@/contexts/SignatureContext';
+import { Signatory } from '@/types';
 import { useRouter } from 'next/navigation';
 
 interface SignatoryPanelProps {
@@ -42,21 +42,15 @@ const SignatoryPanel: React.FC<SignatoryPanelProps> = ({ selectedSignatoryId, on
         color: colors[currentDocument.signatories.length % colors.length],
       };
       
-      const res = await fetch(`/api/documents/${currentDocument.id}/signatories`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(signatoryData),
-      });
-
-      if (res.ok) {
-          const newSignatory = await res.json();
-          addSignatory(newSignatory);
-          if (!nameToAdd) {
-            setName('');
-            setEmail('');
-          }
+      const newSignatory = await addSignatory(signatoryData);
+      
+      if (newSignatory) {
+        if (!nameToAdd) {
+          setName('');
+          setEmail('');
+        }
       } else {
-          alert('Failed to add signatory.');
+        alert('Failed to add signatory.');
       }
     }
   };

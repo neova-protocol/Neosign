@@ -9,12 +9,14 @@ const prisma = new PrismaClient();
 
 export async function GET(
     request: NextRequest, 
-    { params: { documentId } }: { params: { documentId: string } }
+    { params }: { params: { documentId: string } }
 ) {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
         return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
+
+    const { documentId } = await params;
 
     try {
         const document = await prisma.document.findUnique({
@@ -60,13 +62,14 @@ export async function GET(
 
 export async function DELETE(
     request: NextRequest, 
-    { params: { documentId } }: { params: { documentId: string } }
+    { params }: { params: { documentId: string } }
 ) {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
         return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
+    const { documentId } = await params;
     const userId = session.user.id;
 
     try {

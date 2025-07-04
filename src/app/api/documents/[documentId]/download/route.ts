@@ -13,7 +13,7 @@ interface Params {
 }
 
 export async function GET(req: NextRequest, { params }: Params) {
-    const { documentId } = params;
+    const { documentId } = await params;
 
     try {
         const document = await prisma.document.findUnique({
