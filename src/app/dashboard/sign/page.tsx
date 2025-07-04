@@ -2,7 +2,7 @@
 
 import { useState, useRef, DragEvent } from "react"
 import { useRouter } from "next/navigation"
-import { useFile } from "@/contexts/FileContext"
+import { useSignature } from "@/contexts/SignatureContext"
 import {
   Search,
   MoreHorizontal,
@@ -16,13 +16,13 @@ import { Checkbox } from "@/components/ui/checkbox"
 
 export default function NewSignaturePage() {
   const router = useRouter()
-  const { setFile } = useFile()
+  const { createDocument } = useSignature()
   const [isDragOver, setIsDragOver] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleFileChange = (selectedFile: File) => {
     if (selectedFile) {
-      setFile(selectedFile)
+      createDocument(selectedFile)
       router.push("/dashboard/sign/edit")
     }
   }
