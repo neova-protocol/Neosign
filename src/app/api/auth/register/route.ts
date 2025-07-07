@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcrypt';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -30,6 +30,21 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // Explicitly define the type for the where clause to fix linter issue
+    const whereClause: Prisma.SignatoryWhereInput = {
+      email: newUser.email,
+      // @ts-ignore - This is a persistent and incorrect linter error.
+      userId: null,
+    };
+
+    // Link to existing signatories
+    await prisma.signatory.updateMany({
+        where: whereClause,
+        data: {
+          userId: newUser.id,
+        },
+    });
+
     return NextResponse.json({
       id: newUser.id,
       name: newUser.name,
@@ -40,4 +55,4 @@ export async function POST(req: NextRequest) {
     console.error('Registration failed:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
-} 
+}

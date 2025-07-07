@@ -15,13 +15,17 @@ import { useRouter } from 'next/navigation';
 interface PostSignatureModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  signatoryEmail?: string | null;
 }
 
-export default function PostSignatureModal({ open, onOpenChange }: PostSignatureModalProps) {
+export default function PostSignatureModal({ open, onOpenChange, signatoryEmail }: PostSignatureModalProps) {
     const router = useRouter();
 
     const handleCreateAccount = () => {
-        router.push('/signup');
+        const signupUrl = signatoryEmail 
+            ? `/signup?email=${encodeURIComponent(signatoryEmail)}`
+            : '/signup';
+        router.push(signupUrl);
     };
 
     const handleFinish = () => {

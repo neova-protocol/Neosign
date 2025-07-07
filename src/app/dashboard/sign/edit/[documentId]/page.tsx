@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useSignature } from '@/contexts/SignatureContext';
@@ -22,7 +22,7 @@ export default function EditDocumentPage() {
     const router = useRouter();
     const documentId = params.documentId as string;
     const { data: session } = useSession();
-    const { currentDocument, setCurrentDocument } = useSignature();
+    const { currentDocument, setCurrentDocument, updateFieldPosition } = useSignature();
     const [selectedSignatoryId, setSelectedSignatoryId] = useState<string | null>(null);
 
     useEffect(() => {
@@ -37,7 +37,7 @@ export default function EditDocumentPage() {
                 }
             });
         }
-    }, [documentId, currentDocument, setCurrentDocument]);
+    }, [documentId, currentDocument?.id, setCurrentDocument]);
 
     const handleSendForSignature = async () => {
         if (!currentDocument) return;
@@ -52,6 +52,10 @@ export default function EditDocumentPage() {
             alert("Failed to send the document.");
         }
     };
+
+    const documentForViewer = useMemo(() => {
+        return currentDocument;
+    }, [currentDocument]);
 
     if (!currentDocument || !currentDocument.fileUrl) {
         return <div>Loading document...</div>;
@@ -81,8 +85,8 @@ export default function EditDocumentPage() {
                     <div className="flex-1 overflow-y-auto">
                         <PDFViewer 
                             fileUrl={currentDocument.fileUrl}
-                            document={currentDocument} 
                             activeSignatoryId={selectedSignatoryId}
+                            onFieldUpdate={updateFieldPosition}
                         />
                     </div>
                     <aside className="w-80 bg-white border-l border-gray-200 overflow-y-auto p-4">

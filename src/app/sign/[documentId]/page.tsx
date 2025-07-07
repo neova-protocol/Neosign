@@ -4,7 +4,7 @@ import { useParams, useSearchParams } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { Document as AppDocument, SignatureField } from '@/types';
-import SignatureDialog from '@/components/signature/SignatureDialog';
+import SignatureModal from '@/components/signature/SignatureModal';
 import PostSignatureModal from '@/components/signature/PostSignatureModal';
 import { updateSignatureField } from '@/lib/api';
 
@@ -54,7 +54,7 @@ export default function PublicSignPage() {
 
   const signatory = useMemo(() => {
     if (!document || !token) return null;
-    return document.signatories.find(s => s.id === token);
+    return document.signatories.find(s => s.token === token);
   }, [document, token]);
   
   const handleSignClick = (field: SignatureField) => {
@@ -66,22 +66,28 @@ export default function PublicSignPage() {
   };
 
   const handleConfirmSignature = async (signatureDataUrl: string) => {
-    if (!document || !fieldToSign) return;
+    if (!document || !fieldToSign || !token) return;
 
-    const updatedField = await updateSignatureField(document.id, fieldToSign.id, { value: signatureDataUrl });
+    try {
+        const updatedField = await updateSignatureField(document.id, fieldToSign.id, { value: signatureDataUrl }, token);
     
-    if (updatedField) {
-        setDocument(prevDoc => {
-            if (!prevDoc) return null;
-            return {
-                ...prevDoc,
-                fields: prevDoc.fields.map(f => f.id === updatedField.id ? updatedField : f),
-            };
-        });
-        setFieldToSign(null); // Close the signature dialog
-        setShowConfirmation(true); // Show the confirmation modal
-    } else {
-        alert("Failed to save signature.");
+        if (updatedField) {
+            setDocument(prevDoc => {
+                if (!prevDoc) return null;
+                return {
+                    ...prevDoc,
+                    fields: prevDoc.fields.map(f => f.id === updatedField.id ? updatedField : f),
+                };
+            });
+            setFieldToSign(null);
+            setShowConfirmation(true);
+        } else {
+            alert("Failed to save signature.");
+            setFieldToSign(null);
+        }
+    } catch (error) {
+        console.error("Error saving signature:", error);
+        alert("An error occurred while saving the signature. Please try again.");
         setFieldToSign(null);
     }
   };
@@ -104,19 +110,19 @@ export default function PublicSignPage() {
             fileUrl={document.fileUrl}
             document={document}
             onSignClick={handleSignClick}
-            activeSignatoryId={token}
+            activeSignatoryId={signatory?.id}
         />
         {fieldToSign && signatory && (
-            <SignatureDialog
-                open={!!fieldToSign}
-                onOpenChange={(open) => !open && setFieldToSign(null)}
-                onConfirm={handleConfirmSignature}
-                signatoryName={signatory.name}
+            <SignatureModal
+                isOpen={!!fieldToSign}
+                onClose={() => setFieldToSign(null)}
+                onSave={handleConfirmSignature}
             />
         )}
         <PostSignatureModal 
             open={showConfirmation}
             onOpenChange={setShowConfirmation}
+            signatoryEmail={signatory?.email}
         />
     </div>
   );

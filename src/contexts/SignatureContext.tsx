@@ -8,7 +8,8 @@ import {
     deleteSignatureField,
     addSignatureField as apiAddSignatureField,
     updateSignatureField,
-    addSignatory as apiAddSignatory
+    addSignatory as apiAddSignatory,
+    updateFieldPosition
 } from '@/lib/api';
 import { Document, Signatory, SignatureField, DocumentEvent } from '@/types';
 
@@ -17,11 +18,13 @@ type SignatureContextType = {
   setDocuments: React.Dispatch<React.SetStateAction<Document[]>>;
   currentDocument: Document | null;
   setCurrentDocument: React.Dispatch<React.SetStateAction<Document | null>>;
+  refreshDocument: (documentId: string) => Promise<void>;
   addSignatory: (signatory: Omit<Signatory, 'id' | 'status' | 'userId'>) => Promise<Signatory | null>;
   removeSignatory: (signatoryId: string) => void;
   addField: (field: Omit<SignatureField, 'id'>) => Promise<void>;
   updateField: (id: string, updates: Partial<SignatureField>) => Promise<void>;
   removeField: (id: string) => Promise<void>;
+  updateFieldPosition: (fieldId: string, position: { x: number, y: number }) => Promise<void>;
 };
 
 const SignatureContext = createContext<SignatureContextType | undefined>(undefined);
@@ -29,6 +32,13 @@ const SignatureContext = createContext<SignatureContextType | undefined>(undefin
 export const SignatureProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [currentDocument, setCurrentDocument] = useState<Document | null>(null);
   const [documents, setDocuments] = useState<Document[]>([]);
+
+  const refreshDocument = useCallback(async (documentId: string) => {
+    const freshDocument = await getDocumentById(documentId);
+    if (freshDocument) {
+      setCurrentDocument(freshDocument);
+    }
+  }, []);
 
   const addSignatory = useCallback(async (signatory: Omit<Signatory, 'id' | 'status' | 'userId'>) => {
     if (!currentDocument) return;
@@ -73,15 +83,44 @@ export const SignatureProvider: React.FC<{ children: ReactNode }> = ({ children 
 
   const updateField = useCallback(async (id: string, updates: Partial<SignatureField>) => {
     if (!currentDocument) return;
-    const updatedField = await updateSignatureField(currentDocument.id, id, updates);
+
+    const originalFields = currentDocument.fields;
+    
+    // Optimistic update
     setCurrentDocument(prev => {
         if (!prev) return null;
         return {
             ...prev,
-            fields: prev.fields.map(f => f.id === id ? { ...f, ...updatedField } : f)
+            fields: prev.fields.map(f => f.id === id ? { ...f, ...updates } : f)
         };
     });
+
+    try {
+        await updateSignatureField(currentDocument.id, id, updates);
+    } catch (error) {
+        console.error("Failed to update field, rolling back:", error);
+        // Rollback on failure
+        setCurrentDocument(prev => {
+            if (!prev) return null;
+            return { ...prev, fields: originalFields };
+        });
+        alert("Failed to save signature. Please try again.");
+    }
   }, [currentDocument]);
+
+  const updateFieldPositionInContext = async (fieldId: string, position: { x: number, y: number }) => {
+    if (!currentDocument) return;
+    const updatedField = await updateFieldPosition(currentDocument.id, fieldId, position);
+    if (updatedField) {
+      setCurrentDocument(prev => {
+          if (!prev) return null;
+          return {
+              ...prev,
+              fields: prev.fields.map(f => f.id === fieldId ? { ...f, ...updatedField } : f)
+          };
+      });
+    }
+  };
 
   const removeField = useCallback(async (id: string) => {
     if (!currentDocument) return;
@@ -110,11 +149,13 @@ export const SignatureProvider: React.FC<{ children: ReactNode }> = ({ children 
     setDocuments,
     currentDocument,
     setCurrentDocument,
+    refreshDocument,
     addSignatory,
     removeSignatory,
     addField,
     updateField,
     removeField,
+    updateFieldPosition: updateFieldPositionInContext,
   };
 
   return (

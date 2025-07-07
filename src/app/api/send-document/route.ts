@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
 
     // Send email to each signatory
     for (const signatory of document.signatories) {
-      const signingUrl = `${baseUrl}/sign/${document.id}?token=${signatory.id}`;
+      const signingUrl = `${baseUrl}/sign/${document.id}?token=${signatory.token}`;
       try {
         await resend.emails.send({
           from: 'Neosign <onboarding@resend.dev>',

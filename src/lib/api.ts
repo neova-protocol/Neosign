@@ -56,7 +56,7 @@ export async function getDocumentsForUser(): Promise<Document[]> {
 export async function getDocumentById(documentId: string): Promise<Document | null> {
     if (!documentId) return null;
     try {
-        const response = await fetch(`/api/documents/${documentId}`);
+        const response = await fetch(`/api/documents/${documentId}`, { cache: 'no-store' });
         if (!response.ok) {
             if (response.status === 404) {
                 console.log(`Document ${documentId} not found.`);
@@ -156,11 +156,22 @@ export async function sendDocumentForSignature(documentId: string): Promise<Docu
  * @param documentId The ID of the document.
  * @param fieldId The ID of the field to update.
  * @param updates The properties to update.
+ * @param authIdentifier This can be a session token or user ID
  * @returns The updated field object, or null if an error occurred.
  */
-export async function updateSignatureField(documentId: string, fieldId: string, updates: Partial<SignatureField>): Promise<SignatureField | null> {
+export async function updateSignatureField(
+    documentId: string, 
+    fieldId: string, 
+    updates: Partial<SignatureField>,
+    authIdentifier?: string
+): Promise<SignatureField | null> {
     try {
-        const response = await fetch(`/api/documents/${documentId}/fields/${fieldId}`, {
+        const url = new URL(`${window.location.origin}/api/documents/${documentId}/fields/${fieldId}`);
+        if (authIdentifier) {
+            url.searchParams.append('token', authIdentifier);
+        }
+
+        const response = await fetch(url.toString(), {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(updates),
@@ -228,4 +239,32 @@ export async function addSignatory(documentId: string, signatory: any) {
     }
 
     return response.json();
+}
+
+/**
+ * Updates a signature field's position.
+ * @param documentId The ID of the document.
+ * @param fieldId The ID of the field to update.
+ * @param position The new x and y coordinates.
+ * @returns The updated field object, or null if an error occurred.
+ */
+export async function updateFieldPosition(documentId: string, fieldId: string, position: { x: number, y: number }): Promise<SignatureField | null> {
+    try {
+        const response = await fetch(`/api/documents/${documentId}/fields/${fieldId}/position`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(position),
+        });
+
+        if (!response.ok) {
+            const errorBody = await response.text();
+            console.error(`Failed to update field position ${fieldId}:`, response.status, errorBody);
+            return null;
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error(`An error occurred while updating field position ${fieldId}:`, error);
+        return null;
+    }
 }

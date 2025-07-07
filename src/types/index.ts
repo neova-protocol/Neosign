@@ -7,6 +7,7 @@ export type Signatory = {
   status: string;
   documentId: string;
   userId: string | null;
+  token: string;
   user?: {
     image?: string | null;
   } | null;

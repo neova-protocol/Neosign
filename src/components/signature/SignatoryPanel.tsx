@@ -18,7 +18,7 @@ const colors = ["#FF5733", "#33FF57", "#3357FF", "#F1C40F", "#9B59B6"];
 const SignatoryPanel: React.FC<SignatoryPanelProps> = ({ selectedSignatoryId, onSelectSignatory }) => {
   const { data: session } = useSession();
   const currentUser = session?.user;
-  const { currentDocument, addSignatory, removeSignatory } = useSignature();
+  const { currentDocument, addSignatory, removeSignatory, addField } = useSignature();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -40,6 +40,8 @@ const SignatoryPanel: React.FC<SignatoryPanelProps> = ({ selectedSignatoryId, on
         email: finalEmail,
         role: 'Signatory',
         color: colors[currentDocument.signatories.length % colors.length],
+        documentId: currentDocument.id,
+        token: '',
       };
       
       const newSignatory = await addSignatory(signatoryData);
@@ -55,6 +57,25 @@ const SignatoryPanel: React.FC<SignatoryPanelProps> = ({ selectedSignatoryId, on
     }
   };
   
+  const handleSelectSignatory = (signatoryId: string) => {
+    onSelectSignatory(signatoryId);
+    if (currentDocument) {
+      const fieldExists = currentDocument.fields.some(field => field.signatoryId === signatoryId);
+      if (!fieldExists) {
+        addField({
+          type: 'signature',
+          page: 1, // Default to first page
+          x: 100, // Default position
+          y: 100, // Default position
+          width: 150,
+          height: 75,
+          signatoryId: signatoryId,
+          value: undefined,
+        });
+      }
+    }
+  };
+
   const handleSend = async () => {
     if (!currentDocument || !currentUser) return;
     setIsSending(true);
@@ -120,7 +141,7 @@ const SignatoryPanel: React.FC<SignatoryPanelProps> = ({ selectedSignatoryId, on
         {currentDocument.signatories.map((signatory) => (
           <div
             key={signatory.id}
-            onClick={() => onSelectSignatory(signatory.id)}
+            onClick={() => handleSelectSignatory(signatory.id)}
             className={`p-3 rounded-lg cursor-pointer flex justify-between items-center transition-all ${
               selectedSignatoryId === signatory.id ? "ring-2 ring-offset-2" : "border"
             }`}

@@ -4,9 +4,9 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useSignature } from '@/contexts/SignatureContext';
-import { getDocumentById, updateSignatureField } from '@/lib/api';
+import { getDocumentById } from '@/lib/api';
 import dynamic from 'next/dynamic';
-import { Document as AppDocument, SignatureField } from '@/contexts/SignatureContext';
+import { Document as AppDocument, SignatureField } from '@/types';
 import { Button } from '@/components/ui/button';
 
 // Dynamically import heavy components
@@ -18,10 +18,11 @@ export default function SignDocumentPage() {
     const router = useRouter();
     const documentId = params.documentId as string;
     const { data: session } = useSession();
-    const { currentDocument, setCurrentDocument } = useSignature();
+    const { currentDocument, setCurrentDocument, updateField } = useSignature();
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [fieldToSign, setFieldToSign] = useState<SignatureField | null>(null);
+    const [viewVersion, setViewVersion] = useState(0);
 
     useEffect(() => {
         if (documentId && (!currentDocument || currentDocument.id !== documentId)) {
@@ -37,23 +38,10 @@ export default function SignDocumentPage() {
     };
 
     const handleSaveSignature = async (signatureDataUrl: string) => {
-        if (!currentDocument || !fieldToSign || !session?.user) return;
-        
-        // Here you would call an API to update the field and signatory status
-        console.log("Saving signature for field:", fieldToSign.id);
-        
-        // For now, let's just optimistically update the UI
-        // In a real app, this logic would be much more robust, likely in a context or custom hook
-        const updatedField = await updateSignatureField(currentDocument.id, fieldToSign.id, { value: signatureDataUrl });
+        console.log("Saving signature for field:", fieldToSign);
+        if (!fieldToSign) return;
 
-        if (updatedField) {
-            // Refetch document to get all updates (field value, signatory status, events)
-            const updatedDoc = await getDocumentById(currentDocument.id);
-            if(updatedDoc) setCurrentDocument(updatedDoc);
-        } else {
-            alert("Failed to save signature.");
-        }
-
+        await updateField(fieldToSign.id, { value: signatureDataUrl });
 
         setIsModalOpen(false);
         setFieldToSign(null);
@@ -64,8 +52,20 @@ export default function SignDocumentPage() {
     }
 
     const selfAsSignatory = session?.user ? currentDocument.signatories.find(s => s.userId === session.user.id) : null;
+
     if (!selfAsSignatory) {
-        return <div className="p-8 text-center">You are not a signatory on this document.</div>;
+        // This case should ideally not be reached if navigation is correct
+        // but it's good practice to handle it.
+        // We render the viewer in a "read-only" mode for non-signatories.
+        return (
+             <div className="w-full h-screen bg-gray-100">
+                <PDFViewer
+                    fileUrl={currentDocument.fileUrl}
+                    onSignClick={() => {}} // No action
+                    activeSignatoryId={null} // No active signatory
+                />
+            </div>
+        );
     }
 
     const allMyFieldsSigned = currentDocument.fields
@@ -91,9 +91,10 @@ export default function SignDocumentPage() {
                     />
                 )}
                 <PDFViewer
+                    key={viewVersion}
                     fileUrl={currentDocument.fileUrl}
                     document={currentDocument}
-                    activeSignatoryId={session?.user?.id}
+                    activeSignatoryId={selfAsSignatory?.id}
                     onSignClick={handleSignClick}
                 />
             </main>

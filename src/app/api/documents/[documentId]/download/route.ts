@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { PDFDocument } from 'pdf-lib';
-import { readFile } from 'fs/promises';
-import { join } from 'path';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 const prisma = new PrismaClient();
 
@@ -13,36 +13,52 @@ interface Params {
 }
 
 export async function GET(req: NextRequest, { params }: Params) {
-    const { documentId } = await params;
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+        return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { documentId } = params;
 
     try {
-        const document = await prisma.document.findUnique({
-            where: { id: documentId },
+        const document = await prisma.document.findFirst({
+            where: { 
+                id: documentId,
+                OR: [
+                    { creatorId: session.user.id },
+                    { signatories: { some: { userId: session.user.id } } }
+                ]
+            },
             include: { fields: true },
         });
 
         if (!document || !document.fileUrl) {
-            return NextResponse.json({ error: 'Document not found' }, { status: 404 });
+            return NextResponse.json({ error: 'Document not found or user not authorized' }, { status: 404 });
         }
-
-        const filePath = join(process.cwd(), 'public', document.fileUrl);
-        const pdfBytes = await readFile(filePath);
-        const pdfDoc = await PDFDocument.load(pdfBytes);
+        
+        const originalPdfBytes = await fetch(document.fileUrl).then(res => res.arrayBuffer());
+        const pdfDoc = await PDFDocument.load(originalPdfBytes);
 
         for (const field of document.fields) {
             if (field.value) { // The signature image is stored in the 'value' field as a data URL
-                const page = pdfDoc.getPage(field.page - 1);
-                
-                // The signature is a PNG data URL, e.g., "data:image/png;base64,iVBORw0KGgo..."
-                // We need to embed it as a PNG image.
-                const pngImage = await pdfDoc.embedPng(field.value);
-
-                page.drawImage(pngImage, {
-                    x: field.x,
-                    y: page.getHeight() - field.y - field.height, // pdf-lib's y-axis is from the bottom
-                    width: field.width,
-                    height: field.height,
-                });
+                try {
+                    const pngImageBytes = Buffer.from(field.value.split(',')[1], 'base64');
+                    const pngImage = await pdfDoc.embedPng(pngImageBytes);
+                    
+                    const page = pdfDoc.getPage(field.page - 1);
+                    if (page) {
+                        const { height: pageHeight } = page.getSize();
+                        page.drawImage(pngImage, {
+                            x: field.x,
+                            y: pageHeight - field.y - field.height, // pdf-lib's y-axis is from the bottom
+                            width: field.width,
+                            height: field.height,
+                        });
+                    }
+                } catch (e) {
+                    console.error("Could not embed signature for field " + field.id + ". Maybe it's not a PNG?", e);
+                    continue;
+                }
             }
         }
 

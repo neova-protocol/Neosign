@@ -40,7 +40,7 @@ model Session {
 model User {
   id            String    @id @default(cuid())
   name          String?
-  email         String?   @unique
+  email         String    @unique
   emailVerified DateTime?
   image         String?
   hashedPassword String?
@@ -49,8 +49,10 @@ model User {
 
   // Document-related fields
   createdDocuments Document[]
-  signatoryEntries Signatory[]
-  events           DocumentEvent[]
+  signatories     Signatory[]
+  events          DocumentEvent[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 }
 
 model VerificationToken {
@@ -82,24 +84,19 @@ model Document {
 }
 
 model Signatory {
-  id     String @id @default(cuid())
-  name   String
-  email  String
-  role   String
-  color  String
-  status String @default("preparing") // e.g., preparing, pending, signed, declined
-
+  id         String    @id @default(cuid())
   documentId String
   document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  name       String
+  email      String
+  token      String   @unique
+  status     String   @default("preparing") // preparing, pending, signed
+  signedAt   DateTime?
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  fields     SignatureField[] // A signatory can have multiple signature fields
 
-  // Optional link to a platform user
-  userId String?
-  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  fields SignatureField[]
-
-  @@index([documentId])
-  @@index([userId])
+  @@unique([documentId, email])
 }
 
 model SignatureField {

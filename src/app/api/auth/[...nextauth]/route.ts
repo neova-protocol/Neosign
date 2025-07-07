@@ -27,24 +27,33 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-        });
+        try {
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email },
+          });
 
-        if (!user || !user.hashedPassword) {
+          if (!user) {
+            return null;
+          }
+
+          if (!user.hashedPassword) {
+            return null;
+          }
+
+          const isPasswordCorrect = await bcrypt.compare(
+            credentials.password,
+            user.hashedPassword
+          );
+
+          if (isPasswordCorrect) {
+            return user;
+          } else {
+            return null;
+          }
+        } catch (error) {
+          console.error("CRITICAL: Error during database query in authorize function.", error);
           return null;
         }
-
-        const isPasswordCorrect = await bcrypt.compare(
-          credentials.password,
-          user.hashedPassword
-        );
-
-        if (isPasswordCorrect) {
-          return user;
-        }
-
-        return null;
       }
     })
   ],
