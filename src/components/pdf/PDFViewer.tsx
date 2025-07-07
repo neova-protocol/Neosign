@@ -86,50 +86,51 @@ export default function PDFViewer({ fileUrl, document, activeSignatoryId, onSign
                   const signatory = document.signatories.find((s: Signatory) => s.id === field.signatoryId);
 
                   if (isSigningMode) {
-                    if (!currentUser) return null;
-                    const isCurrentUserField = signatory?.userId === currentUser.id;
-                    
+                    const isMyFieldToSign = field.signatoryId === activeSignatoryId;
+
+                    // If the field is already signed, display the signature image
                     if (field.value) {
                       return (
                         <div key={field.id} style={{ position: 'absolute', left: field.x, top: field.y, width: field.width, height: field.height, zIndex: 10 }}>
                           <img src={field.value} alt="Signature" className="w-full h-full object-contain" />
                         </div>
-                      )
+                      );
                     }
 
-                    if (isCurrentUserField) {
-                        return (
-                          <div key={field.id} className="signature-field-wrapper" style={{ position: 'absolute', left: field.x, top: field.y, width: field.width, height: field.height, zIndex: 10 }}>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onSignClick(field);
-                              }}
-                              className="w-full h-full bg-yellow-400 hover:bg-yellow-500 text-black font-bold py-2 px-4 rounded transition-all flex items-center justify-center"
-                            >
-                              Sign Here
-                            </button>
-                          </div>
-                        )
-                    }
-
-                    // For other signatories, show a placeholder
-                    return (
-                        <div key={field.id} 
-                            className="absolute flex items-center justify-center border-2 border-dashed rounded-md signature-field-wrapper"
-                            style={{
-                                left: field.x, top: field.y, width: field.width, height: field.height,
-                                borderColor: signatory?.color || '#cccccc',
-                                backgroundColor: `${signatory?.color || '#cccccc'}20`,
-                                zIndex: 10,
+                    // If it's this user's turn to sign this field, show the "Sign Here" button
+                    if (isMyFieldToSign) {
+                      return (
+                        <div key={field.id} className="signature-field-wrapper" style={{ position: 'absolute', left: field.x, top: field.y, width: field.width, height: field.height, zIndex: 10 }}>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if(onSignClick) onSignClick(field);
                             }}
-                        >
-                             <div className="text-center">
-                                <p className="text-sm font-bold" style={{color: signatory?.color}}>{signatory ? signatory.name : 'Unassigned'}</p>
-                                <p className="text-xs text-gray-500">Signature</p>
-                            </div>
+                            className="w-full h-full bg-yellow-400 hover:bg-yellow-500 text-black font-bold py-2 px-4 rounded transition-all flex items-center justify-center"
+                          >
+                            Sign Here
+                          </button>
                         </div>
-                    )
+                      );
+                    }
+
+                    // For all other unsigned fields, show a placeholder
+                    return (
+                      <div key={field.id} 
+                          className="absolute flex items-center justify-center border-2 border-dashed rounded-md signature-field-wrapper"
+                          style={{
+                              left: field.x, top: field.y, width: field.width, height: field.height,
+                              borderColor: signatory?.color || '#cccccc',
+                              backgroundColor: `${signatory?.color || '#cccccc'}20`,
+                              zIndex: 10,
+                          }}
+                      >
+                           <div className="text-center">
+                              <p className="text-sm font-bold" style={{color: signatory?.color}}>{signatory ? signatory.name : 'Unassigned'}</p>
+                              <p className="text-xs text-gray-500">Signature</p>
+                          </div>
+                      </div>
+                    );
 
                   } else { // Preparation mode
                     return (
