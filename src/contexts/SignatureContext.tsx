@@ -25,6 +25,7 @@ type SignatureContextType = {
   updateField: (id: string, updates: Partial<SignatureField>) => Promise<void>;
   removeField: (id: string) => Promise<void>;
   updateFieldPosition: (fieldId: string, position: { x: number, y: number }) => Promise<void>;
+  viewVersion: number;
 };
 
 const SignatureContext = createContext<SignatureContextType | undefined>(undefined);
@@ -32,6 +33,7 @@ const SignatureContext = createContext<SignatureContextType | undefined>(undefin
 export const SignatureProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [currentDocument, setCurrentDocument] = useState<Document | null>(null);
   const [documents, setDocuments] = useState<Document[]>([]);
+  const [viewVersion, setViewVersion] = useState(0);
 
   const refreshDocument = useCallback(async (documentId: string) => {
     const freshDocument = await getDocumentById(documentId);
@@ -94,6 +96,7 @@ export const SignatureProvider: React.FC<{ children: ReactNode }> = ({ children 
             fields: prev.fields.map(f => f.id === id ? { ...f, ...updates } : f)
         };
     });
+    setViewVersion(v => v + 1);
 
     try {
         await updateSignatureField(currentDocument.id, id, updates);
@@ -104,6 +107,7 @@ export const SignatureProvider: React.FC<{ children: ReactNode }> = ({ children 
             if (!prev) return null;
             return { ...prev, fields: originalFields };
         });
+        setViewVersion(v => v + 1);
         alert("Failed to save signature. Please try again.");
     }
   }, [currentDocument]);
@@ -156,6 +160,7 @@ export const SignatureProvider: React.FC<{ children: ReactNode }> = ({ children 
     updateField,
     removeField,
     updateFieldPosition: updateFieldPositionInContext,
+    viewVersion,
   };
 
   return (

@@ -6,19 +6,19 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 const prisma = new PrismaClient();
 
+export const dynamic = 'force-dynamic';
+
 interface Params {
-    params: {
-        documentId: string;
-    }
+    documentId: string;
 }
 
-export async function GET(req: NextRequest, { params }: Params) {
+export async function GET(req: NextRequest, { params }: { params: Promise<Params> }) {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
         return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const { documentId } = params;
+    const { documentId } = await params;
 
     try {
         const document = await prisma.document.findFirst({
@@ -36,7 +36,8 @@ export async function GET(req: NextRequest, { params }: Params) {
             return NextResponse.json({ error: 'Document not found or user not authorized' }, { status: 404 });
         }
         
-        const originalPdfBytes = await fetch(document.fileUrl).then(res => res.arrayBuffer());
+        const fileUrl = new URL(document.fileUrl, req.nextUrl.origin).toString();
+        const originalPdfBytes = await fetch(fileUrl).then(res => res.arrayBuffer());
         const pdfDoc = await PDFDocument.load(originalPdfBytes);
 
         for (const field of document.fields) {

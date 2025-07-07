@@ -19,7 +19,7 @@ interface PDFViewerProps {
 }
 
 export default function PDFViewer({ fileUrl, document: docFromProp, onSignClick, activeSignatoryId, onFieldUpdate }: PDFViewerProps) {
-  const { currentDocument: docFromContext, addField, removeField } = useSignature();
+  const { currentDocument: docFromContext, addField, removeField, viewVersion } = useSignature();
   const [numPages, setNumPages] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -55,20 +55,9 @@ export default function PDFViewer({ fileUrl, document: docFromProp, onSignClick,
   const fields = document?.fields || [];
   const isSigningMode = !!onSignClick;
 
-  useEffect(() => {
-    console.log("Document changed:", document);
-    console.log("Fields:", fields)
-    console.log("Active signatoryId:", activeSignatoryId)
-    console.log("On sign click:", onSignClick)
-    console.log("On field update:", onFieldUpdate)
-    console.log("Is signing mode:", isSigningMode)
-    console.log("File URL:", fileUrl)
-    console.log("Document from prop:", docFromProp)
-    console.log("Document from context:", docFromContext)
-  }, [document]);
   return (
     <div ref={containerRef} className="pdf-container w-full h-full overflow-auto relative">
-      <Document file={fileUrl} onLoadSuccess={onDocumentLoadSuccess}>
+      <Document file={fileUrl} onLoadSuccess={onDocumentLoadSuccess} key={viewVersion}>
         {Array.from(new Array(numPages), (_el, index) => (
           <Page
             key={`page_${index + 1}`}
@@ -83,11 +72,10 @@ export default function PDFViewer({ fileUrl, document: docFromProp, onSignClick,
                 .filter((field: SignatureField) => field.page === index + 1)
                 .map((field: SignatureField) => {
                   const signatory = document?.signatories.find((s: Signatory) => s.id === field.signatoryId);
-                  console.log("Signatory:", signatory)
-                  console.log("Field:", field)
+                  
                   // Always render the signature if it exists
                   if (field.value) {
-                    return <img key={field.id} src={field.value} alt="Signature" style={{ position: 'absolute', left: field.x, top: field.y, width: field.width, height: field.height, zIndex: 10 }} />;
+                    return <img className='!min-w-[90px] !min-h-[56.25px] !w-[90px] !h-[56.25px]' key={field.id} src={field.value} alt="Signature" style={{ position: 'absolute', left: field.x, top: field.y, width: field.width, height: field.height, zIndex: 10 }} />;
                   }
 
                   // Logic for signing mode
