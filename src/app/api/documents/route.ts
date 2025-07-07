@@ -22,7 +22,20 @@ export async function GET(request: NextRequest) {
                 ]
             },
             include: {
-                signatories: true,
+                signatories: {
+                    include: {
+                        user: {
+                            select: {
+                                image: true
+                            }
+                        }
+                    }
+                },
+                creator: {
+                    select: {
+                        name: true,
+                    }
+                }
             },
             orderBy: {
                 updatedAt: 'desc',

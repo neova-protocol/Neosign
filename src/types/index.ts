@@ -5,10 +5,10 @@ export type Signatory = {
   role: string;
   color: string;
   status: string;
+  documentId: string;
   userId: string | null;
   user?: {
-    name: string | null;
-    email: string | null;
+    image?: string | null;
   } | null;
 };
 
@@ -40,6 +40,9 @@ export type Document = {
   createdAt: string | Date;
   updatedAt: string | Date;
   creatorId: string;
+  creator: {
+    name: string | null;
+  };
   signatories: Signatory[];
   fields: SignatureField[];
   events: DocumentEvent[];
