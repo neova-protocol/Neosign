@@ -1,11 +1,11 @@
 "use client";
 import React, { useState, MouseEvent, useEffect, useCallback } from 'react';
 import { useSignature } from '@/contexts/SignatureContext';
-import { SignatureField as SignatureFieldType } from '@/contexts/SignatureContext';
+import { SignatureField as SignatureFieldType } from '@/types';
 
 interface SignatureFieldProps {
   field: SignatureFieldType;
-  onUpdate: (id: string, updates: Partial<SignatureFieldType>) => Promise<void>;
+  onUpdate: (id: string, updates: { x: number; y: number; }) => Promise<void>;
   onRemove: (id: string) => Promise<void>;
 }
 
@@ -21,37 +21,72 @@ export const SignatureFieldComponent: React.FC<SignatureFieldProps> = ({
 
   const signatory = field.signatoryId ? currentDocument?.signatories.find(s => s.id === field.signatoryId) : null;
 
+  // Use coordinates directly as pixels - no conversion needed
+  const pixelPos = { x: position.x, y: position.y };
+
+  const calculatePosition = useCallback((clientX: number, clientY: number) => {
+    const pageElement = document.querySelector(`[data-page-number="${field.page}"]`);
+    if (!pageElement) return { x: 0, y: 0 };
+
+    // Find the relative div container inside the page (same as in creation)
+    const relativeContainer = pageElement.querySelector('div[class="relative"]') as HTMLElement;
+    if (!relativeContainer) return { x: 0, y: 0 };
+
+    const pageRect = relativeContainer.getBoundingClientRect();
+    const x = clientX - pageRect.left;
+    const y = clientY - pageRect.top;
+
+    return { x, y };
+  }, [field.page]);
+
   const handleMouseDown = useCallback((e: MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
     
     setIsDragging(true);
+    
+    // Calculate offset from mouse position to element position
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     dragStartOffset.current = {
-      x: e.clientX - position.x,
-      y: e.clientY - position.y,
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
     };
-  }, [position.x, position.y]);
+  }, []);
 
   useEffect(() => {
     const handleMouseMove = (e: globalThis.MouseEvent) => {
       if (!isDragging) return;
-      // Prevent default text selection behavior
       e.preventDefault();
+      e.stopPropagation();
+
+      // Get the container coordinates
+      const pageElement = document.querySelector(`[data-page-number="${field.page}"]`);
+      const relativeContainer = pageElement?.querySelector('div[class="relative"]') as HTMLElement;
       
-      const newX = e.clientX - dragStartOffset.current.x;
-      const newY = e.clientY - dragStartOffset.current.y;
+      if (!relativeContainer) return;
+      
+      const containerRect = relativeContainer.getBoundingClientRect();
+      
+      // Calculate new position: mouse position relative to container minus the offset
+      let newX = e.clientX - containerRect.left - dragStartOffset.current.x;
+      let newY = e.clientY - containerRect.top - dragStartOffset.current.y;
+    
+      // Ensure the field stays within the container bounds
+      newX = Math.max(0, Math.min(newX, containerRect.width - field.width));
+      newY = Math.max(0, Math.min(newY, containerRect.height - field.height));
+      
       setPosition({ x: newX, y: newY });
     };
 
     const handleMouseUp = (e: globalThis.MouseEvent) => {
       if (!isDragging) return;
-      // Prevent the click from propagating to the underlying page
       e.stopPropagation();
       e.preventDefault();
 
       setIsDragging(false);
+      
       // Persist the final position to the backend
-      onUpdate(field.id, { x: position.x, y: position.y });
+      onUpdate(field.id, position);
     };
 
     if (isDragging) {
@@ -63,9 +98,9 @@ export const SignatureFieldComponent: React.FC<SignatureFieldProps> = ({
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isDragging, onUpdate, field.id, position]);
+  }, [isDragging, onUpdate, field.id, position, field.page, field.width, field.height]);
   
-  // Update local position if the field prop changes from the context
+  // On initial mount, use the field coordinates directly since they are already normalized
   useEffect(() => {
     setPosition({ x: field.x, y: field.y });
   }, [field.x, field.y]);
@@ -81,8 +116,8 @@ export const SignatureFieldComponent: React.FC<SignatureFieldProps> = ({
     <div
       className="absolute cursor-move group signature-field-wrapper"
       style={{
-        left: position.x,
-        top: position.y,
+        left: pixelPos.x,
+        top: pixelPos.y,
         zIndex: isDragging ? 1000 : 100,
       }}
       onMouseDown={handleMouseDown}

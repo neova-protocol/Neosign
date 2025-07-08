@@ -16,9 +16,10 @@ interface PDFViewerProps {
   onSignClick?: (field: SignatureField) => void;
   activeSignatoryId?: string | null;
   onFieldUpdate?: (fieldId: string, position: { x: number, y: number }) => Promise<void>;
+  onPageClick?: (pageNumber: number, event: React.MouseEvent) => void;
 }
 
-export default function PDFViewer({ fileUrl, document: docFromProp, onSignClick, activeSignatoryId, onFieldUpdate }: PDFViewerProps) {
+export default function PDFViewer({ fileUrl, document: docFromProp, onSignClick, activeSignatoryId, onFieldUpdate, onPageClick }: PDFViewerProps) {
   const { currentDocument: docFromContext, addField, removeField, viewVersion } = useSignature();
   const [numPages, setNumPages] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -29,27 +30,59 @@ export default function PDFViewer({ fileUrl, document: docFromProp, onSignClick,
     setNumPages(numPages);
   };
 
+  const onPageRenderSuccess = (page: { pageNumber: number, originalWidth: number }) => {
+    const pageElement = containerRef.current?.querySelector(`[data-page-number="${page.pageNumber}"]`);
+    if (pageElement) {
+      pageElement.setAttribute('data-original-width', page.originalWidth.toString());
+    }
+  };
+
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     const fieldType = e.dataTransfer.getData("application/reactflow");
-    if (!fieldType || !containerRef.current || !activeSignatoryId) return;
+    if (!fieldType || !activeSignatoryId) return;
 
-    const bounds = containerRef.current.getBoundingClientRect();
+    // Use the page element (the drop target) as the reference for coordinates
+    const pageElement = (e.target as HTMLElement).closest('.react-pdf__Page');
+    if (!pageElement) return;
+    
+    const bounds = pageElement.getBoundingClientRect();
+
+    // Calculate pixel coordinates directly
     const x = e.clientX - bounds.left;
     const y = e.clientY - bounds.top;
-    const page = e.currentTarget.dataset.pageNumber ? parseInt(e.currentTarget.dataset.pageNumber) : 0;
+    const pageNumber = (pageElement as HTMLElement).dataset.pageNumber ? parseInt((pageElement as HTMLElement).dataset.pageNumber!) : 0;
 
     const fieldData = {
       type: 'signature' as const,
-      page: page,
+      page: pageNumber,
       x: x,
       y: y,
-      width: 150,
-      height: 75,
+      width: 90,
+      height: 56.25,
       signatoryId: activeSignatoryId,
       value: undefined,
     };
     addField(fieldData);
+  };
+
+  const handlePageClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Stop propagation to prevent side effects, like closing a modal.
+    e.stopPropagation();
+    
+    // Don't create new fields if clicking on existing signature fields
+    const clickedElement = e.target as HTMLElement;
+    if (clickedElement.closest('.signature-field-wrapper')) {
+      return;
+    }
+    
+    if (!onPageClick || !activeSignatoryId) return;
+
+    const pageElement = e.currentTarget;
+    const pageNumber = parseInt(pageElement.dataset.pageNumber || '0');
+    
+    // Pass the raw event and page number up to the parent.
+    onPageClick(pageNumber, e);
   };
 
   const fields = document?.fields || [];
@@ -63,6 +96,8 @@ export default function PDFViewer({ fileUrl, document: docFromProp, onSignClick,
             key={`page_${index + 1}`}
             pageNumber={index + 1}
             className="flex justify-center"
+            onRenderSuccess={onPageRenderSuccess}
+            onClick={handlePageClick}
             onDrop={handleDrop}
             onDragOver={(e) => e.preventDefault()}
             data-page-number={index + 1}

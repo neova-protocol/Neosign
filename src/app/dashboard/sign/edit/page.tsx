@@ -13,23 +13,55 @@ const PDFViewerWithNoSSR = dynamic(
 );
 
 export default function EditSignaturePage() {
-  const { currentDocument, updateField } = useSignature();
+  const { currentDocument, updateField, addField } = useSignature();
   const router = useRouter();
   const [selectedSignatoryId, setSelectedSignatoryId] = useState<string | null>(null);
   const [fieldToSign, setFieldToSign] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!currentDocument || !currentDocument.file) {
+    if (!currentDocument || !currentDocument.fileUrl) {
       router.push('/dashboard/sign');
     }
   }, [currentDocument, router]);
 
   const fileUrl = useMemo(() => {
-    if (currentDocument?.file) {
-      return URL.createObjectURL(currentDocument.file);
+    if (currentDocument?.fileUrl) {
+      return currentDocument.fileUrl;
     }
     return null;
-  }, [currentDocument?.file]);
+  }, [currentDocument?.fileUrl]);
+
+  const handlePageClick = (pageNumber: number, event: React.MouseEvent) => {
+    if (!selectedSignatoryId) {
+        alert("Please select a signatory first");
+        return;
+    }
+    
+    // Get the click position relative to the page
+    const pageElement = (event.target as HTMLElement).closest('.react-pdf__Page');
+    if (!pageElement) return;
+    
+    const bounds = pageElement.getBoundingClientRect();
+    const originalWidth = (pageElement as HTMLElement).dataset.originalWidth;
+    if (!originalWidth) return;
+    
+    // Calculate normalized coordinates
+    const scale = bounds.width / parseFloat(originalWidth);
+    const x = (event.clientX - bounds.left) / scale;
+    const y = (event.clientY - bounds.top) / scale;
+    
+    // Add the signature field
+    addField({
+        type: 'signature' as const,
+        page: pageNumber,
+        x: x,
+        y: y,
+        width: 90,
+        height: 56.25,
+        signatoryId: selectedSignatoryId,
+        value: undefined,
+    });
+  };
 
   const handleSign = (fieldId: string) => {
     setFieldToSign(fieldId);
@@ -66,6 +98,7 @@ export default function EditSignaturePage() {
           fileUrl={fileUrl} 
           document={currentDocument}
           activeSignatoryId={selectedSignatoryId}
+          onPageClick={handlePageClick}
         />
       </div>
       {fieldToSign && signatoryForDialog && (

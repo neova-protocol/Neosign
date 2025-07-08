@@ -39,6 +39,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<Params
         const fileUrl = new URL(document.fileUrl, req.nextUrl.origin).toString();
         const originalPdfBytes = await fetch(fileUrl).then(res => res.arrayBuffer());
         const pdfDoc = await PDFDocument.load(originalPdfBytes);
+        const embeddingErrors: string[] = [];
+
+        console.log("Fields data received for PDF generation:", JSON.stringify(document.fields, null, 2));
 
         for (const field of document.fields) {
             if (field.value) { // The signature image is stored in the 'value' field as a data URL
@@ -56,11 +59,16 @@ export async function GET(req: NextRequest, { params }: { params: Promise<Params
                             height: field.height,
                         });
                     }
-                } catch (e) {
-                    console.error("Could not embed signature for field " + field.id + ". Maybe it's not a PNG?", e);
-                    continue;
+                } catch (e: any) {
+                    const errorMessage = `Could not embed signature for field ${field.id}: ${e.message}`;
+                    console.error(errorMessage, e);
+                    embeddingErrors.push(errorMessage);
                 }
             }
+        }
+
+        if (embeddingErrors.length > 0) {
+            return NextResponse.json({ error: 'Failed to embed some signatures.', details: embeddingErrors }, { status: 500 });
         }
 
         const pdfBytesWithSignatures = await pdfDoc.save();

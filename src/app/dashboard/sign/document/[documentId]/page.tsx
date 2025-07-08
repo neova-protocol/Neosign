@@ -18,7 +18,7 @@ export default function SignDocumentPage() {
     const router = useRouter();
     const documentId = params.documentId as string;
     const { data: session } = useSession();
-    const { currentDocument, setCurrentDocument, updateField } = useSignature();
+    const { currentDocument, setCurrentDocument, updateField, refreshDocument } = useSignature();
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [fieldToSign, setFieldToSign] = useState<SignatureField | null>(null);
@@ -42,6 +42,7 @@ export default function SignDocumentPage() {
         if (!fieldToSign) return;
 
         await updateField(fieldToSign.id, { value: signatureDataUrl });
+        await refreshDocument(documentId);
 
         setIsModalOpen(false);
         setFieldToSign(null);
@@ -68,19 +69,34 @@ export default function SignDocumentPage() {
         );
     }
 
-    const allMyFieldsSigned = currentDocument.fields
-        .filter(f => f.signatoryId === selfAsSignatory.id)
-        .every(f => !!f.value);
+    const myFields = currentDocument.fields.filter(f => f.signatoryId === selfAsSignatory.id);
+    const signedFields = myFields.filter(f => !!f.value);
+    const allMyFieldsSigned = myFields.length > 0 && myFields.every(f => !!f.value);
+    const signingProgress = myFields.length > 0 ? `${signedFields.length}/${myFields.length}` : '0/0';
 
     return (
         <div className="flex flex-col h-screen bg-gray-100">
             <header className="flex items-center justify-between p-4 bg-white border-b shadow-sm">
-                <h1 className="text-xl font-semibold">{currentDocument.name}</h1>
-                {allMyFieldsSigned && (
-                    <Button onClick={() => router.push(`/dashboard/documents/${documentId}`)} variant="default">
-                        Finish & Close
+                <div>
+                    <h1 className="text-xl font-semibold">{currentDocument.name}</h1>
+                    <p className="text-sm text-gray-600">
+                        Signatures: {signingProgress} {allMyFieldsSigned ? '✅ Complete' : '⏳ In Progress'}
+                    </p>
+                </div>
+                <div className="flex gap-2">
+                    {allMyFieldsSigned ? (
+                        <Button onClick={() => router.push(`/dashboard/documents/${documentId}`)} variant="default">
+                            Finish & Close
+                        </Button>
+                    ) : (
+                        <Button onClick={() => router.push('/dashboard')} variant="outline">
+                            Save & Exit
+                        </Button>
+                    )}
+                    <Button onClick={() => router.push(`/dashboard/documents/${documentId}`)} variant="ghost">
+                        View Details
                     </Button>
-                )}
+                </div>
             </header>
             <main className="flex-1 overflow-y-auto">
                 {isModalOpen && fieldToSign && (

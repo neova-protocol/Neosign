@@ -59,21 +59,6 @@ const SignatoryPanel: React.FC<SignatoryPanelProps> = ({ selectedSignatoryId, on
   
   const handleSelectSignatory = (signatoryId: string) => {
     onSelectSignatory(signatoryId);
-    if (currentDocument) {
-      const fieldExists = currentDocument.fields.some(field => field.signatoryId === signatoryId);
-      if (!fieldExists) {
-        addField({
-          type: 'signature',
-          page: 1, // Default to first page
-          x: 100, // Default position
-          y: 100, // Default position
-          width: 150,
-          height: 75,
-          signatoryId: signatoryId,
-          value: undefined,
-        });
-      }
-    }
   };
 
   const handleSend = async () => {

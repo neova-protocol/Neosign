@@ -22,7 +22,7 @@ export default function EditDocumentPage() {
     const router = useRouter();
     const documentId = params.documentId as string;
     const { data: session } = useSession();
-    const { currentDocument, setCurrentDocument, updateFieldPosition } = useSignature();
+    const { currentDocument, setCurrentDocument, updateFieldPosition, addField } = useSignature();
     const [selectedSignatoryId, setSelectedSignatoryId] = useState<string | null>(null);
 
     useEffect(() => {
@@ -71,15 +71,54 @@ export default function EditDocumentPage() {
         return <div>This document has already been sent and can no longer be edited.</div>;
     }
 
+    const handlePageClick = (pageNumber: number, event: React.MouseEvent) => {
+        if (!selectedSignatoryId) {
+            alert("Please select a signatory first");
+            return;
+        }
+        
+        // Get the page element and find the relative div container inside it
+        const pageElement = (event.target as HTMLElement).closest('.react-pdf__Page');
+        if (!pageElement) {
+            return;
+        }
+
+        // Find the relative div container inside the page
+        const relativeContainer = pageElement.querySelector('div[class="relative"]') as HTMLElement;
+        if (!relativeContainer) {
+            return;
+        }
+        
+        const bounds = relativeContainer.getBoundingClientRect();
+        
+        // Calculate pixel coordinates relative to the container where signature fields are rendered
+        const x = event.clientX - bounds.left;
+        const y = event.clientY - bounds.top;
+        
+        // Add the signature field
+        addField({
+            type: 'signature' as const,
+            page: pageNumber,
+            x: x,
+            y: y,
+            width: 90,
+            height: 56.25,
+            signatoryId: selectedSignatoryId,
+            value: undefined,
+        });
+    };
+
     return (
         <div className="flex h-screen bg-gray-100">
             <div className="flex-1 flex flex-col overflow-hidden">
                 <header className="bg-white shadow-sm p-4 flex justify-between items-center">
                     <h1 className="text-xl font-semibold">{currentDocument.name}</h1>
-                    <Button onClick={handleSendForSignature}>
-                        <Send className="mr-2 h-4 w-4" />
-                        Send for Signature
-                    </Button>
+                    <div className="flex gap-2">
+                        <Button onClick={handleSendForSignature}>
+                            <Send className="mr-2 h-4 w-4" />
+                            Send for Signature
+                        </Button>
+                    </div>
                 </header>
                 <main className="flex-1 flex overflow-hidden">
                     <div className="flex-1 overflow-y-auto">
@@ -87,6 +126,7 @@ export default function EditDocumentPage() {
                             fileUrl={currentDocument.fileUrl}
                             activeSignatoryId={selectedSignatoryId}
                             onFieldUpdate={updateFieldPosition}
+                            onPageClick={handlePageClick}
                         />
                     </div>
                     <aside className="w-80 bg-white border-l border-gray-200 overflow-y-auto p-4">
