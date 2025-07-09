@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
@@ -31,7 +31,7 @@
     "lucide-react": "^0.523.0",
     "next": "15.3.4",
     "next-auth": "^4.24.11",
-    "nodemailer": "^7.0.4",
+    "nodemailer": "^6.10.1",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "3.11.174",
     "react": "^18",
@@ -51,6 +51,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@svgr/webpack": "^8.1.0",
     "@types/bcrypt": "^5.0.2",
     "@types/node": "^20",
     "@types/nodemailer": "^6.4.17",
@@ -60,6 +61,7 @@
     "autoprefixer": "^10.4.21",
     "eslint": "^9",
     "eslint-config-next": "15.3.4",
+    "file-loader": "^6.2.0",
     "postcss": "^8.5.6",
     "prisma": "^5.17.0",
     "tailwindcss": "^3.4.17",

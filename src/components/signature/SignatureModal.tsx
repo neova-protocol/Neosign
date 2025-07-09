@@ -28,8 +28,8 @@ export default function SignatureModal({ isOpen, onClose, onSave }: SignatureMod
 
   const save = () => {
     if (sigCanvas.current) {
-      // Get signature as a base64 encoded PNG
-      const signature = sigCanvas.current.getTrimmedCanvas().toDataURL('image/png');
+      // Get signature as a base64 encoded PNG using the more reliable method
+      const signature = sigCanvas.current.toDataURL('image/png');
       onSave(signature);
       onClose();
     }
