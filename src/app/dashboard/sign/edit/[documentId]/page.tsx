@@ -21,23 +21,46 @@ export default function EditDocumentPage() {
     const params = useParams();
     const router = useRouter();
     const documentId = params.documentId as string;
-    const { data: session } = useSession();
+    const { data: session, status } = useSession();
     const { currentDocument, setCurrentDocument, updateFieldPosition, addField } = useSignature();
     const [selectedSignatoryId, setSelectedSignatoryId] = useState<string | null>(null);
 
+    console.log("🔐 Session status:", { status, userId: session?.user?.id, sessionExists: !!session });
+
     useEffect(() => {
+        console.log("🔍 EditDocumentPage useEffect:", { documentId, currentDocument: currentDocument?.id, sessionStatus: status });
+        
+        // Wait for session to be loaded before fetching document
+        if (status === "loading") {
+            console.log("⏳ Waiting for session to load...");
+            return;
+        }
+        
+        if (status === "unauthenticated") {
+            console.error("❌ User not authenticated");
+            return;
+        }
+        
         if (documentId && (!currentDocument || currentDocument.id !== documentId)) {
+            console.log("📡 Fetching document with ID:", documentId);
+            
             getDocumentById(documentId).then(doc => {
+                console.log("📄 Document received:", doc);
+                
                 if (doc) {
                     // Note: The 'file' object is not stored in the DB.
                     // The user journey should ensure the file is handled correctly in the session state
                     // after upload, but if the user lands here directly, 'file' will be null.
                     // PDFViewer is now capable of fetching from fileUrl.
                     setCurrentDocument(doc);
+                } else {
+                    console.error("❌ Document not found or error occurred");
                 }
+            }).catch(error => {
+                console.error("💥 Error fetching document:", error);
             });
         }
-    }, [documentId, currentDocument?.id, setCurrentDocument]);
+    }, [documentId, currentDocument?.id, setCurrentDocument, status]);
 
     const handleSendForSignature = async () => {
         if (!currentDocument) return;
@@ -57,7 +80,21 @@ export default function EditDocumentPage() {
         return currentDocument;
     }, [currentDocument]);
 
+    if (status === "loading") {
+        return <div>Loading session...</div>;
+    }
+    
+    if (status === "unauthenticated") {
+        return <div>You need to be logged in to access this page.</div>;
+    }
+
     if (!currentDocument || !currentDocument.fileUrl) {
+        console.log("⏳ Still loading document:", { 
+            hasCurrentDocument: !!currentDocument, 
+            documentId: currentDocument?.id,
+            hasFileUrl: !!currentDocument?.fileUrl,
+            fileUrl: currentDocument?.fileUrl
+        });
         return <div>Loading document...</div>;
     }
 
@@ -77,34 +114,120 @@ export default function EditDocumentPage() {
             return;
         }
         
-        // Get the page element and find the relative div container inside it
+        console.log("🖱️ Page click detected:", { pageNumber, selectedSignatoryId });
+        
+        // Get the page element that was clicked
         const pageElement = (event.target as HTMLElement).closest('.react-pdf__Page');
         if (!pageElement) {
+            console.error("❌ Page element not found");
             return;
         }
 
-        // Find the relative div container inside the page
+        console.log("📄 Page element found:", pageElement);
+
+        // Get the canvas inside the page (this is where the PDF is actually rendered)
+        const canvas = pageElement.querySelector('canvas');
+        if (!canvas) {
+            console.error("❌ Canvas not found in page");
+            return;
+        }
+
+        console.log("🎨 Canvas found:", { width: canvas.width, height: canvas.height, offsetWidth: canvas.offsetWidth, offsetHeight: canvas.offsetHeight });
+
+        // Get the relative container for positioning
         const relativeContainer = pageElement.querySelector('div[class="relative"]') as HTMLElement;
         if (!relativeContainer) {
+            console.error("❌ Relative container not found");
+            return;
+        }
+
+        // Calculate coordinates relative to the canvas
+        const canvasRect = canvas.getBoundingClientRect();
+        const displayX = event.clientX - canvasRect.left;
+        const displayY = event.clientY - canvasRect.top;
+        
+        console.log("🎯 Click coordinates:", {
+            clientX: event.clientX,
+            clientY: event.clientY,
+            canvasLeft: canvasRect.left,
+            canvasTop: canvasRect.top,
+            displayX,
+            displayY,
+            canvasRect
+        });
+        
+        // Validate coordinates are within canvas bounds
+        if (displayX < 0 || displayY < 0 || displayX > canvasRect.width || displayY > canvasRect.height) {
+            console.warn("⚠️ Click outside canvas bounds");
             return;
         }
         
-        const bounds = relativeContainer.getBoundingClientRect();
+        // Get PDF original dimensions from data attribute or use canvas intrinsic dimensions
+        const originalWidth = (pageElement as HTMLElement).dataset.originalWidth;
+        let normalizedX = displayX;
+        let normalizedY = displayY;
+        let fieldWidth = 90;
+        let fieldHeight = 56.25;
         
-        // Calculate pixel coordinates relative to the container where signature fields are rendered
-        const x = event.clientX - bounds.left;
-        const y = event.clientY - bounds.top;
+        if (originalWidth && canvas.offsetWidth > 0) {
+            const pageOriginalWidth = parseFloat(originalWidth);
+            const scaleFactor = pageOriginalWidth / canvas.offsetWidth;
+            
+            console.log("📏 Scale calculation:", {
+                pageOriginalWidth,
+                canvasDisplayWidth: canvas.offsetWidth,
+                scaleFactor
+            });
+            
+            if (isFinite(scaleFactor) && scaleFactor > 0) {
+                // Convert display coordinates to PDF original scale
+                normalizedX = displayX * scaleFactor;
+                normalizedY = displayY * scaleFactor;
+                fieldWidth = 90 * scaleFactor;
+                fieldHeight = 56.25 * scaleFactor;
+                
+                console.log("✅ Coordinates normalized:", {
+                    display: { x: displayX, y: displayY },
+                    normalized: { x: normalizedX, y: normalizedY },
+                    fieldSize: { width: fieldWidth, height: fieldHeight }
+                });
+            } else {
+                console.warn("⚠️ Invalid scale factor, using display coordinates");
+            }
+        } else {
+            console.warn("⚠️ No original width or invalid canvas width, using display coordinates");
+        }
         
-        // Add the signature field
-        addField({
-            type: 'signature' as const,
+        // Final validation
+        if (!isFinite(normalizedX) || !isFinite(normalizedY) || 
+            !isFinite(fieldWidth) || !isFinite(fieldHeight) ||
+            normalizedX < 0 || normalizedY < 0) {
+            console.error("❌ Invalid final coordinates:", {
+                x: normalizedX, y: normalizedY, width: fieldWidth, height: fieldHeight
+            });
+            alert("Erreur de calcul de position. Veuillez réessayer.");
+            return;
+        }
+        
+        console.log("🚀 Adding signature field:", {
+            type: 'signature',
             page: pageNumber,
-            x: x,
-            y: y,
-            width: 90,
-            height: 56.25,
+            x: normalizedX,
+            y: normalizedY,
+            width: fieldWidth,
+            height: fieldHeight,
+            signatoryId: selectedSignatoryId
+        });
+        
+        addField({
+            type: 'signature',
+            page: pageNumber,
+            x: normalizedX,
+            y: normalizedY,
+            width: fieldWidth,
+            height: fieldHeight,
             signatoryId: selectedSignatoryId,
-            value: undefined,
+            value: null
         });
     };
 

@@ -17,6 +17,7 @@ export const SignatureFieldComponent: React.FC<SignatureFieldProps> = ({
   const { currentDocument } = useSignature();
   const [isDragging, setIsDragging] = useState(false);
   const [position, setPosition] = useState({ x: field.x, y: field.y });
+  const [hasBeenDragged, setHasBeenDragged] = useState(false);
   const dragStartOffset = React.useRef({ x: 0, y: 0 });
 
   const signatory = field.signatoryId ? currentDocument?.signatories.find(s => s.id === field.signatoryId) : null;
@@ -44,6 +45,7 @@ export const SignatureFieldComponent: React.FC<SignatureFieldProps> = ({
     e.preventDefault();
     
     setIsDragging(true);
+    setHasBeenDragged(true); // Marquer qu'un drag a commencé
     
     // Calculate offset from mouse position to element position
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -85,8 +87,55 @@ export const SignatureFieldComponent: React.FC<SignatureFieldProps> = ({
 
       setIsDragging(false);
       
-      // Persist the final position to the backend
-      onUpdate(field.id, position);
+      // Ne sauvegarder que si la position a vraiment changé
+      const hasPositionChanged = Math.abs(position.x - field.x) > 1 || Math.abs(position.y - field.y) > 1;
+      
+      if (!hasPositionChanged) {
+        console.log(`📍 Position unchanged for field ${field.id}, skipping save`);
+        return;
+      }
+      
+      // Get the page element and calculate normalization factor
+      const pageElement = document.querySelector(`[data-page-number="${field.page}"]`);
+      const originalWidth = pageElement?.getAttribute('data-original-width');
+      const relativeContainer = pageElement?.querySelector('div[class="relative"]') as HTMLElement;
+      
+      let normalizedX = position.x;
+      let normalizedY = position.y;
+      
+      // Convert display coordinates back to normalized coordinates for storage
+      if (originalWidth && relativeContainer) {
+        const pageOriginalWidth = parseFloat(originalWidth);
+        const displayWidth = relativeContainer.getBoundingClientRect().width;
+        const scaleFactor = pageOriginalWidth / displayWidth;
+        
+        if (isFinite(scaleFactor) && scaleFactor > 0) {
+          normalizedX = position.x * scaleFactor;
+          normalizedY = position.y * scaleFactor;
+          
+          console.log(`📍 Saving normalized coordinates for field ${field.id}:`, {
+            display: position,
+            normalized: { x: normalizedX, y: normalizedY },
+            scaleFactor,
+            originalWidth: pageOriginalWidth,
+            displayWidth
+          });
+        } else {
+          console.warn(`⚠️ Invalid scale factor for field ${field.id}, using display coordinates`);
+        }
+      }
+      
+      // Validation finale avant sauvegarde
+      if (!isFinite(normalizedX) || !isFinite(normalizedY)) {
+        console.error(`❌ Invalid coordinates calculated for field ${field.id}:`, {
+          normalizedX, normalizedY, position
+        });
+        return;
+      }
+      
+      // Persist the normalized position to the backend
+      console.log(`💾 Persisting field position for ${field.id}:`, { x: normalizedX, y: normalizedY });
+      onUpdate(field.id, { x: normalizedX, y: normalizedY });
     };
 
     if (isDragging) {
