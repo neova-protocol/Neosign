@@ -88,27 +88,34 @@ export default function PDFViewer({ fileUrl, document: docFromProp, onSignClick,
 
     if (!onPageClick || !activeSignatoryId) return;
 
-    // 🚀 POSITIONNEMENT PAR RAPPORT À LA PAGE PDF SPÉCIFIQUE
-    console.log("🚀 === CALCUL DE POSITION SUR PAGE PDF SPÉCIFIQUE ===");
+    // 🚀 POSITIONNEMENT PAR RAPPORT AU CANVAS PDF SPÉCIFIQUE
+    console.log("🚀 === CALCUL DE POSITION SUR CANVAS PDF SPÉCIFIQUE ===");
     console.log("📍 Page cliquée:", pageNumber);
     
-    // Obtenir les dimensions de la page PDF cliquée spécifiquement
-    const pageRect = pageElement.getBoundingClientRect();
+    // Trouver le canvas spécifique de cette page
+    const targetCanvas = pageElement.querySelector('.react-pdf__Page__canvas') as HTMLElement;
+    if (!targetCanvas) {
+      console.error(`❌ Canvas de la page ${pageNumber} non trouvé`);
+      return;
+    }
     
-    console.log("📄 Page rect (page spécifique):", {
-      x: pageRect.x,
-      y: pageRect.y,
-      width: pageRect.width,
-      height: pageRect.height
+    // Obtenir les dimensions du canvas PDF spécifiquement
+    const canvasRect = targetCanvas.getBoundingClientRect();
+    
+    console.log("🎨 Canvas rect (page spécifique):", {
+      x: canvasRect.x,
+      y: canvasRect.y,
+      width: canvasRect.width,
+      height: canvasRect.height
     });
 
-    // 🚀 ÉTAPE 1: Calculer la position relative à cette page spécifique
-    const clickRelativeToPage = {
-      x: e.clientX - pageRect.left,
-      y: e.clientY - pageRect.top
+    // 🚀 ÉTAPE 1: Calculer la position relative à ce canvas spécifique
+    const clickRelativeToCanvas = {
+      x: e.clientX - canvasRect.left,
+      y: e.clientY - canvasRect.top
     };
     
-    console.log("🎯 Clic relatif à la page spécifique:", clickRelativeToPage);
+    console.log("🎯 Clic relatif au canvas spécifique:", clickRelativeToCanvas);
 
     // 🚀 ÉTAPE 2: Définir les dimensions du champ de signature
     const fieldDimensions = {
@@ -118,33 +125,33 @@ export default function PDFViewer({ fileUrl, document: docFromProp, onSignClick,
     
     console.log("📏 Dimensions du champ:", fieldDimensions);
 
-    // 🚀 ÉTAPE 3: Utiliser les dimensions réelles de la page pour les contraintes
-    const pageDimensions = {
-      width: pageRect.width,
-      height: pageRect.height
+    // 🚀 ÉTAPE 3: Utiliser les dimensions réelles du canvas pour les contraintes
+    const canvasDimensions = {
+      width: canvasRect.width,
+      height: canvasRect.height
     };
     
-    console.log("📐 Dimensions de la page:", pageDimensions);
+    console.log("📐 Dimensions du canvas:", canvasDimensions);
 
-    // 🚀 ÉTAPE 4: Utiliser la fonction utilitaire avec les contraintes de la page spécifique
+    // 🚀 ÉTAPE 4: Utiliser la fonction utilitaire avec les contraintes du canvas spécifique
     const finalPosition = calculateSignaturePosition({
-      desiredPosition: clickRelativeToPage,
+      desiredPosition: clickRelativeToCanvas,
       fieldDimensions,
-      containerDimensions: pageDimensions, // Contraintes basées sur la page spécifique
+      containerDimensions: canvasDimensions, // Contraintes basées sur le canvas spécifique
       containerPadding: {
-        left: 0, // Pas de padding car on est relatif à la page
+        left: 0, // Pas de padding car on est relatif au canvas
         top: 0
       },
-      pdfOffset: { left: 0, top: 0 }, // Pas de décalage car on est relatif à la page
+      pdfOffset: { left: 0, top: 0 }, // Pas de décalage car on est relatif au canvas
       useSmartPositioning: true, // Activer le positionnement intelligent pour les clics
-      context: "CLICK_PAGE_SPECIFIC"
+      context: "CLICK_CANVAS_SPECIFIC"
     });
 
-    console.log("✅ Position calculée pour la page spécifique:", finalPosition);
-    console.log("🚀 === FIN CALCUL PAGE SPÉCIFIQUE ===");
+    console.log("✅ Position calculée pour le canvas spécifique:", finalPosition);
+    console.log("🚀 === FIN CALCUL CANVAS SPÉCIFIQUE ===");
     
-    // 🚀 ÉTAPE 5: Convertir la position relative à la page en position absolue pour le stockage
-    // La position finale sera relative au début de cette page dans le conteneur global
+    // 🚀 ÉTAPE 5: Convertir la position relative au canvas en position absolue pour le stockage
+    // La position finale sera relative au début de ce canvas dans le conteneur global
     const containerRect = containerRef.current?.getBoundingClientRect();
     if (!containerRect || !containerRef.current) {
       console.error("❌ Conteneur PDF non trouvé");
@@ -153,15 +160,15 @@ export default function PDFViewer({ fileUrl, document: docFromProp, onSignClick,
     
     // Calculer la position absolue dans le conteneur global en prenant en compte le scroll
     const absolutePosition = {
-      x: finalPosition.x + (pageRect.left - containerRect.left) + containerRef.current.scrollLeft,
-      y: finalPosition.y + (pageRect.top - containerRect.top) + containerRef.current.scrollTop
+      x: finalPosition.x + (canvasRect.left - containerRect.left) + containerRef.current.scrollLeft,
+      y: finalPosition.y + (canvasRect.top - containerRect.top) + containerRef.current.scrollTop
     };
     
     console.log("📜 Scroll du conteneur:", { 
       scrollLeft: containerRef.current.scrollLeft, 
       scrollTop: containerRef.current.scrollTop 
     });
-    console.log("📍 Position absolue dans le conteneur global (avec scroll):", absolutePosition);
+    console.log("📍 Position absolue dans le conteneur global (avec scroll canvas):", absolutePosition);
     
     onPageClick(pageNumber, absolutePosition);
   };
@@ -205,32 +212,68 @@ export default function PDFViewer({ fileUrl, document: docFromProp, onSignClick,
       {fields.map((field: SignatureField) => {
         const signatory = document?.signatories.find((s: Signatory) => s.id === field.signatoryId);
         
-        // 🚀 AFFICHAGE DES SIGNATURES MANUELLES (DESSINÉES)
-        // Always render the signature if it exists
-        if (field.value) {
-          // Convertir les coordonnées stockées en coordonnées d'affichage pour les signatures manuelles
-          const containerElement = containerRef.current;
-          if (!containerElement) {
-            console.error("❌ Conteneur PDF non trouvé pour l'affichage de la signature");
-            return null;
-          }
+        // 🚀 CONVERSION DES COORDONNÉES POUR TOUS LES ÉLÉMENTS
+        const containerElement = containerRef.current;
+        let displayPosition: { x: number, y: number };
+        
+        // 🛡️ VÉRIFICATION DE SÉCURITÉ: Vérifier si le conteneur est monté
+        if (!containerElement) {
+          console.warn("⚠️ Conteneur PDF non encore monté, utilisation des coordonnées stockées");
+          // Fallback: utiliser les coordonnées stockées directement pendant le montage initial
+          displayPosition = { x: field.x, y: field.y };
           
-          const displayPosition = convertStoredToDisplayPosition({
-            storedPosition: { x: field.x, y: field.y },
-            fieldPage: field.page,
-            containerElement
+          console.log("🔄 Fallback (conteneur non monté):", {
+            fieldId: field.id,
+            page: field.page,
+            fallbackPosition: displayPosition,
+            elementType: field.value ? 'signature' : 'field'
           });
+        } else {
+          // 🛡️ VÉRIFICATION DE SÉCURITÉ: Vérifier si les canvas PDF sont chargés
+          const targetCanvas = containerElement.querySelector(`[data-page-number="${field.page}"] .react-pdf__Page__canvas`) as HTMLElement;
           
-          if (!displayPosition) {
-            console.error("❌ Impossible de calculer la position d'affichage pour la signature");
-            return null;
+          if (!targetCanvas) {
+            console.warn(`⚠️ Canvas de la page ${field.page} non encore chargé, utilisation des coordonnées stockées`);
+            // Fallback: utiliser les coordonnées stockées directement en attendant le chargement
+            displayPosition = { x: field.x, y: field.y };
+            
+            console.log("🔄 Fallback (canvas non chargé):", {
+              fieldId: field.id,
+              page: field.page,
+              fallbackPosition: displayPosition,
+              elementType: field.value ? 'signature' : 'field'
+            });
+          } else {
+            const convertedPosition = convertStoredToDisplayPosition({
+              storedPosition: { x: field.x, y: field.y },
+              fieldPage: field.page,
+              containerElement
+            });
+            
+            if (!convertedPosition) {
+              console.warn("⚠️ Impossible de calculer la position d'affichage, utilisation du fallback");
+              // Fallback: utiliser les coordonnées stockées directement
+              displayPosition = { x: field.x, y: field.y };
+            } else {
+              displayPosition = convertedPosition;
+              
+              console.log("🎯 Position d'affichage calculée:", {
+                fieldId: field.id,
+                page: field.page,
+                storedPosition: { x: field.x, y: field.y },
+                displayPosition,
+                elementType: field.value ? 'signature' : 'field'
+              });
+            }
           }
-          
+        }
+        
+        // 🚀 AFFICHAGE DES SIGNATURES MANUELLES (DESSINÉES)
+        if (field.value) {
           console.log("🖼️ Affichage signature manuelle:", {
             fieldId: field.id,
             page: field.page,
-            storedPosition: { x: field.x, y: field.y },
-            displayPosition,
+            position: displayPosition,
             dimensions: { width: field.width, height: field.height }
           });
           
@@ -249,31 +292,46 @@ export default function PDFViewer({ fileUrl, document: docFromProp, onSignClick,
           />;
         }
 
-        // Use coordinates directly for other field types (placeholders, buttons)
-        const displayX = field.x;
-        const displayY = field.y;
-        const displayWidth = field.width;
-        const displayHeight = field.height;
-
+        // 🚀 AFFICHAGE DES ÉLÉMENTS INTERACTIFS (AVEC POSITION CORRIGÉE)
         // Logic for signing mode
         if (isSigningMode) {
           if (field.signatoryId === activeSignatoryId) {
+            console.log("🟡 Affichage bouton 'Sign Here':", {
+              fieldId: field.id,
+              page: field.page,
+              position: displayPosition
+            });
+            
             return (
-              <div key={field.id} style={{ position: 'absolute', left: displayX, top: displayY, zIndex: 10 }}>
+              <div key={field.id} style={{ position: 'absolute', left: displayPosition.x, top: displayPosition.y, zIndex: 10 }}>
                 <button onClick={(e) => { if(onSignClick) { e.stopPropagation(); onSignClick(field); } }} className="bg-yellow-400 hover:bg-yellow-500 text-black font-bold py-2 px-4 rounded">Sign Here</button>
               </div>
             );
           }
           // Show a placeholder for other signatories' pending signatures
+          console.log("🔲 Affichage placeholder:", {
+            fieldId: field.id,
+            page: field.page,
+            position: displayPosition,
+            signatoryName: signatory?.name
+          });
+          
           return (
-            <div key={field.id} style={{ position: 'absolute', left: displayX, top: displayY, width: displayWidth, height: displayHeight, border: `2px dashed ${signatory?.color || '#ccc'}`, backgroundColor: `${signatory?.color || '#ccc'}20` }}>
+            <div key={field.id} style={{ position: 'absolute', left: displayPosition.x, top: displayPosition.y, width: field.width, height: field.height, border: `2px dashed ${signatory?.color || '#ccc'}`, backgroundColor: `${signatory?.color || '#ccc'}20` }}>
               <p className="text-xs p-1">{signatory?.name}</p>
             </div>
           );
         }
 
+        // 🚀 AFFICHAGE DES CHAMPS DRAG & DROP (AVEC POSITION CORRIGÉE)
         // Logic for edit/setup mode (drag and drop)
         if (onFieldUpdate) {
+          console.log("🔄 Affichage SignatureFieldComponent:", {
+            fieldId: field.id,
+            page: field.page,
+            position: displayPosition
+          });
+          
           return <SignatureFieldComponent key={field.id} field={field} onUpdate={onFieldUpdate} onRemove={removeField} />;
         }
 
