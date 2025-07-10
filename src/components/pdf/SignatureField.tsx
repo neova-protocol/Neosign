@@ -13,6 +13,11 @@
  * - Haut: minimum = padding haut du conteneur (32px)
  * - Bas: maximum = hauteur du conteneur - hauteur du champ
  * 
+ * GESTION DU SCROLL:
+ * - Les calculs de position prennent en compte le scroll interne du conteneur PDF
+ * - Formule: position = souris - containerRect - dragOffset + scroll du conteneur
+ * - Cela corrige les décalages quand l'utilisateur fait défiler le PDF pendant le drag
+ * 
  * Les coordonnées sont sauvegardées seulement si la position a réellement changé.
  */
 
@@ -90,13 +95,14 @@ export const SignatureFieldComponent: React.FC<SignatureFieldProps> = ({
       });
 
       // 🚀 ÉTAPE 2: Calculer la nouvelle position relative au conteneur PDF global
-      // Position de la souris par rapport au conteneur PDF global (en enlevant l'offset du drag)
-      let newX = e.clientX - containerRect.left - dragStartOffset.current.x;
-      let newY = e.clientY - containerRect.top - dragStartOffset.current.y;
+      // Position de la souris par rapport au conteneur PDF global (en enlevant l'offset du drag ET en tenant compte du scroll)
+      let newX = e.clientX - containerRect.left - dragStartOffset.current.x + pdfContainer.scrollLeft;
+      let newY = e.clientY - containerRect.top - dragStartOffset.current.y + pdfContainer.scrollTop;
       
-      console.log("🎯 Position brute calculée:", { x: newX, y: newY });
+      console.log("🎯 Position brute calculée (avec scroll):", { x: newX, y: newY });
       console.log("🎯 Mouse position:", { clientX: e.clientX, clientY: e.clientY });
       console.log("🎯 Drag offset:", dragStartOffset.current);
+      console.log("📜 Scroll du conteneur:", { scrollLeft: pdfContainer.scrollLeft, scrollTop: pdfContainer.scrollTop });
       
       // 🚀 ÉTAPE 3: Appliquer les contraintes du conteneur PDF global
       // Prendre en compte le padding du conteneur (pt-8 pl-8 = 2rem = 32px)

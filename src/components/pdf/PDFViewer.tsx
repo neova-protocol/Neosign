@@ -13,6 +13,11 @@
  * - Haut: minimum = padding haut du conteneur (32px)
  * - Bas: maximum = hauteur du conteneur - hauteur du champ
  * 
+ * GESTION DU SCROLL:
+ * - Les calculs de position prennent en compte le scroll interne du conteneur PDF
+ * - Formule: position = clic - containerRect + scroll du conteneur
+ * - Cela corrige les décalages quand l'utilisateur fait défiler le PDF
+ * 
  * Cette approche permet aux signatures d'être positionnées n'importe où dans le conteneur PDF,
  * y compris entre les pages si nécessaire.
  */
@@ -85,6 +90,10 @@ export default function PDFViewer({ fileUrl, document: docFromProp, onSignClick,
     const containerRect = pdfContainer.getBoundingClientRect();
     const pageRect = pageElement.getBoundingClientRect();
     
+    // Obtenir la hauteur totale du contenu scrollable (toutes les pages)
+    const totalContentHeight = pdfContainer.scrollHeight;
+    const totalContentWidth = pdfContainer.scrollWidth;
+    
     console.log("📦 Conteneur PDF rect:", {
       x: containerRect.x,
       y: containerRect.y,
@@ -98,15 +107,21 @@ export default function PDFViewer({ fileUrl, document: docFromProp, onSignClick,
       width: pageRect.width,
       height: pageRect.height
     });
+    
+    console.log("📏 Contenu total scrollable:", {
+      width: totalContentWidth,
+      height: totalContentHeight
+    });
 
     // 🚀 ÉTAPE 2: Calculer la position relative au conteneur PDF global
-    // Position du clic par rapport au conteneur PDF global (en tenant compte du padding)
+    // Position du clic par rapport au conteneur PDF global (en tenant compte du padding ET du scroll)
     const clickRelativeToContainer = {
-      x: e.clientX - containerRect.left,
-      y: e.clientY - containerRect.top
+      x: e.clientX - containerRect.left + pdfContainer.scrollLeft,
+      y: e.clientY - containerRect.top + pdfContainer.scrollTop
     };
     
-    console.log("🎯 Clic relatif au conteneur PDF:", clickRelativeToContainer);
+    console.log("🎯 Clic relatif au conteneur PDF (avec scroll):", clickRelativeToContainer);
+    console.log("📜 Scroll du conteneur:", { scrollLeft: pdfContainer.scrollLeft, scrollTop: pdfContainer.scrollTop });
 
     // 🚀 ÉTAPE 3: Définir les dimensions du champ de signature
     const fieldDimensions = {
@@ -129,16 +144,22 @@ export default function PDFViewer({ fileUrl, document: docFromProp, onSignClick,
     // Contrainte gauche (minimum = padding gauche)
     finalX = Math.max(paddingLeft, finalX);
     
-    // Contrainte droite (ne pas dépasser la largeur du conteneur moins le champ)
-    finalX = Math.min(finalX, containerRect.width - fieldDimensions.width);
+    // Contrainte droite (ne pas dépasser la largeur totale du contenu moins le champ)
+    finalX = Math.min(finalX, totalContentWidth - fieldDimensions.width);
     
     // Contrainte haut (minimum = padding haut)
     finalY = Math.max(paddingTop, finalY);
     
-    // Contrainte bas (ne pas dépasser la hauteur du conteneur moins le champ)
-    finalY = Math.min(finalY, containerRect.height - fieldDimensions.height);
+    // Contrainte bas (ne pas dépasser la hauteur totale du contenu moins le champ)
+    finalY = Math.min(finalY, totalContentHeight - fieldDimensions.height);
 
-    console.log("📍 Position finale contrainte au conteneur PDF:", { x: finalX, y: finalY });
+    console.log("📍 Position finale contrainte au contenu total:", { x: finalX, y: finalY });
+    console.log("📏 Contraintes appliquées:", {
+      minX: paddingLeft,
+      maxX: totalContentWidth - fieldDimensions.width,
+      minY: paddingTop,
+      maxY: totalContentHeight - fieldDimensions.height
+    });
 
     // 🚀 ÉTAPE 5: Validation finale
     if (!isFinite(finalX) || !isFinite(finalY)) {
