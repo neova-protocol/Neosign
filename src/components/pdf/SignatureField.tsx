@@ -158,11 +158,15 @@ export const SignatureFieldComponent: React.FC<SignatureFieldProps> = ({
       
       // 🚀 ÉTAPE 5: Convertir en position absolue dans le conteneur global
       const absolutePosition = {
-        x: finalPositionRelativeToPage.x + (pageRect.left - containerRect.left),
-        y: finalPositionRelativeToPage.y + (pageRect.top - containerRect.top)
+        x: finalPositionRelativeToPage.x + (pageRect.left - containerRect.left) + pdfContainer.scrollLeft,
+        y: finalPositionRelativeToPage.y + (pageRect.top - containerRect.top) + pdfContainer.scrollTop
       };
       
-      console.log("📍 Position absolue dans le conteneur global:", absolutePosition);
+      console.log("📜 Scroll du conteneur:", { 
+        scrollLeft: pdfContainer.scrollLeft, 
+        scrollTop: pdfContainer.scrollTop 
+      });
+      console.log("📍 Position absolue dans le conteneur global (avec scroll):", absolutePosition);
       setPosition(absolutePosition);
     };
 
