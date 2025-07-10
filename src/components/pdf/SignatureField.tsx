@@ -94,6 +94,15 @@ export const SignatureFieldComponent: React.FC<SignatureFieldProps> = ({
         height: containerRect.height
       });
 
+      // Obtenir la hauteur totale du contenu scrollable (toutes les pages)
+      const totalContentHeight = pdfContainer.scrollHeight;
+      const totalContentWidth = pdfContainer.scrollWidth;
+      
+      console.log("📏 Contenu total scrollable:", {
+        width: totalContentWidth,
+        height: totalContentHeight
+      });
+
       // 🚀 ÉTAPE 2: Calculer la nouvelle position relative au conteneur PDF global
       // Position de la souris par rapport au conteneur PDF global (en enlevant l'offset du drag ET en tenant compte du scroll)
       let newX = e.clientX - containerRect.left - dragStartOffset.current.x + pdfContainer.scrollLeft;
@@ -121,7 +130,7 @@ export const SignatureFieldComponent: React.FC<SignatureFieldProps> = ({
       newY = Math.max(paddingTop, newY);
       
       // Contrainte bas (ne pas dépasser la hauteur du conteneur moins le champ)
-      newY = Math.min(newY, containerRect.height - field.height);
+      newY = Math.min(newY, totalContentHeight - field.height);
       
       console.log("📍 Position finale contrainte au conteneur PDF:", { x: newX, y: newY });
       console.log("📏 Field dimensions:", { width: field.width, height: field.height });

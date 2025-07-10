@@ -42,26 +42,40 @@ const nextConfig = {
     ];
   },
 
-  // Configuration Webpack uniquement pour le build de production
-  webpack: (config, { isServer, dev }) => {
-    // Seulement pour les builds de production (pas en dev avec Turbopack)
-    if (!dev) {
-      // Handle PDF.js worker pour le build de production
-      if (!isServer) {
-        config.resolve.fallback = {
-          ...config.resolve.fallback,
-          fs: false,
-          path: false,
-          canvas: false,
-        };
-      }
-
-      // Handle file types pour le build de production
-      config.module.rules.push({
-        test: /\.pdf$/,
-        type: 'asset/resource',
+  // Configuration Webpack pour tous les builds
+  webpack: (config, { isServer }) => {
+    // Configuration pour PDF.js - toujours nécessaire
+    if (!isServer) {
+      // Ignorer complètement canvas et autres modules natifs côté client
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        path: false,
+        canvas: false,
+      };
+      
+      // Exclure complètement les modules canvas pour éviter les erreurs
+      config.externals = config.externals || [];
+      config.externals.push({
+        canvas: 'canvas',
+        'canvas/lib/bindings': 'canvas/lib/bindings',
+        'canvas/build/Release/canvas.node': 'canvas/build/Release/canvas.node',
       });
     }
+    
+    // Configuration pour tous les environnements - rediriger tous les imports canvas
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      canvas: require.resolve('./src/lib/canvas-fallback.js'),
+      'canvas/lib/bindings': require.resolve('./src/lib/canvas-fallback.js'),
+      'canvas/build/Release/canvas.node': require.resolve('./src/lib/canvas-fallback.js'),
+    };
+
+    // Handle file types
+    config.module.rules.push({
+      test: /\.pdf$/,
+      type: 'asset/resource',
+    });
 
     return config;
   },
