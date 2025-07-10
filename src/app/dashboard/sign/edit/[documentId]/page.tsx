@@ -108,103 +108,21 @@ export default function EditDocumentPage() {
         return <div>This document has already been sent and can no longer be edited.</div>;
     }
 
-    const handlePageClick = (pageNumber: number, event: React.MouseEvent) => {
+    const handlePageClick = (pageNumber: number, position: { x: number, y: number }) => {
         if (!selectedSignatoryId) {
             alert("Please select a signatory first");
             return;
         }
         
-        console.log("🖱️ Page click detected:", { pageNumber, selectedSignatoryId });
-        
-        const pageElement = (event.currentTarget as HTMLElement);
-        if (!pageElement) {
-            console.error("❌ Page element not found");
-            return;
-        }
-    
-        console.log("📄 Page element found:", pageElement);
-    
-        const pageRect = pageElement.getBoundingClientRect();
-        const displayX = event.clientX - pageRect.left;
-        const displayY = event.clientY - pageRect.top;
-        
-        console.log("🎯 Click coordinates:", {
-            clientX: event.clientX,
-            clientY: event.clientY,
-            pageLeft: pageRect.left,
-            pageTop: pageRect.top,
-            displayX,
-            displayY,
-            pageRect
-        });
-        
-        if (displayX < 0 || displayY < 0 || displayX > pageRect.width || displayY > pageRect.height) {
-            console.warn("⚠️ Click outside page bounds");
-            return;
-        }
-        
-        const originalWidth = pageElement.dataset.originalWidth;
-        let normalizedX = displayX;
-        let normalizedY = displayY;
-        let fieldWidth = 90;
-        let fieldHeight = 56.25;
-        
-        if (originalWidth && pageElement.offsetWidth > 0) {
-            const pageOriginalWidth = parseFloat(originalWidth);
-            const scaleFactor = pageOriginalWidth / pageElement.offsetWidth;
-            
-            console.log("📏 Scale calculation:", {
-                pageOriginalWidth,
-                pageDisplayWidth: pageElement.offsetWidth,
-                scaleFactor
-            });
-            
-            if (isFinite(scaleFactor) && scaleFactor > 0) {
-                normalizedX = displayX * scaleFactor;
-                normalizedY = displayY * scaleFactor;
-                fieldWidth = 90 * scaleFactor;
-                fieldHeight = 56.25 * scaleFactor;
-                
-                console.log("✅ Coordinates normalized:", {
-                    display: { x: displayX, y: displayY },
-                    normalized: { x: normalizedX, y: normalizedY },
-                    fieldSize: { width: fieldWidth, height: fieldHeight }
-                });
-            } else {
-                console.warn("⚠️ Invalid scale factor, using display coordinates");
-            }
-        } else {
-            console.warn("⚠️ No original width or invalid page width, using display coordinates");
-        }
-        
-        // Final validation
-        if (!isFinite(normalizedX) || !isFinite(normalizedY) || 
-            !isFinite(fieldWidth) || !isFinite(fieldHeight) ||
-            normalizedX < 0 || normalizedY < 0) {
-            console.error("❌ Invalid final coordinates:", {
-                x: normalizedX, y: normalizedY, width: fieldWidth, height: fieldHeight
-            });
-            alert("Erreur de calcul de position. Veuillez réessayer.");
-            return;
-        }
-        
-        console.log("🚀 Adding signature field:", {
-            type: 'signature',
-            page: pageNumber,
-            x: normalizedX,
-            y: normalizedY,
-            width: fieldWidth,
-            height: fieldHeight,
-            signatoryId: selectedSignatoryId
-        });
-        
+        console.log("✅ Received final coordinates for field creation:", { pageNumber, position, selectedSignatoryId });
+
         addField({
             type: 'signature',
             page: pageNumber,
-            x: normalizedX,
-            y: normalizedY,
-            width: fieldWidth,
-            height: fieldHeight,
+            x: position.x,
+            y: position.y,
+            width: 120, // Standard width in pixels
+            height: 75, // Standard height in pixels
             signatoryId: selectedSignatoryId,
             value: null
         });

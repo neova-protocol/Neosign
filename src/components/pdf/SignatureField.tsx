@@ -97,45 +97,21 @@ export const SignatureFieldComponent: React.FC<SignatureFieldProps> = ({
       
       // Get the page element and calculate normalization factor
       const pageElement = document.querySelector(`[data-page-number="${field.page}"]`);
-      const originalWidth = pageElement?.getAttribute('data-original-width');
-      const relativeContainer = pageElement?.querySelector('div[class="relative"]') as HTMLElement;
-      
-      let normalizedX = position.x;
-      let normalizedY = position.y;
-      
-      // Convert display coordinates back to normalized coordinates for storage
-      if (originalWidth && relativeContainer) {
-        const pageOriginalWidth = parseFloat(originalWidth);
-        const displayWidth = relativeContainer.getBoundingClientRect().width;
-        const scaleFactor = pageOriginalWidth / displayWidth;
-        
-        if (isFinite(scaleFactor) && scaleFactor > 0) {
-          normalizedX = position.x * scaleFactor;
-          normalizedY = position.y * scaleFactor;
-          
-          console.log(`📍 Saving normalized coordinates for field ${field.id}:`, {
-            display: position,
-            normalized: { x: normalizedX, y: normalizedY },
-            scaleFactor,
-            originalWidth: pageOriginalWidth,
-            displayWidth
-          });
-        } else {
-          console.warn(`⚠️ Invalid scale factor for field ${field.id}, using display coordinates`);
-        }
-      }
-      
+      if (!pageElement) return;
+
+      const newPosition = { x: position.x, y: position.y };
+
       // Validation finale avant sauvegarde
-      if (!isFinite(normalizedX) || !isFinite(normalizedY)) {
+      if (!isFinite(newPosition.x) || !isFinite(newPosition.y)) {
         console.error(`❌ Invalid coordinates calculated for field ${field.id}:`, {
-          normalizedX, normalizedY, position
+          newPosition, position
         });
         return;
       }
       
-      // Persist the normalized position to the backend
-      console.log(`💾 Persisting field position for ${field.id}:`, { x: normalizedX, y: normalizedY });
-      onUpdate(field.id, { x: normalizedX, y: normalizedY });
+      // Persist the raw pixel position to the backend
+      console.log(`💾 Persisting field position for ${field.id}:`, newPosition);
+      onUpdate(field.id, { x: newPosition.x, y: newPosition.y });
     };
 
     if (isDragging) {
@@ -170,6 +146,7 @@ export const SignatureFieldComponent: React.FC<SignatureFieldProps> = ({
         zIndex: isDragging ? 1000 : 100,
       }}
       onMouseDown={handleMouseDown}
+      onClick={(e) => e.stopPropagation()}
     >
       <div 
         className="relative border-2 rounded-md flex items-center justify-center transition-all"
