@@ -120,3 +120,65 @@ export function calculateSignaturePosition({
   
   return { x: finalX, y: finalY };
 }
+
+/**
+ * Fonction utilitaire pour convertir les coordonnées absolues stockées en coordonnées d'affichage
+ * qui tiennent compte du positionnement par page spécifique et du scroll
+ * 
+ * @param storedPosition - Position stockée en base de données (absolue dans le conteneur)
+ * @param fieldPage - Numéro de page du champ
+ * @param containerElement - Élément conteneur PDF
+ * @returns Position d'affichage corrigée
+ */
+export function convertStoredToDisplayPosition({
+  storedPosition,
+  fieldPage,
+  containerElement
+}: {
+  storedPosition: { x: number; y: number };
+  fieldPage: number;
+  containerElement: HTMLElement;
+}): { x: number; y: number } | null {
+  
+  console.log(`🔄 === CONVERSION COORDONNÉES AFFICHAGE (PAGE ${fieldPage}) ===`);
+  console.log("📍 Position stockée:", storedPosition);
+  
+  // Trouver la page spécifique correspondante
+  const targetPage = containerElement.querySelector(`[data-page-number="${fieldPage}"]`) as HTMLElement;
+  if (!targetPage) {
+    console.error(`❌ Page ${fieldPage} non trouvée pour l'affichage`);
+    return null;
+  }
+  
+  const pageRect = targetPage.getBoundingClientRect();
+  const containerRect = containerElement.getBoundingClientRect();
+  
+  console.log("📄 Page rect:", {
+    x: pageRect.x,
+    y: pageRect.y,
+    width: pageRect.width,
+    height: pageRect.height
+  });
+  
+  console.log("📦 Container rect:", {
+    x: containerRect.x,
+    y: containerRect.y,
+    width: containerRect.width,
+    height: containerRect.height
+  });
+  
+  // Calculer la position d'affichage en tenant compte du scroll et de la position de la page
+  const displayPosition = {
+    x: storedPosition.x - containerElement.scrollLeft,
+    y: storedPosition.y - containerElement.scrollTop
+  };
+  
+  console.log("📜 Scroll du conteneur:", { 
+    scrollLeft: containerElement.scrollLeft, 
+    scrollTop: containerElement.scrollTop 
+  });
+  console.log("📍 Position d'affichage calculée:", displayPosition);
+  console.log(`🔄 === FIN CONVERSION PAGE ${fieldPage} ===`);
+  
+  return displayPosition;
+}

@@ -40,7 +40,7 @@ import { Document, Page, pdfjs } from 'react-pdf';
 import { useSignature } from '@/contexts/SignatureContext';
 import { SignatureFieldComponent } from './SignatureField';
 import { SignatureField, Signatory, Document as AppDocument } from '@/types';
-import { calculateSignaturePosition } from '@/lib/utils';
+import { calculateSignaturePosition, convertStoredToDisplayPosition } from '@/lib/utils';
 
 // Configure PDF.js worker from a local path
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
@@ -205,28 +205,55 @@ export default function PDFViewer({ fileUrl, document: docFromProp, onSignClick,
       {fields.map((field: SignatureField) => {
         const signatory = document?.signatories.find((s: Signatory) => s.id === field.signatoryId);
         
-        // Use coordinates directly (maintenant relatives au conteneur PDF global)
-        const displayX = field.x;
-        const displayY = field.y;
-        const displayWidth = field.width;
-        const displayHeight = field.height;
-        
+        // 🚀 AFFICHAGE DES SIGNATURES MANUELLES (DESSINÉES)
         // Always render the signature if it exists
         if (field.value) {
+          // Convertir les coordonnées stockées en coordonnées d'affichage pour les signatures manuelles
+          const containerElement = containerRef.current;
+          if (!containerElement) {
+            console.error("❌ Conteneur PDF non trouvé pour l'affichage de la signature");
+            return null;
+          }
+          
+          const displayPosition = convertStoredToDisplayPosition({
+            storedPosition: { x: field.x, y: field.y },
+            fieldPage: field.page,
+            containerElement
+          });
+          
+          if (!displayPosition) {
+            console.error("❌ Impossible de calculer la position d'affichage pour la signature");
+            return null;
+          }
+          
+          console.log("🖼️ Affichage signature manuelle:", {
+            fieldId: field.id,
+            page: field.page,
+            storedPosition: { x: field.x, y: field.y },
+            displayPosition,
+            dimensions: { width: field.width, height: field.height }
+          });
+          
           return <img 
             key={field.id} 
             src={field.value} 
             alt="Signature" 
             style={{ 
               position: 'absolute', 
-              left: displayX, 
-              top: displayY, 
-              width: displayWidth, 
-              height: displayHeight, 
+              left: displayPosition.x, 
+              top: displayPosition.y, 
+              width: field.width, 
+              height: field.height, 
               zIndex: 10 
             }} 
           />;
         }
+
+        // Use coordinates directly for other field types (placeholders, buttons)
+        const displayX = field.x;
+        const displayY = field.y;
+        const displayWidth = field.width;
+        const displayHeight = field.height;
 
         // Logic for signing mode
         if (isSigningMode) {
