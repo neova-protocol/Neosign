@@ -39,10 +39,10 @@
   min-width: 300px !important;
 }
 
-/* Fix for container sizing issues */
+/* Fix for container sizing issues
 .pdf-container > div {
   width: 100% !important;
-}
+} */
 
 /* Ajoute ici tes styles globaux personnalisés si besoin */
 

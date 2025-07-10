@@ -136,7 +136,7 @@ export default function PDFViewer({ fileUrl, document: docFromProp, onSignClick,
     
     console.log("📏 Dimensions du champ:", fieldDimensions);
 
-    // 🚀 ÉTAPE 4: Appliquer les contraintes au niveau du conteneur PDF global
+    // 🚀 ÉTAPE 4: Positionnement intelligent basé sur l'espace disponible
     let finalX = clickRelativeToContainer.x;
     let finalY = clickRelativeToContainer.y;
 
@@ -146,17 +146,49 @@ export default function PDFViewer({ fileUrl, document: docFromProp, onSignClick,
     
     console.log("🎯 Padding du conteneur:", { paddingLeft, paddingTop });
 
+    // 🔄 POSITIONNEMENT INTELLIGENT: Décaler la signature si elle sortirait du conteneur
+    console.log("🔄 === POSITIONNEMENT INTELLIGENT ===");
+    console.log("📍 Position initiale du clic:", { x: finalX, y: finalY });
+    
+    // Vérifier si placer la signature à cette position (origine haut-gauche) la ferait sortir
+    const wouldExceedRight = finalX + fieldDimensions.width > totalContentWidth;
+    const wouldExceedBottom = finalY + fieldDimensions.height > totalContentHeight;
+    
+    console.log("🔍 Vérification des débordements:", {
+      wouldExceedRight,
+      wouldExceedBottom,
+      rightEdge: finalX + fieldDimensions.width,
+      bottomEdge: finalY + fieldDimensions.height,
+      totalWidth: totalContentWidth,
+      totalHeight: totalContentHeight
+    });
+
+    // Si le clic + la largeur de la signature dépasse la largeur totale, on décale vers la gauche
+    if (wouldExceedRight) {
+      const oldX = finalX;
+      finalX = clickRelativeToContainer.x - fieldDimensions.width;
+      console.log("🔄 Décalage vers la gauche:", { oldX, newX: finalX, décalage: fieldDimensions.width });
+    }
+
+    // Si le clic + la hauteur de la signature dépasse la hauteur totale, on décale vers le haut
+    if (wouldExceedBottom) {
+      const oldY = finalY;
+      finalY = clickRelativeToContainer.y - fieldDimensions.height;
+      console.log("🔄 Décalage vers le haut:", { oldY, newY: finalY, décalage: fieldDimensions.height });
+    }
+
+    console.log("📍 Position après décalage intelligent:", { x: finalX, y: finalY });
+
+    // 🔒 CONTRAINTES FINALES: S'assurer qu'on reste dans les limites
+    console.log("🔒 === CONTRAINTES FINALES ===");
+    
     // Contrainte gauche (minimum = padding gauche)
-    finalX = Math.max(paddingLeft, finalX);
+    const constrainedX = Math.max(paddingLeft, finalX);
+    const constrainedY = Math.max(paddingTop, finalY);
     
-    // Contrainte droite (ne pas dépasser la largeur totale du contenu moins le champ)
-    finalX = Math.min(finalX, totalContentWidth - fieldDimensions.width);
-    
-    // Contrainte haut (minimum = padding haut)
-    finalY = Math.max(paddingTop, finalY);
-    
-    // Contrainte bas (ne pas dépasser la hauteur totale du contenu moins le champ)
-    finalY = Math.min(finalY, totalContentHeight - fieldDimensions.height);
+    // Contrainte droite et bas (ne pas dépasser les dimensions totales moins le champ)
+    finalX = Math.min(constrainedX, totalContentWidth - fieldDimensions.width);
+    finalY = Math.min(constrainedY, totalContentHeight - fieldDimensions.height);
 
     console.log("📍 Position finale contrainte au contenu total:", { x: finalX, y: finalY });
     console.log("📏 Contraintes appliquées:", {
