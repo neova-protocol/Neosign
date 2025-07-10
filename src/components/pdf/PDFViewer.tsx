@@ -40,7 +40,7 @@ import { Document, Page, pdfjs } from 'react-pdf';
 import { useSignature } from '@/contexts/SignatureContext';
 import { SignatureFieldComponent } from './SignatureField';
 import { SignatureField, Signatory, Document as AppDocument } from '@/types';
-import { calculateSignaturePosition, convertStoredToDisplayPosition } from '@/lib/utils';
+import { calculateSignaturePosition } from '@/lib/utils';
 
 // Configure PDF.js worker from a local path
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
@@ -208,29 +208,10 @@ export default function PDFViewer({ fileUrl, document: docFromProp, onSignClick,
         // 🚀 AFFICHAGE DES SIGNATURES MANUELLES (DESSINÉES)
         // Always render the signature if it exists
         if (field.value) {
-          // Convertir les coordonnées stockées en coordonnées d'affichage pour les signatures manuelles
-          const containerElement = containerRef.current;
-          if (!containerElement) {
-            console.error("❌ Conteneur PDF non trouvé pour l'affichage de la signature");
-            return null;
-          }
-          
-          const displayPosition = convertStoredToDisplayPosition({
-            storedPosition: { x: field.x, y: field.y },
-            fieldPage: field.page,
-            containerElement
-          });
-          
-          if (!displayPosition) {
-            console.error("❌ Impossible de calculer la position d'affichage pour la signature");
-            return null;
-          }
-          
           console.log("🖼️ Affichage signature manuelle:", {
             fieldId: field.id,
             page: field.page,
-            storedPosition: { x: field.x, y: field.y },
-            displayPosition,
+            directPosition: { x: field.x, y: field.y },
             dimensions: { width: field.width, height: field.height }
           });
           
@@ -240,8 +221,8 @@ export default function PDFViewer({ fileUrl, document: docFromProp, onSignClick,
             alt="Signature" 
             style={{ 
               position: 'absolute', 
-              left: displayPosition.x, 
-              top: displayPosition.y, 
+              left: field.x, 
+              top: field.y, 
               width: field.width, 
               height: field.height, 
               zIndex: 10 
@@ -259,15 +240,44 @@ export default function PDFViewer({ fileUrl, document: docFromProp, onSignClick,
         if (isSigningMode) {
           if (field.signatoryId === activeSignatoryId) {
             return (
-              <div key={field.id} style={{ position: 'absolute', left: displayX, top: displayY, zIndex: 10 }}>
-                <button onClick={(e) => { if(onSignClick) { e.stopPropagation(); onSignClick(field); } }} className="bg-yellow-400 hover:bg-yellow-500 text-black font-bold py-2 px-4 rounded">Sign Here</button>
+              <div key={field.id} style={{ 
+                position: 'absolute', 
+                left: displayX, 
+                top: displayY, 
+                width: displayWidth, 
+                height: displayHeight,
+                zIndex: 10,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <button 
+                  onClick={(e) => { if(onSignClick) { e.stopPropagation(); onSignClick(field); } }} 
+                  className="bg-yellow-400 hover:bg-yellow-500 text-black font-bold py-2 px-4 rounded text-sm"
+                  style={{ maxWidth: '100%', maxHeight: '100%' }}
+                >
+                  Sign Here
+                </button>
               </div>
             );
           }
           // Show a placeholder for other signatories' pending signatures
           return (
-            <div key={field.id} style={{ position: 'absolute', left: displayX, top: displayY, width: displayWidth, height: displayHeight, border: `2px dashed ${signatory?.color || '#ccc'}`, backgroundColor: `${signatory?.color || '#ccc'}20` }}>
-              <p className="text-xs p-1">{signatory?.name}</p>
+            <div key={field.id} style={{ 
+              position: 'absolute', 
+              left: displayX, 
+              top: displayY, 
+              width: displayWidth, 
+              height: displayHeight, 
+              border: `2px dashed ${signatory?.color || '#ccc'}`, 
+              backgroundColor: `${signatory?.color || '#ccc'}20`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <p className="text-xs p-1 text-center" style={{ color: signatory?.color || '#666' }}>
+                {signatory?.name}
+              </p>
             </div>
           );
         }
