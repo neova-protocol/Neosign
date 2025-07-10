@@ -123,7 +123,7 @@ export function calculateSignaturePosition({
 
 /**
  * Fonction utilitaire pour convertir les coordonnées absolues stockées en coordonnées d'affichage
- * qui tiennent compte du positionnement par canvas PDF spécifique et du scroll
+ * qui tiennent compte du positionnement par page spécifique et du scroll
  * 
  * @param storedPosition - Position stockée en base de données (absolue dans le conteneur)
  * @param fieldPage - Numéro de page du champ
@@ -140,24 +140,24 @@ export function convertStoredToDisplayPosition({
   containerElement: HTMLElement;
 }): { x: number; y: number } | null {
   
-  console.log(`🔄 === CONVERSION COORDONNÉES AFFICHAGE (CANVAS PAGE ${fieldPage}) ===`);
+  console.log(`🔄 === CONVERSION COORDONNÉES AFFICHAGE (PAGE ${fieldPage}) ===`);
   console.log("📍 Position stockée:", storedPosition);
   
-  // Trouver le canvas spécifique de la page correspondante
-  const targetCanvas = containerElement.querySelector(`[data-page-number="${fieldPage}"] .react-pdf__Page__canvas`) as HTMLElement;
-  if (!targetCanvas) {
-    console.error(`❌ Canvas de la page ${fieldPage} non trouvé pour l'affichage`);
+  // Trouver la page spécifique correspondante
+  const targetPage = containerElement.querySelector(`[data-page-number="${fieldPage}"]`) as HTMLElement;
+  if (!targetPage) {
+    console.error(`❌ Page ${fieldPage} non trouvée pour l'affichage`);
     return null;
   }
   
-  const canvasRect = targetCanvas.getBoundingClientRect();
+  const pageRect = targetPage.getBoundingClientRect();
   const containerRect = containerElement.getBoundingClientRect();
   
-  console.log("🎨 Canvas rect:", {
-    x: canvasRect.x,
-    y: canvasRect.y,
-    width: canvasRect.width,
-    height: canvasRect.height
+  console.log("📄 Page rect:", {
+    x: pageRect.x,
+    y: pageRect.y,
+    width: pageRect.width,
+    height: pageRect.height
   });
   
   console.log("📦 Container rect:", {
@@ -167,7 +167,7 @@ export function convertStoredToDisplayPosition({
     height: containerRect.height
   });
   
-  // Calculer la position d'affichage en tenant compte du scroll et de la position du canvas
+  // Calculer la position d'affichage en tenant compte du scroll et de la position de la page
   const displayPosition = {
     x: storedPosition.x - containerElement.scrollLeft,
     y: storedPosition.y - containerElement.scrollTop
@@ -177,8 +177,8 @@ export function convertStoredToDisplayPosition({
     scrollLeft: containerElement.scrollLeft, 
     scrollTop: containerElement.scrollTop 
   });
-  console.log("📍 Position d'affichage calculée (canvas):", displayPosition);
-  console.log(`🔄 === FIN CONVERSION CANVAS PAGE ${fieldPage} ===`);
+  console.log("📍 Position d'affichage calculée:", displayPosition);
+  console.log(`🔄 === FIN CONVERSION PAGE ${fieldPage} ===`);
   
   return displayPosition;
 }

@@ -35,7 +35,7 @@
 import React, { useState, MouseEvent, useEffect, useCallback } from 'react';
 import { useSignature } from '@/contexts/SignatureContext';
 import { SignatureField as SignatureFieldType } from '@/types';
-import { calculateSignaturePosition, convertStoredToDisplayPosition } from '@/lib/utils';
+import { calculateSignaturePosition } from '@/lib/utils';
 
 interface SignatureFieldProps {
   field: SignatureFieldType;
@@ -55,31 +55,8 @@ export const SignatureFieldComponent: React.FC<SignatureFieldProps> = ({
 
   const signatory = field.signatoryId ? currentDocument?.signatories.find(s => s.id === field.signatoryId) : null;
 
-  // 🚀 CALCUL DE LA POSITION D'AFFICHAGE AVEC CONVERSION
-  // Utiliser la fonction de conversion pour l'affichage, mais garder l'état local pour le drag
-  const containerElement = document.querySelector('.pdf-container') as HTMLElement;
-  let pixelPos = { x: position.x, y: position.y };
-  
-  if (containerElement && !isDragging) {
-    // Pendant le drag, utiliser la position d'état local
-    // Sinon, convertir les coordonnées stockées pour l'affichage
-    const displayPosition = convertStoredToDisplayPosition({
-      storedPosition: { x: field.x, y: field.y },
-      fieldPage: field.page,
-      containerElement
-    });
-    
-    if (displayPosition) {
-      pixelPos = displayPosition;
-      console.log("🎯 Position d'affichage SignatureField:", {
-        fieldId: field.id,
-        page: field.page,
-        storedPosition: { x: field.x, y: field.y },
-        displayPosition,
-        isDragging
-      });
-    }
-  }
+  // Use coordinates directly as pixels - no conversion needed
+  const pixelPos = { x: position.x, y: position.y };
 
   const handleMouseDown = useCallback((e: MouseEvent) => {
     e.stopPropagation();
@@ -111,33 +88,33 @@ export const SignatureFieldComponent: React.FC<SignatureFieldProps> = ({
       e.preventDefault();
       e.stopPropagation();
 
-      console.log("🚀 === DRAG SUR CANVAS PDF SPÉCIFIQUE ===");
+      console.log("🚀 === DRAG SUR PAGE PDF SPÉCIFIQUE ===");
       
-      // 🚀 ÉTAPE 1: Identifier le canvas sur lequel se trouve la signature
+      // 🚀 ÉTAPE 1: Identifier la page sur laquelle se trouve la signature
       const pdfContainer = document.querySelector('.pdf-container') as HTMLElement;
       if (!pdfContainer) {
         console.error("❌ Conteneur PDF non trouvé");
         return;
       }
       
-      // Trouver le canvas spécifique correspondant au champ de signature
-      const targetCanvas = pdfContainer.querySelector(`[data-page-number="${field.page}"] .react-pdf__Page__canvas`) as HTMLElement;
-      if (!targetCanvas) {
-        console.error(`❌ Canvas de la page ${field.page} non trouvé`);
+      // Trouver la page spécifique correspondant au champ de signature
+      const targetPage = pdfContainer.querySelector(`[data-page-number="${field.page}"]`) as HTMLElement;
+      if (!targetPage) {
+        console.error(`❌ Page ${field.page} non trouvée`);
         return;
       }
       
-      console.log("🎨 Canvas cible trouvé:", field.page);
+      console.log("📄 Page cible trouvée:", field.page);
       
-      // 🚀 ÉTAPE 2: Obtenir les dimensions de ce canvas spécifique
-      const canvasRect = targetCanvas.getBoundingClientRect();
+      // 🚀 ÉTAPE 2: Obtenir les dimensions de cette page spécifique
+      const pageRect = targetPage.getBoundingClientRect();
       const containerRect = pdfContainer.getBoundingClientRect();
       
-      console.log("🎨 Canvas rect:", {
-        x: canvasRect.x,
-        y: canvasRect.y,
-        width: canvasRect.width,
-        height: canvasRect.height
+      console.log("📄 Page rect:", {
+        x: pageRect.x,
+        y: pageRect.y,
+        width: pageRect.width,
+        height: pageRect.height
       });
       
       console.log("📦 Container rect:", {
@@ -147,49 +124,49 @@ export const SignatureFieldComponent: React.FC<SignatureFieldProps> = ({
         height: containerRect.height
       });
 
-      // 🚀 ÉTAPE 3: Calculer la position relative à ce canvas spécifique
-      const desiredPositionRelativeToCanvas = {
-        x: e.clientX - canvasRect.left - dragStartOffset.current.x,
-        y: e.clientY - canvasRect.top - dragStartOffset.current.y
+      // 🚀 ÉTAPE 3: Calculer la position relative à cette page spécifique
+      const desiredPositionRelativeToPage = {
+        x: e.clientX - pageRect.left - dragStartOffset.current.x,
+        y: e.clientY - pageRect.top - dragStartOffset.current.y
       };
       
-      console.log("🎯 Position désirée relative au canvas:", desiredPositionRelativeToCanvas);
+      console.log("🎯 Position désirée relative à la page:", desiredPositionRelativeToPage);
       console.log("🎯 Mouse position:", { clientX: e.clientX, clientY: e.clientY });
       console.log("🎯 Drag offset:", dragStartOffset.current);
       
-      // 🚀 ÉTAPE 4: Utiliser la fonction utilitaire avec les contraintes du canvas spécifique
-      const finalPositionRelativeToCanvas = calculateSignaturePosition({
-        desiredPosition: desiredPositionRelativeToCanvas,
+      // 🚀 ÉTAPE 4: Utiliser la fonction utilitaire avec les contraintes de la page spécifique
+      const finalPositionRelativeToPage = calculateSignaturePosition({
+        desiredPosition: desiredPositionRelativeToPage,
         fieldDimensions: {
           width: field.width,
           height: field.height
         },
         containerDimensions: {
-          width: canvasRect.width, // Largeur du canvas spécifique
-          height: canvasRect.height // Hauteur du canvas spécifique
+          width: pageRect.width, // Largeur de la page spécifique
+          height: pageRect.height // Hauteur de la page spécifique
         },
         containerPadding: {
-          left: 0, // Pas de padding car on est relatif au canvas
+          left: 0, // Pas de padding car on est relatif à la page
           top: 0
         },
-        pdfOffset: { left: 0, top: 0 }, // Pas de décalage car on est relatif au canvas
+        pdfOffset: { left: 0, top: 0 }, // Pas de décalage car on est relatif à la page
         useSmartPositioning: false, // Pas de positionnement intelligent pour le drag, juste les contraintes
-        context: "DRAG_CANVAS_SPECIFIC"
+        context: "DRAG_PAGE_SPECIFIC"
       });
       
-      console.log("✅ Position calculée relative au canvas:", finalPositionRelativeToCanvas);
+      console.log("✅ Position calculée relative à la page:", finalPositionRelativeToPage);
       
       // 🚀 ÉTAPE 5: Convertir en position absolue dans le conteneur global
       const absolutePosition = {
-        x: finalPositionRelativeToCanvas.x + (canvasRect.left - containerRect.left) + pdfContainer.scrollLeft,
-        y: finalPositionRelativeToCanvas.y + (canvasRect.top - containerRect.top) + pdfContainer.scrollTop
+        x: finalPositionRelativeToPage.x + (pageRect.left - containerRect.left) + pdfContainer.scrollLeft,
+        y: finalPositionRelativeToPage.y + (pageRect.top - containerRect.top) + pdfContainer.scrollTop
       };
       
       console.log("📜 Scroll du conteneur:", { 
         scrollLeft: pdfContainer.scrollLeft, 
         scrollTop: pdfContainer.scrollTop 
       });
-      console.log("📍 Position absolue dans le conteneur global (avec scroll canvas):", absolutePosition);
+      console.log("📍 Position absolue dans le conteneur global (avec scroll):", absolutePosition);
       setPosition(absolutePosition);
     };
 
@@ -198,7 +175,7 @@ export const SignatureFieldComponent: React.FC<SignatureFieldProps> = ({
       e.stopPropagation();
       e.preventDefault();
 
-      console.log("🚀 === FIN DE DRAG SUR CANVAS SPÉCIFIQUE ===");
+      console.log("🚀 === FIN DE DRAG SUR PAGE SPÉCIFIQUE ===");
       setIsDragging(false);
       
       // 🚀 ÉTAPE 4: Vérifier si la position a changé
