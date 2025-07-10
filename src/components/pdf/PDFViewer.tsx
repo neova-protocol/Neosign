@@ -1,3 +1,22 @@
+/**
+ * PDFViewer - Composant d'affichage et d'interaction avec les PDF
+ * 
+ * SYSTÈME DE POSITIONNEMENT DES SIGNATURES:
+ * ========================================
+ * 
+ * Les coordonnées des signatures sont maintenant TOUJOURS relatives au conteneur PDF global
+ * (div.pdf-container) et non plus aux pages individuelles.
+ * 
+ * CONTRAINTES:
+ * - Gauche: minimum = padding gauche du conteneur (32px)
+ * - Droite: maximum = largeur du conteneur - largeur du champ
+ * - Haut: minimum = padding haut du conteneur (32px)
+ * - Bas: maximum = hauteur du conteneur - hauteur du champ
+ * 
+ * Cette approche permet aux signatures d'être positionnées n'importe où dans le conteneur PDF,
+ * y compris entre les pages si nécessaire.
+ */
+
 "use client";
 import React, { useState, useRef } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
@@ -31,12 +50,12 @@ export default function PDFViewer({ fileUrl, document: docFromProp, onSignClick,
     setIsLoading(false);
   };
 
-  const onDocumentLoadError = (error: any) => {
+  const onDocumentLoadError = (error: unknown) => {
     console.error("❌ PDF loading error:", error);
     setIsLoading(false);
   };
 
-  const onPageLoadError = (error: any) => {
+  const onPageLoadError = (error: unknown) => {
     console.error("❌ Page loading error:", error);
   };
 
@@ -47,49 +66,90 @@ export default function PDFViewer({ fileUrl, document: docFromProp, onSignClick,
     }
     
     const pageElement = e.currentTarget;
-    console.log("pageElement", pageElement);
     const pageNumber = parseInt(pageElement.dataset.pageNumber || '0');
 
     if (!onPageClick || !activeSignatoryId) return;
 
+    // 🚀 ÉTAPE 1: Obtenir les informations sur le conteneur PDF global
+    console.log("🚀 === CALCUL DE POSITION DE SIGNATURE (CONTENEUR PDF) ===");
+    console.log("📍 Page cliquée:", pageNumber);
+    
+    // Trouver le conteneur PDF principal
+    const pdfContainer = containerRef.current;
+    if (!pdfContainer) {
+      console.error("❌ Conteneur PDF non trouvé");
+      return;
+    }
+
+    // Obtenir les dimensions du conteneur PDF global
+    const containerRect = pdfContainer.getBoundingClientRect();
     const pageRect = pageElement.getBoundingClientRect();
     
-    // The click position relative to the top-left of the PDF page element
-    const clickX = e.clientX
-    const clickY = e.clientY
-
-    const fieldWidth = 120; // Standard width in pixels
-    const fieldHeight = 75; // Standard height in pixels
-
-    // The top-left of the field starts at the click position
-    let x = clickX;
-    let y = clickY;
-
-    // Constrain the position to keep the entire field inside the page
-    // if (x + fieldWidth > pageRect.width) {
-    //   x = pageRect.width - fieldWidth;
-    // }
-    // if (y + fieldHeight > pageRect.height) {
-    //   y = pageRect.height - fieldHeight;
-    // }
+    console.log("📦 Conteneur PDF rect:", {
+      x: containerRect.x,
+      y: containerRect.y,
+      width: containerRect.width,
+      height: containerRect.height
+    });
     
-    // Ensure position is not negative
-    x = Math.max(0, x);
-    y = Math.max(0, y);
+    console.log("📄 Page rect:", {
+      x: pageRect.x,
+      y: pageRect.y,
+      width: pageRect.width,
+      height: pageRect.height
+    });
 
-    console.log("x", x);
-    console.log("clickX", clickX);
-    console.log("y", y);
-    console.log("clickY", clickY);
-    console.log("pageRect", pageRect);
+    // 🚀 ÉTAPE 2: Calculer la position relative au conteneur PDF global
+    // Position du clic par rapport au conteneur PDF global (en tenant compte du padding)
+    const clickRelativeToContainer = {
+      x: e.clientX - containerRect.left,
+      y: e.clientY - containerRect.top
+    };
+    
+    console.log("🎯 Clic relatif au conteneur PDF:", clickRelativeToContainer);
 
-    if (!isFinite(x) || !isFinite(y)) {
-        console.error("❌ Invalid coordinates calculated, ignoring.");
-        return;
+    // 🚀 ÉTAPE 3: Définir les dimensions du champ de signature
+    const fieldDimensions = {
+      width: 120,
+      height: 75
+    };
+    
+    console.log("📏 Dimensions du champ:", fieldDimensions);
+
+    // 🚀 ÉTAPE 4: Appliquer les contraintes au niveau du conteneur PDF global
+    let finalX = clickRelativeToContainer.x;
+    let finalY = clickRelativeToContainer.y;
+
+    // Prendre en compte le padding du conteneur (pt-8 pl-8 = 2rem = 32px)
+    const paddingLeft = 32; // pl-8
+    const paddingTop = 32;  // pt-8
+    
+    console.log("🎯 Padding du conteneur:", { paddingLeft, paddingTop });
+
+    // Contrainte gauche (minimum = padding gauche)
+    finalX = Math.max(paddingLeft, finalX);
+    
+    // Contrainte droite (ne pas dépasser la largeur du conteneur moins le champ)
+    finalX = Math.min(finalX, containerRect.width - fieldDimensions.width);
+    
+    // Contrainte haut (minimum = padding haut)
+    finalY = Math.max(paddingTop, finalY);
+    
+    // Contrainte bas (ne pas dépasser la hauteur du conteneur moins le champ)
+    finalY = Math.min(finalY, containerRect.height - fieldDimensions.height);
+
+    console.log("📍 Position finale contrainte au conteneur PDF:", { x: finalX, y: finalY });
+
+    // 🚀 ÉTAPE 5: Validation finale
+    if (!isFinite(finalX) || !isFinite(finalY)) {
+      console.error("❌ Coordonnées finales invalides:", { x: finalX, y: finalY });
+      return;
     }
+
+    console.log("✅ Position validée, envoi à onPageClick");
+    console.log("🚀 === FIN CALCUL DE POSITION ===");
     
-    console.log(`✅ Click constrained within PDF page: {x: ${x}, y: ${y}}`);
-    onPageClick(pageNumber, { x, y });
+    onPageClick(pageNumber, { x: finalX, y: finalY });
   };
 
   const fields = document?.fields || [];
@@ -123,62 +183,61 @@ export default function PDFViewer({ fileUrl, document: docFromProp, onSignClick,
             width={typeof window !== 'undefined' ? Math.min(800, window.innerWidth * 0.6) : 800}
             renderTextLayer={false}
             renderAnnotationLayer={false}
-          >
-            {fields
-              .filter((field: SignatureField) => field.page === index + 1)
-              .map((field: SignatureField) => {
-                const signatory = document?.signatories.find((s: Signatory) => s.id === field.signatoryId);
-                
-                // Use coordinates directly
-                const displayX = field.x;
-                const displayY = field.y;
-                const displayWidth = field.width;
-                const displayHeight = field.height;
-                
-                // Always render the signature if it exists
-                if (field.value) {
-                  return <img 
-                    key={field.id} 
-                    src={field.value} 
-                    alt="Signature" 
-                    style={{ 
-                      position: 'absolute', 
-                      left: displayX, 
-                      top: displayY, 
-                      width: displayWidth, 
-                      height: displayHeight, 
-                      zIndex: 10 
-                    }} 
-                  />;
-                }
-
-                // Logic for signing mode
-                if (isSigningMode) {
-                  if (field.signatoryId === activeSignatoryId) {
-                    return (
-                      <div key={field.id} style={{ position: 'absolute', left: displayX, top: displayY, zIndex: 10 }}>
-                        <button onClick={(e) => { if(onSignClick) { e.stopPropagation(); onSignClick(field); } }} className="bg-yellow-400 hover:bg-yellow-500 text-black font-bold py-2 px-4 rounded">Sign Here</button>
-                      </div>
-                    );
-                  }
-                  // Show a placeholder for other signatories' pending signatures
-                  return (
-                    <div key={field.id} style={{ position: 'absolute', left: displayX, top: displayY, width: displayWidth, height: displayHeight, border: `2px dashed ${signatory?.color || '#ccc'}`, backgroundColor: `${signatory?.color || '#ccc'}20` }}>
-                      <p className="text-xs p-1">{signatory?.name}</p>
-                    </div>
-                  );
-                }
-
-                // Logic for edit/setup mode (drag and drop)
-                if (onFieldUpdate) {
-                  return <SignatureFieldComponent key={field.id} field={field} onUpdate={onFieldUpdate} onRemove={removeField} />;
-                }
-
-                return null; // Should not happen in normal flow
-              })}
-          </Page>
+          />
         ))}
       </Document>
+      
+      {/* Rendu des SignatureField positionnés relativement au conteneur PDF global */}
+      {fields.map((field: SignatureField) => {
+        const signatory = document?.signatories.find((s: Signatory) => s.id === field.signatoryId);
+        
+        // Use coordinates directly (maintenant relatives au conteneur PDF global)
+        const displayX = field.x;
+        const displayY = field.y;
+        const displayWidth = field.width;
+        const displayHeight = field.height;
+        
+        // Always render the signature if it exists
+        if (field.value) {
+          return <img 
+            key={field.id} 
+            src={field.value} 
+            alt="Signature" 
+            style={{ 
+              position: 'absolute', 
+              left: displayX, 
+              top: displayY, 
+              width: displayWidth, 
+              height: displayHeight, 
+              zIndex: 10 
+            }} 
+          />;
+        }
+
+        // Logic for signing mode
+        if (isSigningMode) {
+          if (field.signatoryId === activeSignatoryId) {
+            return (
+              <div key={field.id} style={{ position: 'absolute', left: displayX, top: displayY, zIndex: 10 }}>
+                <button onClick={(e) => { if(onSignClick) { e.stopPropagation(); onSignClick(field); } }} className="bg-yellow-400 hover:bg-yellow-500 text-black font-bold py-2 px-4 rounded">Sign Here</button>
+              </div>
+            );
+          }
+          // Show a placeholder for other signatories' pending signatures
+          return (
+            <div key={field.id} style={{ position: 'absolute', left: displayX, top: displayY, width: displayWidth, height: displayHeight, border: `2px dashed ${signatory?.color || '#ccc'}`, backgroundColor: `${signatory?.color || '#ccc'}20` }}>
+              <p className="text-xs p-1">{signatory?.name}</p>
+            </div>
+          );
+        }
+
+        // Logic for edit/setup mode (drag and drop)
+        if (onFieldUpdate) {
+          return <SignatureFieldComponent key={field.id} field={field} onUpdate={onFieldUpdate} onRemove={removeField} />;
+        }
+
+        return null; // Should not happen in normal flow
+      })}
     </div>
   );
 } 

@@ -6,7 +6,20 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "lint:fix": "next lint --fix",
+    "build:no-lint": "DISABLE_ESLINT_PLUGIN=true next build",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio",
+    "db:reset": "prisma migrate reset",
+    "db:seed": "prisma db seed",
+    "setup": "npm install && npm run db:generate && npm run db:migrate",
+    "postinstall": "prisma generate",
+    "type-check": "tsc --noEmit",
+    "health-check": "npm run db:generate && npx prisma migrate status",
+    "dev:setup": "npm run setup && npm run dev"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.10.0",
