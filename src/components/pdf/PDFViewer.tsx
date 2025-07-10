@@ -9,14 +9,19 @@
  * 
  * CONTRAINTES:
  * - Gauche: minimum = padding gauche du conteneur (32px)
- * - Droite: maximum = largeur du conteneur - largeur du champ
+ * - Droite: maximum = largeur totale du contenu scrollable - largeur du champ
  * - Haut: minimum = padding haut du conteneur (32px)
- * - Bas: maximum = hauteur du conteneur - hauteur du champ
+ * - Bas: maximum = hauteur totale du contenu scrollable - hauteur du champ
  * 
  * GESTION DU SCROLL:
  * - Les calculs de position prennent en compte le scroll interne du conteneur PDF
  * - Formule: position = clic - containerRect + scroll du conteneur
  * - Cela corrige les décalages quand l'utilisateur fait défiler le PDF
+ * 
+ * GESTION MULTI-PAGES:
+ * - Utilise scrollHeight/scrollWidth pour obtenir les dimensions totales du contenu
+ * - Permet de positionner les signatures sur toutes les pages, pas seulement la première
+ * - Les contraintes s'appliquent à l'ensemble du document PDF multi-pages
  * 
  * Cette approche permet aux signatures d'être positionnées n'importe où dans le conteneur PDF,
  * y compris entre les pages si nécessaire.

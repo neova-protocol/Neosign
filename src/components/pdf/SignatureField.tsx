@@ -9,14 +9,19 @@
  * 
  * CONTRAINTES PENDANT LE DRAG:
  * - Gauche: minimum = padding gauche du conteneur (32px)
- * - Droite: maximum = largeur du conteneur - largeur du champ
+ * - Droite: maximum = largeur totale du contenu scrollable - largeur du champ
  * - Haut: minimum = padding haut du conteneur (32px)
- * - Bas: maximum = hauteur du conteneur - hauteur du champ
+ * - Bas: maximum = hauteur totale du contenu scrollable - hauteur du champ
  * 
  * GESTION DU SCROLL:
  * - Les calculs de position prennent en compte le scroll interne du conteneur PDF
  * - Formule: position = souris - containerRect - dragOffset + scroll du conteneur
  * - Cela corrige les décalages quand l'utilisateur fait défiler le PDF pendant le drag
+ * 
+ * GESTION MULTI-PAGES:
+ * - Utilise scrollHeight/scrollWidth pour obtenir les dimensions totales du contenu
+ * - Permet de déplacer les signatures sur toutes les pages, pas seulement la première
+ * - Les contraintes s'appliquent à l'ensemble du document PDF multi-pages
  * 
  * Les coordonnées sont sauvegardées seulement si la position a réellement changé.
  */
@@ -123,17 +128,23 @@ export const SignatureFieldComponent: React.FC<SignatureFieldProps> = ({
       // Contrainte gauche (minimum = padding gauche)
       newX = Math.max(paddingLeft, newX);
       
-      // Contrainte droite (ne pas dépasser la largeur du conteneur moins le champ)
-      newX = Math.min(newX, containerRect.width - field.width);
+      // Contrainte droite (ne pas dépasser la largeur totale du contenu moins le champ)
+      newX = Math.min(newX, totalContentWidth - field.width);
       
       // Contrainte haut (minimum = padding haut)
       newY = Math.max(paddingTop, newY);
       
-      // Contrainte bas (ne pas dépasser la hauteur du conteneur moins le champ)
+      // Contrainte bas (ne pas dépasser la hauteur totale du contenu moins le champ)
       newY = Math.min(newY, totalContentHeight - field.height);
       
-      console.log("📍 Position finale contrainte au conteneur PDF:", { x: newX, y: newY });
+      console.log("📍 Position finale contrainte au contenu total:", { x: newX, y: newY });
       console.log("📏 Field dimensions:", { width: field.width, height: field.height });
+      console.log("📏 Contraintes appliquées:", {
+        minX: paddingLeft,
+        maxX: totalContentWidth - field.width,
+        minY: paddingTop,
+        maxY: totalContentHeight - field.height
+      });
       
       setPosition({ x: newX, y: newY });
     };
