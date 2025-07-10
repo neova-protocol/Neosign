@@ -116,71 +116,50 @@ export default function EditDocumentPage() {
         
         console.log("🖱️ Page click detected:", { pageNumber, selectedSignatoryId });
         
-        // Get the page element that was clicked
-        const pageElement = (event.target as HTMLElement).closest('.react-pdf__Page');
+        const pageElement = (event.currentTarget as HTMLElement);
         if (!pageElement) {
             console.error("❌ Page element not found");
             return;
         }
-
+    
         console.log("📄 Page element found:", pageElement);
-
-        // Get the canvas inside the page (this is where the PDF is actually rendered)
-        const canvas = pageElement.querySelector('canvas');
-        if (!canvas) {
-            console.error("❌ Canvas not found in page");
-            return;
-        }
-
-        console.log("🎨 Canvas found:", { width: canvas.width, height: canvas.height, offsetWidth: canvas.offsetWidth, offsetHeight: canvas.offsetHeight });
-
-        // Get the relative container for positioning
-        const relativeContainer = pageElement.querySelector('div[class="relative"]') as HTMLElement;
-        if (!relativeContainer) {
-            console.error("❌ Relative container not found");
-            return;
-        }
-
-        // Calculate coordinates relative to the canvas
-        const canvasRect = canvas.getBoundingClientRect();
-        const displayX = event.clientX - canvasRect.left;
-        const displayY = event.clientY - canvasRect.top;
+    
+        const pageRect = pageElement.getBoundingClientRect();
+        const displayX = event.clientX - pageRect.left;
+        const displayY = event.clientY - pageRect.top;
         
         console.log("🎯 Click coordinates:", {
             clientX: event.clientX,
             clientY: event.clientY,
-            canvasLeft: canvasRect.left,
-            canvasTop: canvasRect.top,
+            pageLeft: pageRect.left,
+            pageTop: pageRect.top,
             displayX,
             displayY,
-            canvasRect
+            pageRect
         });
         
-        // Validate coordinates are within canvas bounds
-        if (displayX < 0 || displayY < 0 || displayX > canvasRect.width || displayY > canvasRect.height) {
-            console.warn("⚠️ Click outside canvas bounds");
+        if (displayX < 0 || displayY < 0 || displayX > pageRect.width || displayY > pageRect.height) {
+            console.warn("⚠️ Click outside page bounds");
             return;
         }
         
-        // Get PDF original dimensions from data attribute or use canvas intrinsic dimensions
-        const originalWidth = (pageElement as HTMLElement).dataset.originalWidth;
+        const originalWidth = pageElement.dataset.originalWidth;
         let normalizedX = displayX;
         let normalizedY = displayY;
         let fieldWidth = 90;
         let fieldHeight = 56.25;
         
-        if (originalWidth && canvas.offsetWidth > 0) {
+        if (originalWidth && pageElement.offsetWidth > 0) {
             const pageOriginalWidth = parseFloat(originalWidth);
-            const scaleFactor = pageOriginalWidth / canvas.offsetWidth;
+            const scaleFactor = pageOriginalWidth / pageElement.offsetWidth;
             
             console.log("📏 Scale calculation:", {
                 pageOriginalWidth,
-                canvasDisplayWidth: canvas.offsetWidth,
+                pageDisplayWidth: pageElement.offsetWidth,
                 scaleFactor
             });
             
             if (isFinite(scaleFactor) && scaleFactor > 0) {
-                // Convert display coordinates to PDF original scale
                 normalizedX = displayX * scaleFactor;
                 normalizedY = displayY * scaleFactor;
                 fieldWidth = 90 * scaleFactor;
@@ -195,7 +174,7 @@ export default function EditDocumentPage() {
                 console.warn("⚠️ Invalid scale factor, using display coordinates");
             }
         } else {
-            console.warn("⚠️ No original width or invalid canvas width, using display coordinates");
+            console.warn("⚠️ No original width or invalid page width, using display coordinates");
         }
         
         // Final validation
@@ -246,6 +225,7 @@ export default function EditDocumentPage() {
                 <main className="flex-1 flex overflow-hidden">
                     <div className="flex-1 overflow-y-auto">
                         <PDFViewer 
+                            key={selectedSignatoryId}
                             fileUrl={currentDocument.fileUrl}
                             activeSignatoryId={selectedSignatoryId}
                             onFieldUpdate={updateFieldPosition}

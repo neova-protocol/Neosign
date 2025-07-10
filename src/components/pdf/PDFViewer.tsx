@@ -121,7 +121,7 @@ export default function PDFViewer({ fileUrl, document: docFromProp, onSignClick,
           <Page
             key={`page_${index + 1}`}
             pageNumber={index + 1}
-            className="flex justify-center mb-4"
+            className="flex justify-center mb-4 relative"
             onRenderSuccess={onPageRenderSuccess}
             onClick={handlePageClick}
             onDrop={handleDrop}
@@ -132,32 +132,31 @@ export default function PDFViewer({ fileUrl, document: docFromProp, onSignClick,
             renderTextLayer={false}
             renderAnnotationLayer={false}
           >
-            <div className="relative">
+            <div className="absolute top-0 left-0 w-full h-full">
               {fields
                 .filter((field: SignatureField) => field.page === index + 1)
                 .map((field: SignatureField) => {
                   const signatory = document?.signatories.find((s: Signatory) => s.id === field.signatoryId);
                   
-                  // Get the page element to calculate scale factor
                   const pageElement = containerRef.current?.querySelector(`[data-page-number="${index + 1}"]`);
                   const originalWidth = pageElement?.getAttribute('data-original-width');
-                  const relativeContainer = pageElement?.querySelector('div[class="relative"]') as HTMLElement;
                   
                   let displayX = field.x;
                   let displayY = field.y;
                   let displayWidth = field.width;
                   let displayHeight = field.height;
                   
-                  // Convert normalized coordinates to display coordinates
-                  if (originalWidth && relativeContainer) {
+                  if (originalWidth && pageElement) {
                     const pageOriginalWidth = parseFloat(originalWidth);
-                    const displayWidth_container = relativeContainer.getBoundingClientRect().width;
+                    const displayWidth_container = (pageElement as HTMLElement).offsetWidth;
                     const scaleFactor = displayWidth_container / pageOriginalWidth;
                     
-                    displayX = field.x * scaleFactor;
-                    displayY = field.y * scaleFactor;
-                    displayWidth = field.width * scaleFactor;
-                    displayHeight = field.height * scaleFactor;
+                    if (isFinite(scaleFactor) && scaleFactor > 0) {
+                      displayX = field.x * scaleFactor;
+                      displayY = field.y * scaleFactor;
+                      displayWidth = field.width * scaleFactor;
+                      displayHeight = field.height * scaleFactor;
+                    }
                   }
                   
                   // Always render the signature if it exists
