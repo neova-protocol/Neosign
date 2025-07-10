@@ -4,10 +4,15 @@
  * SYSTÈME DE DRAG & DROP:
  * =======================
  * 
- * Le drag & drop utilise maintenant les contraintes du conteneur PDF global
- * (.pdf-container) au lieu des pages individuelles.
+ * Le drag & drop utilise maintenant la fonction utilitaire calculateSignaturePosition() 
+ * de @/lib/utils pour assurer une cohérence avec le système de positionnement.
  * 
- * CONTRAINTES PENDANT LE DRAG:
+ * POSITIONNEMENT PENDANT LE DRAG:
+ * - Utilise calculateSignaturePosition() avec useSmartPositioning: false
+ * - Applique uniquement les contraintes sans décalage automatique
+ * - Empêche les signatures de sortir du conteneur PDF global
+ * 
+ * CONTRAINTES AUTOMATIQUES:
  * - Gauche: minimum = padding gauche du conteneur (32px)
  * - Droite: maximum = largeur totale du contenu scrollable - largeur du champ
  * - Haut: minimum = padding haut du conteneur (32px)
@@ -30,6 +35,7 @@
 import React, { useState, MouseEvent, useEffect, useCallback } from 'react';
 import { useSignature } from '@/contexts/SignatureContext';
 import { SignatureField as SignatureFieldType } from '@/types';
+import { calculateSignaturePosition } from '@/lib/utils';
 
 interface SignatureFieldProps {
   field: SignatureFieldType;
@@ -82,71 +88,82 @@ export const SignatureFieldComponent: React.FC<SignatureFieldProps> = ({
       e.preventDefault();
       e.stopPropagation();
 
-      console.log("🚀 === DRAG EN COURS (CONTENEUR PDF) ===");
+      console.log("🚀 === DRAG SUR PAGE PDF SPÉCIFIQUE ===");
       
-      // 🚀 ÉTAPE 1: Obtenir les informations sur le conteneur PDF global
+      // 🚀 ÉTAPE 1: Identifier la page sur laquelle se trouve la signature
       const pdfContainer = document.querySelector('.pdf-container') as HTMLElement;
       if (!pdfContainer) {
         console.error("❌ Conteneur PDF non trouvé");
         return;
       }
       
+      // Trouver la page spécifique correspondant au champ de signature
+      const targetPage = pdfContainer.querySelector(`[data-page-number="${field.page}"]`) as HTMLElement;
+      if (!targetPage) {
+        console.error(`❌ Page ${field.page} non trouvée`);
+        return;
+      }
+      
+      console.log("📄 Page cible trouvée:", field.page);
+      
+      // 🚀 ÉTAPE 2: Obtenir les dimensions de cette page spécifique
+      const pageRect = targetPage.getBoundingClientRect();
       const containerRect = pdfContainer.getBoundingClientRect();
-      console.log("📦 Conteneur PDF rect:", {
+      
+      console.log("📄 Page rect:", {
+        x: pageRect.x,
+        y: pageRect.y,
+        width: pageRect.width,
+        height: pageRect.height
+      });
+      
+      console.log("📦 Container rect:", {
         x: containerRect.x,
         y: containerRect.y,
         width: containerRect.width,
         height: containerRect.height
       });
 
-      // Obtenir la hauteur totale du contenu scrollable (toutes les pages)
-      const totalContentHeight = pdfContainer.scrollHeight;
-      const totalContentWidth = pdfContainer.scrollWidth;
+      // 🚀 ÉTAPE 3: Calculer la position relative à cette page spécifique
+      const desiredPositionRelativeToPage = {
+        x: e.clientX - pageRect.left - dragStartOffset.current.x,
+        y: e.clientY - pageRect.top - dragStartOffset.current.y
+      };
       
-      console.log("📏 Contenu total scrollable:", {
-        width: totalContentWidth,
-        height: totalContentHeight
-      });
-
-      // 🚀 ÉTAPE 2: Calculer la nouvelle position relative au conteneur PDF global
-      // Position de la souris par rapport au conteneur PDF global (en enlevant l'offset du drag ET en tenant compte du scroll)
-      let newX = e.clientX - containerRect.left - dragStartOffset.current.x + pdfContainer.scrollLeft;
-      let newY = e.clientY - containerRect.top - dragStartOffset.current.y + pdfContainer.scrollTop;
-      
-      console.log("🎯 Position brute calculée (avec scroll):", { x: newX, y: newY });
+      console.log("🎯 Position désirée relative à la page:", desiredPositionRelativeToPage);
       console.log("🎯 Mouse position:", { clientX: e.clientX, clientY: e.clientY });
       console.log("🎯 Drag offset:", dragStartOffset.current);
-      console.log("📜 Scroll du conteneur:", { scrollLeft: pdfContainer.scrollLeft, scrollTop: pdfContainer.scrollTop });
       
-      // 🚀 ÉTAPE 3: Appliquer les contraintes du conteneur PDF global
-      // Prendre en compte le padding du conteneur (pt-8 pl-8 = 2rem = 32px)
-      const paddingLeft = 32; // pl-8
-      const paddingTop = 32;  // pt-8
-      
-      console.log("🎯 Padding du conteneur:", { paddingLeft, paddingTop });
-      
-      // Contrainte gauche (minimum = padding gauche)
-      newX = Math.max(paddingLeft, newX);
-      
-      // Contrainte droite (ne pas dépasser la largeur totale du contenu moins le champ)
-      newX = Math.min(newX, totalContentWidth - field.width);
-      
-      // Contrainte haut (minimum = padding haut)
-      newY = Math.max(paddingTop, newY);
-      
-      // Contrainte bas (ne pas dépasser la hauteur totale du contenu moins le champ)
-      newY = Math.min(newY, totalContentHeight - field.height);
-      
-      console.log("📍 Position finale contrainte au contenu total:", { x: newX, y: newY });
-      console.log("📏 Field dimensions:", { width: field.width, height: field.height });
-      console.log("📏 Contraintes appliquées:", {
-        minX: paddingLeft,
-        maxX: totalContentWidth - field.width,
-        minY: paddingTop,
-        maxY: totalContentHeight - field.height
+      // 🚀 ÉTAPE 4: Utiliser la fonction utilitaire avec les contraintes de la page spécifique
+      const finalPositionRelativeToPage = calculateSignaturePosition({
+        desiredPosition: desiredPositionRelativeToPage,
+        fieldDimensions: {
+          width: field.width,
+          height: field.height
+        },
+        containerDimensions: {
+          width: pageRect.width, // Largeur de la page spécifique
+          height: pageRect.height // Hauteur de la page spécifique
+        },
+        containerPadding: {
+          left: 0, // Pas de padding car on est relatif à la page
+          top: 0
+        },
+        pdfOffset: { left: 0, top: 0 }, // Pas de décalage car on est relatif à la page
+        useSmartPositioning: false, // Pas de positionnement intelligent pour le drag, juste les contraintes
+        context: "DRAG_PAGE_SPECIFIC"
       });
       
-      setPosition({ x: newX, y: newY });
+      console.log("✅ Position calculée relative à la page:", finalPositionRelativeToPage);
+      
+      // 🚀 ÉTAPE 5: Convertir en position absolue dans le conteneur global
+      const absolutePosition = {
+        x: finalPositionRelativeToPage.x + (pageRect.left - containerRect.left),
+        y: finalPositionRelativeToPage.y + (pageRect.top - containerRect.top)
+      };
+      
+      console.log("📍 Position absolue dans le conteneur global:", absolutePosition);
+      setPosition(absolutePosition);
     };
 
     const handleMouseUp = (e: globalThis.MouseEvent) => {
@@ -154,7 +171,7 @@ export const SignatureFieldComponent: React.FC<SignatureFieldProps> = ({
       e.stopPropagation();
       e.preventDefault();
 
-      console.log("🚀 === FIN DE DRAG (CONTENEUR PDF) ===");
+      console.log("🚀 === FIN DE DRAG SUR PAGE SPÉCIFIQUE ===");
       setIsDragging(false);
       
       // 🚀 ÉTAPE 4: Vérifier si la position a changé

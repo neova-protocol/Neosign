@@ -7,7 +7,14 @@
  * Les coordonnées des signatures sont maintenant TOUJOURS relatives au conteneur PDF global
  * (div.pdf-container) et non plus aux pages individuelles.
  * 
- * CONTRAINTES:
+ * POSITIONNEMENT INTELLIGENT:
+ * - Utilise la fonction utilitaire calculateSignaturePosition() de @/lib/utils
+ * - Décalage automatique quand l'utilisateur clique près des bords (useSmartPositioning: true)
+ * - Clic près du bord droit → signature décalée vers la gauche
+ * - Clic près du bord bas → signature décalée vers le haut
+ * - Clic dans le coin → décalage dans les deux directions
+ * 
+ * CONTRAINTES AUTOMATIQUES:
  * - Gauche: minimum = padding gauche du conteneur (32px)
  * - Droite: maximum = largeur totale du contenu scrollable - largeur du champ
  * - Haut: minimum = padding haut du conteneur (32px)
@@ -24,7 +31,7 @@
  * - Les contraintes s'appliquent à l'ensemble du document PDF multi-pages
  * 
  * Cette approche permet aux signatures d'être positionnées n'importe où dans le conteneur PDF,
- * y compris entre les pages si nécessaire.
+ * y compris entre les pages si nécessaire, tout en restant toujours visibles.
  */
 
 "use client";
@@ -33,6 +40,7 @@ import { Document, Page, pdfjs } from 'react-pdf';
 import { useSignature } from '@/contexts/SignatureContext';
 import { SignatureFieldComponent } from './SignatureField';
 import { SignatureField, Signatory, Document as AppDocument } from '@/types';
+import { calculateSignaturePosition } from '@/lib/utils';
 
 // Configure PDF.js worker from a local path
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
@@ -80,55 +88,29 @@ export default function PDFViewer({ fileUrl, document: docFromProp, onSignClick,
 
     if (!onPageClick || !activeSignatoryId) return;
 
-    // 🚀 ÉTAPE 1: Obtenir les informations sur le conteneur PDF global
-    console.log("🚀 === CALCUL DE POSITION DE SIGNATURE (CONTENEUR PDF) ===");
+    // 🚀 POSITIONNEMENT PAR RAPPORT À LA PAGE PDF SPÉCIFIQUE
+    console.log("🚀 === CALCUL DE POSITION SUR PAGE PDF SPÉCIFIQUE ===");
     console.log("📍 Page cliquée:", pageNumber);
     
-    // Trouver le conteneur PDF principal
-    const pdfContainer = containerRef.current;
-    if (!pdfContainer) {
-      console.error("❌ Conteneur PDF non trouvé");
-      return;
-    }
-
-    // Obtenir les dimensions du conteneur PDF global
-    const containerRect = pdfContainer.getBoundingClientRect();
+    // Obtenir les dimensions de la page PDF cliquée spécifiquement
     const pageRect = pageElement.getBoundingClientRect();
     
-    // Obtenir la hauteur totale du contenu scrollable (toutes les pages)
-    const totalContentHeight = pdfContainer.scrollHeight;
-    const totalContentWidth = pdfContainer.scrollWidth;
-    
-    console.log("📦 Conteneur PDF rect:", {
-      x: containerRect.x,
-      y: containerRect.y,
-      width: containerRect.width,
-      height: containerRect.height
-    });
-    
-    console.log("📄 Page rect:", {
+    console.log("📄 Page rect (page spécifique):", {
       x: pageRect.x,
       y: pageRect.y,
       width: pageRect.width,
       height: pageRect.height
     });
-    
-    console.log("📏 Contenu total scrollable:", {
-      width: totalContentWidth,
-      height: totalContentHeight
-    });
 
-    // 🚀 ÉTAPE 2: Calculer la position relative au conteneur PDF global
-    // Position du clic par rapport au conteneur PDF global (en tenant compte du padding ET du scroll)
-    const clickRelativeToContainer = {
-      x: e.clientX - containerRect.left + pdfContainer.scrollLeft,
-      y: e.clientY - containerRect.top + pdfContainer.scrollTop
+    // 🚀 ÉTAPE 1: Calculer la position relative à cette page spécifique
+    const clickRelativeToPage = {
+      x: e.clientX - pageRect.left,
+      y: e.clientY - pageRect.top
     };
     
-    console.log("🎯 Clic relatif au conteneur PDF (avec scroll):", clickRelativeToContainer);
-    console.log("📜 Scroll du conteneur:", { scrollLeft: pdfContainer.scrollLeft, scrollTop: pdfContainer.scrollTop });
+    console.log("🎯 Clic relatif à la page spécifique:", clickRelativeToPage);
 
-    // 🚀 ÉTAPE 3: Définir les dimensions du champ de signature
+    // 🚀 ÉTAPE 2: Définir les dimensions du champ de signature
     const fieldDimensions = {
       width: 120,
       height: 75
@@ -136,78 +118,52 @@ export default function PDFViewer({ fileUrl, document: docFromProp, onSignClick,
     
     console.log("📏 Dimensions du champ:", fieldDimensions);
 
-    // 🚀 ÉTAPE 4: Positionnement intelligent basé sur l'espace disponible
-    let finalX = clickRelativeToContainer.x;
-    let finalY = clickRelativeToContainer.y;
+    // 🚀 ÉTAPE 3: Utiliser les dimensions réelles de la page pour les contraintes
+    const pageDimensions = {
+      width: pageRect.width,
+      height: pageRect.height
+    };
+    
+    console.log("📐 Dimensions de la page:", pageDimensions);
 
-    // Prendre en compte le padding du conteneur (pt-8 pl-8 = 2rem = 32px)
-    const paddingLeft = 32; // pl-8
-    const paddingTop = 32;  // pt-8
-    
-    console.log("🎯 Padding du conteneur:", { paddingLeft, paddingTop });
-
-    // 🔄 POSITIONNEMENT INTELLIGENT: Décaler la signature si elle sortirait du conteneur
-    console.log("🔄 === POSITIONNEMENT INTELLIGENT ===");
-    console.log("📍 Position initiale du clic:", { x: finalX, y: finalY });
-    
-    // Vérifier si placer la signature à cette position (origine haut-gauche) la ferait sortir
-    const wouldExceedRight = finalX + fieldDimensions.width > totalContentWidth;
-    const wouldExceedBottom = finalY + fieldDimensions.height > totalContentHeight;
-    
-    console.log("🔍 Vérification des débordements:", {
-      wouldExceedRight,
-      wouldExceedBottom,
-      rightEdge: finalX + fieldDimensions.width,
-      bottomEdge: finalY + fieldDimensions.height,
-      totalWidth: totalContentWidth,
-      totalHeight: totalContentHeight
+    // 🚀 ÉTAPE 4: Utiliser la fonction utilitaire avec les contraintes de la page spécifique
+    const finalPosition = calculateSignaturePosition({
+      desiredPosition: clickRelativeToPage,
+      fieldDimensions,
+      containerDimensions: pageDimensions, // Contraintes basées sur la page spécifique
+      containerPadding: {
+        left: 0, // Pas de padding car on est relatif à la page
+        top: 0
+      },
+      pdfOffset: { left: 0, top: 0 }, // Pas de décalage car on est relatif à la page
+      useSmartPositioning: true, // Activer le positionnement intelligent pour les clics
+      context: "CLICK_PAGE_SPECIFIC"
     });
 
-    // Si le clic + la largeur de la signature dépasse la largeur totale, on décale vers la gauche
-    if (wouldExceedRight) {
-      const oldX = finalX;
-      finalX = clickRelativeToContainer.x - fieldDimensions.width;
-      console.log("🔄 Décalage vers la gauche:", { oldX, newX: finalX, décalage: fieldDimensions.width });
-    }
-
-    // Si le clic + la hauteur de la signature dépasse la hauteur totale, on décale vers le haut
-    if (wouldExceedBottom) {
-      const oldY = finalY;
-      finalY = clickRelativeToContainer.y - fieldDimensions.height;
-      console.log("🔄 Décalage vers le haut:", { oldY, newY: finalY, décalage: fieldDimensions.height });
-    }
-
-    console.log("📍 Position après décalage intelligent:", { x: finalX, y: finalY });
-
-    // 🔒 CONTRAINTES FINALES: S'assurer qu'on reste dans les limites
-    console.log("🔒 === CONTRAINTES FINALES ===");
+    console.log("✅ Position calculée pour la page spécifique:", finalPosition);
+    console.log("🚀 === FIN CALCUL PAGE SPÉCIFIQUE ===");
     
-    // Contrainte gauche (minimum = padding gauche)
-    const constrainedX = Math.max(paddingLeft, finalX);
-    const constrainedY = Math.max(paddingTop, finalY);
-    
-    // Contrainte droite et bas (ne pas dépasser les dimensions totales moins le champ)
-    finalX = Math.min(constrainedX, totalContentWidth - fieldDimensions.width);
-    finalY = Math.min(constrainedY, totalContentHeight - fieldDimensions.height);
-
-    console.log("📍 Position finale contrainte au contenu total:", { x: finalX, y: finalY });
-    console.log("📏 Contraintes appliquées:", {
-      minX: paddingLeft,
-      maxX: totalContentWidth - fieldDimensions.width,
-      minY: paddingTop,
-      maxY: totalContentHeight - fieldDimensions.height
-    });
-
-    // 🚀 ÉTAPE 5: Validation finale
-    if (!isFinite(finalX) || !isFinite(finalY)) {
-      console.error("❌ Coordonnées finales invalides:", { x: finalX, y: finalY });
+    // 🚀 ÉTAPE 5: Convertir la position relative à la page en position absolue pour le stockage
+    // La position finale sera relative au début de cette page dans le conteneur global
+    const containerRect = containerRef.current?.getBoundingClientRect();
+    if (!containerRect || !containerRef.current) {
+      console.error("❌ Conteneur PDF non trouvé");
       return;
     }
-
-    console.log("✅ Position validée, envoi à onPageClick");
-    console.log("🚀 === FIN CALCUL DE POSITION ===");
     
-    onPageClick(pageNumber, { x: finalX, y: finalY });
+    // Calculer la position absolue dans le conteneur global en prenant en compte le scroll
+    const absolutePosition = {
+      x: finalPosition.x + (pageRect.left - containerRect.left) + containerRef.current.scrollLeft,
+      y: finalPosition.y + (pageRect.top - containerRect.top) + containerRef.current.scrollTop
+    };
+    
+    console.log("📜 Scroll du conteneur:", { 
+      scrollLeft: containerRef.current.scrollLeft, 
+      scrollTop: containerRef.current.scrollTop 
+    });
+    console.log("📍 Position absolue dans le conteneur global (avec scroll):", absolutePosition);
+    
+    onPageClick(pageNumber, absolutePosition);
   };
 
   const fields = document?.fields || [];
