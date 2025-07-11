@@ -4,20 +4,26 @@ import React, { useState, useRef, useEffect } from 'react';
 interface DropdownItem {
   id: string;
   label: string;
+  onClick?: () => void;
 }
 
 interface CustomDropdownProps {
   trigger: React.ReactNode;
   items: DropdownItem[];
-  onSelect: (id: string) => void;
+  onSelect?: (id: string) => void;
 }
 
 const CustomDropdown: React.FC<CustomDropdownProps> = ({ trigger, items, onSelect }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const handleSelect = (id: string) => {
-    onSelect(id);
+  const handleSelect = (item: DropdownItem) => {
+    if (onSelect) {
+      onSelect(item.id);
+    }
+    if (item.onClick) {
+      item.onClick();
+    }
     setIsOpen(false);
   };
 
@@ -43,7 +49,7 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({ trigger, items, onSelec
                 href="#"
                 onClick={(e) => {
                   e.preventDefault();
-                  handleSelect(item.id);
+                  handleSelect(item);
                 }}
                 className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
               >

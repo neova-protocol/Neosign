@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Sidebar from '@/components/layout/Sidebar';
-import Header from '@/components/layout/Header';
+import { Header } from '@/components/layout/header/header';
 import { SignatureProvider } from '@/contexts/SignatureContext';
 import { BackgroundPattern } from '@/components/BackgroundPattern';
 

@@ -5,6 +5,7 @@ import CredentialsProvider from "next-auth/providers/credentials"
 import { Adapter } from "next-auth/adapters"
 import bcrypt from 'bcrypt';
 import { NextAuthOptions } from "next-auth";
+import { NextRequest, NextResponse } from "next/server"
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as Adapter,
@@ -72,6 +73,12 @@ export const authOptions: NextAuthOptions = {
   },
 }
 
-const handler = NextAuth(authOptions)
+async function handler(
+  req: NextRequest,
+  res: NextResponse,
+) {
+  // @ts-expect-error
+  return await NextAuth(req, res, authOptions)
+}
 
 export { handler as GET, handler as POST } 

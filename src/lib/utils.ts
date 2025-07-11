@@ -1,8 +1,20 @@
-import { clsx, type ClassValue } from "clsx"
+import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
+}
+
+export function truncateMiddle(str: string, maxLength: number) {
+  if (str.length <= maxLength) {
+    return str
+  }
+
+  const middle = Math.floor(maxLength / 2)
+  const start = str.substring(0, middle)
+  const end = str.substring(str.length - middle)
+
+  return `${start}...${end}`
 }
 
 /**
