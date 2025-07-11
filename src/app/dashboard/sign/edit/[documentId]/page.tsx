@@ -11,6 +11,7 @@ import SignatoryPanel from '@/components/signature/SignatoryPanel';
 import { Button } from '@/components/ui/button';
 import { Send } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import SuccessModal from '@/components/modals/SuccessModal';
 
 const PDFViewer = dynamic(() => import('@/components/pdf/PDFViewer'), {
     ssr: false,
@@ -24,6 +25,7 @@ export default function EditDocumentPage() {
     const { data: session, status } = useSession();
     const { currentDocument, setCurrentDocument, updateFieldPosition, addField } = useSignature();
     const [selectedSignatoryId, setSelectedSignatoryId] = useState<string | null>(null);
+    const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
 
     console.log("🔐 Session status:", { status, userId: session?.user?.id, sessionExists: !!session });
 
@@ -69,11 +71,15 @@ export default function EditDocumentPage() {
 
         if (updatedDocument) {
             setCurrentDocument(updatedDocument);
-            alert("Document sent successfully!");
-            router.push('/dashboard');
+            setIsSuccessModalOpen(true);
         } else {
             alert("Failed to send the document.");
         }
+    };
+
+    const handleCloseModal = () => {
+        setIsSuccessModalOpen(false);
+        router.push('/dashboard');
     };
 
     const documentForViewer = useMemo(() => {
@@ -158,6 +164,12 @@ export default function EditDocumentPage() {
                     </aside>
                 </main>
             </div>
+            <SuccessModal
+                isOpen={isSuccessModalOpen}
+                onClose={handleCloseModal}
+                title="Success!"
+                message="The document has been sent to all signatories."
+            />
         </div>
     );
 } 

@@ -1,45 +1,9 @@
 "use client"
 
-import Link from "next/link"
 import ContactSettings from "@/components/settings/ContactSettings"
-
-const settingsMenuItems = [
-  { name: "Profile", active: false, href: "/dashboard/settings" },
-  { name: "Security", active: false, href: "/dashboard/settings/security" },
-  { name: "Signatures", active: false, href: "/dashboard/settings/sign" },
-  { name: "Notifications", active: false, href: "/dashboard/settings/notifications" },
-  { name: "Contact", active: true, href: "/dashboard/settings/contact" },
-  { name: "Advanced", active: false, href: "/dashboard/settings/advanced" },
-  { name: "Billing", active: false, href: "/dashboard/settings/billing" },
-]
 
 export default function ContactPage() {
   return (
-    <div className="flex bg-gray-50 min-h-screen">
-      {/* Settings Content */}
-      <div className="flex-1 p-6">
-        <ContactSettings />
-      </div>
-
-      {/* Settings Menu */}
-      <div className="w-64 bg-white border-l border-gray-200 p-6">
-        <h3 className="font-semibold text-gray-900 mb-4">Settings</h3>
-        <nav className="space-y-2">
-          {settingsMenuItems.map((item) => (
-            <Link key={item.name} href={item.href}>
-              <div
-                className={`block px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  item.active
-                    ? "bg-blue-100 text-blue-700"
-                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                }`}
-              >
-                {item.name}
-              </div>
-            </Link>
-          ))}
-        </nav>
-      </div>
-    </div>
+    <ContactSettings />
   )
 }

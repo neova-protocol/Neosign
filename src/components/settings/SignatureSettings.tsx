@@ -117,29 +117,6 @@ export default function SignatureSettings() {
   
   return (
     <>
-      <Card className="bg-gradient-to-r from-gray-800 to-gray-700 text-white">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Avatar className="w-16 h-16">
-                <AvatarImage src="/placeholder.svg?height=64&width=64" alt="Slyrack" />
-                <AvatarFallback className="bg-blue-600 text-white text-lg">S</AvatarFallback>
-              </Avatar>
-              <div>
-                <h2 className="text-xl font-semibold">Slyrack</h2>
-                <p className="text-gray-300 text-sm">Member Since: 3 days</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <Badge variant="secondary" className="bg-gray-600 text-white">
-                Basic Plan
-              </Badge>
-              <Button className="bg-blue-600 hover:bg-blue-700">Upgrade Plan</Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       <Card>
         <CardHeader>
           <CardTitle className="text-xl">Signatures settings</CardTitle>
