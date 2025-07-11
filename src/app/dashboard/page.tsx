@@ -72,25 +72,6 @@ export default function HomePage() {
         }}
       />
       <main>
-        {/* Decorative dot patterns */}
-        <div className="absolute left-8 top-32 opacity-30">
-          <div className="grid grid-cols-6 gap-1.5">
-            {[...Array(36)].map((_, i) => (
-              <div key={i} className="w-1.5 h-1.5 bg-blue-400 rounded-full" />
-            ))}
-          </div>
-        </div>
-
-        <div className="absolute right-8 top-40 opacity-30">
-          <div className="grid grid-cols-8 gap-1">
-            {[...Array(64)].map((_, i) => (
-              <div
-                key={i}
-                className="w-1 h-1 bg-blue-500 rounded-full opacity-40"
-              />
-            ))}
-          </div>
-        </div>
 
         <div className="max-w-6xl mx-auto">
           {/* Hero Section */}
