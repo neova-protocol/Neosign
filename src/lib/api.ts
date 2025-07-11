@@ -35,7 +35,7 @@ export async function createDocument(name: string, fileUrl: string): Promise<Doc
  */
 export async function getDocumentsForUser(): Promise<Document[]> {
     try {
-        const response = await fetch('/api/documents');
+        const response = await fetch('/api/documents', { credentials: 'include' });
         if (!response.ok) {
             const errorBody = await response.text();
             console.error('Failed to fetch documents:', response.status, errorBody);
@@ -191,7 +191,7 @@ export async function updateSignatureField(
 }
 
 export async function getDocuments() {
-    const response = await fetch('/api/documents');
+    const response = await fetch('/api/documents', { credentials: 'include' });
     if (!response.ok) {
         throw new Error('Failed to fetch documents');
     }

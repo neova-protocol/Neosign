@@ -18,7 +18,7 @@ import { useRouter } from "next/navigation";
 export default function HomePage() {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [stats, setStats] = useState({
     completed: 0,
     inProgress: 0,
@@ -29,6 +29,9 @@ export default function HomePage() {
 
   useEffect(() => {
     async function fetchDocuments() {
+      if (status !== "authenticated") {
+        return;
+      }
       try {
         const docs = await getDocuments();
         setDocuments(docs);
@@ -57,7 +60,11 @@ export default function HomePage() {
     }
 
     fetchDocuments();
-  }, []);
+  }, [status]);
+
+  if (status === "loading") {
+    return <div className="flex items-center justify-center h-screen"><p>Loading session...</p></div>;
+  }
 
   return (
     <div className="flex-1 p-6 relative overflow-hidden">

@@ -60,9 +60,31 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt" as const,
   },
   callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        token.createdAt = user.createdAt;
+        token.name = user.name;
+        token.image = user.image;
+      }
+
+      const dbUser = await prisma.user.findUnique({
+        where: { id: token.id as string },
+      });
+
+      if (dbUser) {
+        token.name = dbUser.name;
+        token.image = dbUser.image;
+      }
+
+      return token;
+    },
     async session({ session, token }) {
       if (token && session.user) {
-        session.user.id = token.sub as string;
+        session.user.id = token.id as string;
+        session.user.createdAt = token.createdAt as Date;
+        session.user.name = token.name as string;
+        session.user.image = token.image as string;
       }
       return session;
     },
@@ -73,12 +95,6 @@ export const authOptions: NextAuthOptions = {
   },
 }
 
-async function handler(
-  req: NextRequest,
-  res: NextResponse,
-) {
-  // @ts-expect-error
-  return await NextAuth(req, res, authOptions)
-}
+const handler = NextAuth(authOptions);
 
 export { handler as GET, handler as POST } 

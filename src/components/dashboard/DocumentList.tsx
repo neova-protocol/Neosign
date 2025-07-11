@@ -48,13 +48,13 @@ const DocumentStatus: React.FC<{ doc: DocumentWithSignatories, userId: string }>
 };
 
 const DocumentList: React.FC = () => {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [documents, setDocuments] = useState<DocumentWithSignatories[]>([]);
   const [loading, setLoading] = useState(true);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   const fetchDocuments = useCallback(async () => {
-    if (session) {
+    if (status === "authenticated") {
       try {
         setLoading(true);
         const docs = await getDocuments();
@@ -67,7 +67,7 @@ const DocumentList: React.FC = () => {
         setLoading(false);
       }
     }
-  }, [session]);
+  }, [status]);
 
   useEffect(() => {
     fetchDocuments();
@@ -97,12 +97,16 @@ const DocumentList: React.FC = () => {
     }
   };
 
-  if (loading) {
+  if (status === "loading") {
     return <div className="text-center p-10">Loading documents...</div>;
   }
 
-  if (!session) {
+  if (status === "unauthenticated") {
     return <div className="text-center p-10">Please log in to see your documents.</div>;
+  }
+
+  if (loading) {
+    return <div className="text-center p-10">Loading documents...</div>;
   }
 
   return (
@@ -131,7 +135,7 @@ const DocumentList: React.FC = () => {
 
                 <div className="flex items-center">
                   <div className="group-hover:hidden">
-                    <DocumentStatus doc={doc} userId={session.user.id!} />
+                    <DocumentStatus doc={doc} userId={session?.user.id!} />
                   </div>
                   <div className="hidden group-hover:block relative menu-container">
                     <button
