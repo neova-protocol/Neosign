@@ -7,7 +7,7 @@ import { authOptions } from '../auth/[...nextauth]/route';
 const prisma = new PrismaClient();
 
 export async function GET(request: NextRequest) {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
         return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-    const session = await getServerSession()
+    const session = await getServerSession(authOptions)
 
     if (!session || !session.user) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

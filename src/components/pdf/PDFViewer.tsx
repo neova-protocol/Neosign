@@ -43,7 +43,8 @@ import { SignatureField, Signatory, Document as AppDocument } from '@/types';
 import { calculateSignaturePosition } from '@/lib/utils';
 
 // Configure PDF.js worker from a local path
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
+// pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
+pdfjs.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.js`;
 
 interface PDFViewerProps {
   fileUrl: string;

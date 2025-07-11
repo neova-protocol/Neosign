@@ -1,64 +1,32 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../auth/[...nextauth]/route';
+import { PrismaClient } from '@prisma/client';
 
-export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+const prisma = new PrismaClient();
 
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+export async function GET() {
+    const session = await getServerSession(authOptions);
 
-  try {
-    const userId = session.user.id;
-    const body = await req.json();
-    
-    const { firstName, lastName, email, phone, company, position, location } = body;
-
-    // Validation
-    if (!firstName || !lastName || !email) {
-      return NextResponse.json(
-        { error: "First name, last name, and email are required" },
-        { status: 400 }
-      );
+    if (!session?.user?.id) {
+        return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if contact with this email already exists for this user
-    const existingContact = await prisma.contact.findFirst({
-      where: {
-        ownerId: userId,
-        email: email,
-      },
-    });
+    try {
+        const contactsFromDb = await prisma.contact.findMany({
+            where: {
+                ownerId: session.user.id,
+            },
+        });
 
-    if (existingContact) {
-      return NextResponse.json(
-        { error: "A contact with this email already exists" },
-        { status: 409 }
-      );
+        const contacts = contactsFromDb.map(contact => ({
+            ...contact,
+            name: `${contact.firstName} ${contact.lastName}`,
+        }));
+
+        return NextResponse.json(contacts);
+    } catch (error) {
+        console.error("Error fetching contacts:", error);
+        return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
     }
-
-    // Create the contact
-    const newContact = await prisma.contact.create({
-      data: {
-        firstName,
-        lastName,
-        email,
-        phone: phone || null,
-        company: company || null,
-        position: position || null,
-        location: location || null,
-        ownerId: userId,
-      },
-    });
-
-    return NextResponse.json(newContact, { status: 201 });
-  } catch (error) {
-    console.error("Error creating contact:", error);
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
-    );
-  }
 } 
