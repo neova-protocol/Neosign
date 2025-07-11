@@ -8,6 +8,7 @@ import { SignatureRequestEmail } from '@/components/emails/SignatureRequestEmail
 const prisma = new PrismaClient();
 const resend = new Resend(process.env.RESEND_API_KEY);
 const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+const fromEmail = process.env.RESEND_FROM_EMAIL || 'Neosign <onboarding@resend.dev>';
 
 // We are keeping Nodemailer commented out for now to focus on core functionality.
 // You can uncomment this section and configure it with a real email provider later.
@@ -46,7 +47,7 @@ export async function POST(req: NextRequest) {
       const signingUrl = `${baseUrl}/sign/${document.id}?token=${signatory.token}`;
       try {
         await resend.emails.send({
-          from: 'Neosign <onboarding@resend.dev>',
+          from: fromEmail,
           to: [signatory.email],
           subject: `Signature Request: ${document.name}`,
           react: SignatureRequestEmail({
