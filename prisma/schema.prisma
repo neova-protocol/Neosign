@@ -53,6 +53,8 @@ model User {
   events          DocumentEvent[]
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+
+  contacts Contact[]
 }
 
 model VerificationToken {
@@ -61,6 +63,27 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+// ---- Contact Model ----
+model Contact {
+  id        String  @id @default(cuid())
+  firstName String
+  lastName  String
+  email     String
+  phone     String?
+  company   String?
+  position  String?
+  location  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Each contact belongs to a user
+  ownerId String
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@unique([ownerId, email]) // A user can't have the same contact email twice
+  @@index([ownerId])
 }
 
 // ---- Document Models ----

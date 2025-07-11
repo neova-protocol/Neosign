@@ -1,28 +1,28 @@
 "use client"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import {
-  Grid3x3,
-  Calendar,
-  FileText,
-  Settings,
-  PenSquare,
-  LayoutGrid,
-  LogOut,
-} from "lucide-react"
+import { LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { NeovaLogo } from "@/components/NeovaLogo"
+import {
+  DashboardIcon,
+  SignIcon,
+  TemplatesIcon,
+  ContactsIcon,
+  MailboxIcon,
+  SettingsIcon,
+} from "@/components/icons/CustomIcons"
 
 export default function Sidebar() {
   const pathname = usePathname()
 
   const sidebarLinks = [
-    { href: "/dashboard", icon: Grid3x3 },
-    { href: "/dashboard/sign", icon: PenSquare },
-    { href: "/dashboard/templates", icon: FileText },
-    { href: "/dashboard/users", icon: LayoutGrid },
-    { href: "/dashboard/calendar", icon: Calendar },
-    { href: "/dashboard/settings", icon: Settings },
+    { href: "/dashboard", icon: DashboardIcon },
+    { href: "/dashboard/sign", icon: SignIcon },
+    { href: "/dashboard/templates", icon: TemplatesIcon },
+    { href: "/dashboard/contacts", icon: ContactsIcon },
+    { href: "/dashboard/mailbox", icon: MailboxIcon },
+    { href: "/dashboard/settings", icon: SettingsIcon },
   ]
 
   return (
