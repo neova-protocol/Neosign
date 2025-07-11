@@ -17,10 +17,13 @@ import SignatureCanvas from 'react-signature-canvas';
 export default function SignatureSettings() {
   const [isTypedModalOpen, setIsTypedModalOpen] = useState(false);
   const [isDrawnModalOpen, setIsDrawnModalOpen] = useState(false);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [user, setUser] = useState<any | null>(null);
   const [typedSignature, setTypedSignature] = useState("Your Name");
   const [selectedFont, setSelectedFont] = useState("cursive");
+  const [uploadedSignature, setUploadedSignature] = useState<string | null>(null);
   const sigCanvas = useRef<SignatureCanvas>(null);
+  const uploadInputRef = useRef<HTMLInputElement>(null);
 
   const fetchUser = async () => {
     const response = await fetch('/api/user/me');
@@ -68,6 +71,41 @@ export default function SignatureSettings() {
       } catch (error) {
         console.error("Failed to save drawn signature", error);
       }
+    }
+  };
+
+  const handleSaveUploadedSignature = async () => {
+    if (uploadedSignature) {
+      try {
+        await fetch('/api/user/signature', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ uploadedSignature }),
+        });
+        setIsUploadModalOpen(false);
+        fetchUser(); // Refresh user data
+      } catch (error) {
+        console.error("Failed to save uploaded signature", error);
+      }
+    }
+  };
+
+  const handleUploadClick = () => {
+    if (uploadInputRef.current) {
+      uploadInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        setUploadedSignature(result);
+        setIsUploadModalOpen(true);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -138,7 +176,9 @@ export default function SignatureSettings() {
                 onClick={() => setIsTypedModalOpen(true)}
               >
                 <div className="h-12 flex items-center justify-center">
-                  <span className="text-2xl" style={{ fontFamily: selectedFont }}>{typedSignature}</span>
+                  <span className={`text-2xl font-${(user?.typedSignatureFont || selectedFont).toLowerCase()}`}>
+                    {user?.typedSignature || typedSignature}
+                  </span>
                 </div>
                 <div className="flex items-center justify-center gap-2">
                   <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
@@ -161,9 +201,16 @@ export default function SignatureSettings() {
                   <span className="text-xs">Signature drawn</span>
                 </div>
               </div>
-              <div className="border rounded-lg p-4 text-center space-y-2 cursor-pointer hover:border-blue-500">
+              <div 
+                className="border rounded-lg p-4 text-center space-y-2 cursor-pointer hover:border-blue-500"
+                onClick={handleUploadClick}
+              >
                 <div className="h-12 flex items-center justify-center">
-                  <Download className="w-8 h-8 text-gray-600" />
+                  {user?.uploadedSignature ? (
+                    <img src={user.uploadedSignature} alt="Uploaded Signature" className="h-12 mx-auto" />
+                  ) : (
+                    <Download className="w-8 h-8 text-gray-600" />
+                  )}
                 </div>
                 <div className="flex items-center justify-center gap-2">
                   <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
@@ -171,6 +218,13 @@ export default function SignatureSettings() {
                 </div>
               </div>
             </div>
+            <input 
+              type="file" 
+              ref={uploadInputRef} 
+              onChange={handleFileChange}
+              className="hidden"
+              accept="image/png"
+            />
           </div>
 
           <div className="space-y-3">
@@ -288,6 +342,11 @@ export default function SignatureSettings() {
             onChange={(e) => setTypedSignature(e.target.value)}
             className="my-4"
           />
+          <div className="my-4 p-8 border bg-gray-50 rounded-md flex justify-center items-center">
+            <span className={`text-3xl font-${selectedFont.toLowerCase()}`}>
+              {typedSignature || "Your Name"}
+            </span>
+          </div>
           <Select value={selectedFont} onValueChange={setSelectedFont}>
             <SelectTrigger>
               <SelectValue placeholder="Select a font" />
@@ -296,6 +355,9 @@ export default function SignatureSettings() {
               <SelectItem value="cursive">Cursive</SelectItem>
               <SelectItem value="fantasy">Fantasy</SelectItem>
               <SelectItem value="monospace">Monospace</SelectItem>
+              <SelectItem value="serif">Serif</SelectItem>
+              <SelectItem value="sans-serif">Sans-serif</SelectItem>
+              <SelectItem value="Corinthia">Corinthia</SelectItem>
             </SelectContent>
           </Select>
           <DialogFooter>
@@ -319,6 +381,26 @@ export default function SignatureSettings() {
           <DialogFooter>
             <Button variant="outline" onClick={clearCanvas}>Clear</Button>
             <Button onClick={handleSaveDrawnSignature}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm your signature</DialogTitle>
+            <DialogDescription>
+              Do you want to use this image as your signature?
+            </DialogDescription>
+          </DialogHeader>
+          {uploadedSignature && (
+            <div className="flex justify-center my-4">
+              <img src={uploadedSignature} alt="Uploaded Signature" className="h-24 border rounded-md" />
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsUploadModalOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveUploadedSignature}>Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

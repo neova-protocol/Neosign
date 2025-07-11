@@ -13,12 +13,17 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-        const { signature, font, drawnSignature } = await req.json();
+        const { signature, font, drawnSignature, uploadedSignature } = await req.json();
 
         if (drawnSignature) {
             await prisma.user.update({
                 where: { id: session.user.id },
                 data: { drawnSignature },
+            });
+        } else if (uploadedSignature) {
+            await prisma.user.update({
+                where: { id: session.user.id },
+                data: { uploadedSignature },
             });
         } else {
             await prisma.user.update({

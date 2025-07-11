@@ -53,6 +53,7 @@ model User {
   typedSignature String?
   typedSignatureFont String?
   drawnSignature String?
+  uploadedSignature String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
