@@ -6,18 +6,18 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 export async function GET() {
-    const session = await getServerSession(authOptions);
+  const session = await getServerSession(authOptions);
 
-    if (!session?.user?.id) {
+  if (!session?.user?.id) {
         return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-    }
+  }
 
-    try {
+  try {
         const contactsFromDb = await prisma.contact.findMany({
-            where: {
+      where: {
                 ownerId: session.user.id,
-            },
-        });
+      },
+    });
 
         const contacts = contactsFromDb.map(contact => ({
             ...contact,
@@ -25,8 +25,8 @@ export async function GET() {
         }));
 
         return NextResponse.json(contacts);
-    } catch (error) {
+  } catch (error) {
         console.error("Error fetching contacts:", error);
         return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
-    }
+  }
 } 

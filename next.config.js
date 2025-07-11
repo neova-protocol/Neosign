@@ -2,8 +2,8 @@
 const nextConfig = {
     webpack: (config) => {
         config.externals.push('canvas');
-        return config;
-    },
+    return config;
+  },
 };
 
 module.exports = nextConfig; 
