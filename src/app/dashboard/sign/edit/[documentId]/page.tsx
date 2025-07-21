@@ -109,7 +109,19 @@ export default function EditDocumentPage() {
         return <div>You do not have permission to edit this document.</div>;
     }
     
-    // Do not allow editing if the document is no longer a draft.
+    if (isSuccessModalOpen) {
+        return (
+            <>
+                <SuccessModal
+                    isOpen={isSuccessModalOpen}
+                    onClose={handleCloseModal}
+                    title="Success!"
+                    message="Your document has been sent."
+                />
+            </>
+        );
+    }
+
     if (currentDocument.status !== 'draft') {
         return <div>This document has already been sent and can no longer be edited.</div>;
     }

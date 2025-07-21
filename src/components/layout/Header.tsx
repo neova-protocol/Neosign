@@ -58,10 +58,12 @@ export default function Header() {
                     <p className="font-semibold text-sm text-gray-800">{day}</p>
                     <p className="text-xs text-gray-500">{date}</p>
                 </div>
-                <Avatar className="h-10 w-10 cursor-pointer" onClick={() => signOut()}>
-                    <AvatarImage src={session.user?.image ?? "https://github.com/shadcn.png"} alt="User" />
-                    <AvatarFallback>{session.user?.name?.charAt(0).toUpperCase()}</AvatarFallback>
-                </Avatar>
+                <Link href="/dashboard/settings">
+                  <Avatar className="h-10 w-10 cursor-pointer">
+                      <AvatarImage src={session.user?.image ?? "https://github.com/shadcn.png"} alt="User" />
+                      <AvatarFallback>{session.user?.name?.charAt(0).toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                </Link>
               </div>
           </div>
         </div>
