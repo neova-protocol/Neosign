@@ -13,7 +13,7 @@ export default function DashboardLayout({
 }) {
     return (
         <SignatureProvider>
-            <div className="flex min-h-screen bg-neutral-100">
+            <div className="flex min-h-screen">
                 <Sidebar />
                 <div className="flex-1 flex flex-col">
                     <Header />

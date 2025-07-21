@@ -14,6 +14,7 @@ import { getDocuments } from "@/lib/api";
 import { Document } from "@/types";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { BackgroundPattern } from "@/components/BackgroundPattern";
 
 export default function HomePage() {
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -68,16 +69,6 @@ export default function HomePage() {
 
   return (
     <div className="flex-1 p-6 relative overflow-hidden">
-      <NeovaLogo
-        style={{
-          position: "absolute",
-          top: "2rem",
-          right: "4rem",
-          width: "500px",
-          height: "500px",
-          opacity: "0.1",
-        }}
-      />
       <main>
 
         <div className="max-w-6xl mx-auto">

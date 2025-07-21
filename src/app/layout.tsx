@@ -27,7 +27,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${corinthia.variable} font-sans`}>
+      <body className={`${inter.variable} ${corinthia.variable} font-sans bg-neutral-100`}>
         <NextAuthProvider>
           <SignatureProvider>
           {children}
