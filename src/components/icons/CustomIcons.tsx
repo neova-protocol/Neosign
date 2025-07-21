@@ -37,16 +37,6 @@ export const ContactsIcon: React.FC<IconProps> = ({ className = "h-5 w-5" }) => 
   />
 );
 
-export const MailboxIcon: React.FC<IconProps> = ({ className = "h-5 w-5" }) => (
-  <Image
-    src="/mailboxicon.svg"
-    alt="Mailbox Icon"
-    width={22}
-    height={21}
-    className={className}
-  />
-);
-
 export const SettingsIcon: React.FC<IconProps> = ({ className = "h-5 w-5" }) => (
   <Image
     src="/settingsicon.svg"

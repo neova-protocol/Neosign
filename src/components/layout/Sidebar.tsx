@@ -9,7 +9,6 @@ import {
   SignIcon,
   TemplatesIcon,
   ContactsIcon,
-  MailboxIcon,
   SettingsIcon,
 } from "@/components/icons/CustomIcons"
 
@@ -21,7 +20,6 @@ export default function Sidebar() {
     { href: "/dashboard/sign", icon: SignIcon },
     { href: "/dashboard/templates", icon: TemplatesIcon },
     { href: "/dashboard/contacts", icon: ContactsIcon },
-    { href: "/dashboard/mailbox", icon: MailboxIcon },
     { href: "/dashboard/settings", icon: SettingsIcon },
   ]
 

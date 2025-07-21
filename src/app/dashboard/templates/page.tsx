@@ -8,52 +8,61 @@ import { useRouter } from "next/navigation"
 const templates = [
   {
     id: 1,
-    name: "Employment contract - Template",
-    category: "HR",
+    name: "NDA - Template (FR)",
+    category: "Legal",
+    fileUrl: "/templates/nda-fr.pdf",
+    docxUrl: "/templates/nda-fr.docx"
   },
   {
     id: 2,
-    name: "NDA - Template",
-    category: "Legal",
+    name: "Employment contract - Template",
+    category: "HR",
+    fileUrl: "/templates/employment_contract.pdf"
   },
   {
     id: 3,
     name: "SAFT contract - Template",
     category: "Finance",
+    fileUrl: "/templates/saft_contract.pdf"
   },
   {
     id: 4,
     name: "Service contract - Template",
     category: "Business",
+    fileUrl: "/templates/service_contract.pdf"
   },
   {
     id: 5,
     name: "Buyer contract - Template",
     category: "Sales",
+    fileUrl: "/templates/buyer_contract.pdf"
   },
   {
     id: 6,
     name: "Resignation letter - Template",
     category: "HR",
+    fileUrl: "/templates/resignation_letter.pdf"
   },
   {
     id: 7,
     name: "LOI - Template",
     category: "Legal",
+    fileUrl: "/templates/loi.pdf"
   },
   {
     id: 8,
     name: "Partnership contract - Template",
     category: "Business",
+    fileUrl: "/templates/partnership_contract.pdf"
   },
 ]
 
 export default function TemplatesPage() {
   const router = useRouter()
 
-  const handleOpenTemplate = (templateId: number, templateName: string) => {
+  const handleOpenTemplate = (templateId: number, templateName: string, fileUrl: string, docxUrl?: string) => {
     // Redirect to edit page with template data
-    router.push(`/dashboard/sign/edit?template=${templateId}&name=${encodeURIComponent(templateName)}`)
+    router.push(`/dashboard/templates/view?fileUrl=${encodeURIComponent(fileUrl)}${docxUrl ? `&docxUrl=${encodeURIComponent(docxUrl)}` : ''}&name=${encodeURIComponent(templateName)}`)
   }
 
   return (
@@ -103,7 +112,7 @@ export default function TemplatesPage() {
                       <div className="bg-blue-100 rounded px-3 py-2 text-center">
                         <Button
                           className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-1 rounded text-sm"
-                          onClick={() => handleOpenTemplate(template.id, template.name)}
+                          onClick={() => handleOpenTemplate(template.id, template.name, template.fileUrl, template.docxUrl)}
                         >
                           Open
                         </Button>
