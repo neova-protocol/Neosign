@@ -2,13 +2,71 @@
 
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Search, LayoutGrid } from "lucide-react"
+import { Search, LayoutGrid, Bell } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { useSession, signIn, signOut } from "next-auth/react"
+import { useEffect, useState } from "react";
+
+type Notification = {
+  id: string;
+  message: string;
+  read: boolean;
+  createdAt: string;
+};
+
+function NotificationBell() {
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [open, setOpen] = useState(false);
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  useEffect(() => {
+    console.log("NotificationBell useEffect called");
+    fetch("/api/notifications")
+      .then(res => res.json())
+      .then(data => {
+        console.log("Notifications reçues :", data);
+        setNotifications(data);
+      });
+  }, []);
+
+  const markAsRead = async (id: string) => {
+    await fetch("/api/notifications", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id })
+    });
+    setNotifications(notifications => notifications.map(n => n.id === id ? { ...n, read: true } : n));
+  };
+
+  return (
+    <div className="relative">
+      <button onClick={() => setOpen(o => !o)} className="relative focus:outline-none">
+        <Bell className="h-6 w-6 text-gray-700" />
+        {unreadCount > 0 && (
+          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5">{unreadCount}</span>
+        )}
+      </button>
+      {open && (
+        <div className="absolute right-0 mt-2 w-80 bg-white border rounded shadow-lg z-50 max-h-96 overflow-y-auto">
+          <div className="p-4 border-b font-semibold">Notifications</div>
+          {notifications.length === 0 ? (
+            <div className="p-4 text-gray-500">No notifications</div>
+          ) : notifications.map(n => (
+            <div key={n.id} className={`p-4 border-b last:border-b-0 cursor-pointer ${n.read ? 'bg-gray-50' : 'bg-blue-50'}`} onClick={() => markAsRead(n.id)}>
+              <div className="font-medium">{n.message}</div>
+              <div className="text-xs text-gray-400">{new Date(n.createdAt).toLocaleString()}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Header() {
   const { data: session, status } = useSession();
+  console.log("Header status:", status, "session:", session);
   const today = new Date();
   const day = today.toLocaleDateString('en-US', { weekday: 'long' });
   const date = `${today.getDate()} ${today.toLocaleDateString('en-US', { month: 'long' })} ${today.getFullYear()}`;
@@ -54,6 +112,7 @@ export default function Header() {
                   </Button>
               </Link>
               <div className="flex items-center gap-4 p-2 rounded-lg bg-white shadow-sm">
+                <NotificationBell />
                 <div>
                     <p className="font-semibold text-sm text-gray-800">{day}</p>
                     <p className="text-xs text-gray-500">{date}</p>

@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { signIn } from 'next-auth/react';
 
 function SignUpForm() {
   const router = useRouter();
@@ -28,7 +29,17 @@ function SignUpForm() {
     });
 
     if (response.ok) {
-      router.push('/dashboard');
+      // Connexion automatique après inscription
+      const signInRes = await signIn('credentials', {
+        redirect: false,
+        email,
+        password,
+      });
+      if (signInRes && !signInRes.error) {
+        router.push('/dashboard');
+      } else {
+        setError('Account created, but automatic login failed. Please log in.');
+      }
     } else {
       const data = await response.json();
       setError(data.message || 'An error occurred during sign up.');
