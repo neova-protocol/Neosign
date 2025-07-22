@@ -4,6 +4,7 @@ import { authOptions } from '../auth/[...nextauth]/route';
 import { prisma } from '@/lib/db';
 import { promises as fs } from 'fs';
 import path from 'path';
+import crypto from "crypto";
 
 // GET /api/user-templates : liste des templates de l'utilisateur
 export async function GET() {
@@ -46,6 +47,7 @@ export async function POST(req: NextRequest) {
     const fileUrl = `/user-templates/${filename}`;
     const template = await prisma.userTemplate.create({
       data: {
+        id: crypto.randomUUID(),
         userId: session.user.id,
         name,
         fileUrl,

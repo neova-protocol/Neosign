@@ -2,16 +2,42 @@
 
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createDocument } from "@/lib/api";
+import { renderAsync } from "docx-preview";
+
+function DocxPreviewer({ fileUrl }: { fileUrl: string }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    let revokedUrl: string | null = null;
+    async function fetchAndRender() {
+      if (!fileUrl || !containerRef.current) return;
+      // Nettoie le container
+      containerRef.current.innerHTML = '';
+      try {
+        const res = await fetch(fileUrl);
+        const blob = await res.blob();
+        revokedUrl = URL.createObjectURL(blob);
+        await renderAsync(blob, containerRef.current!);
+      } catch (e) {
+        containerRef.current.innerHTML = '<div style="color:gray;text-align:center">Impossible d\'afficher le document DOCX</div>';
+      }
+    }
+    fetchAndRender();
+    return () => {
+      if (revokedUrl) URL.revokeObjectURL(revokedUrl);
+    };
+  }, [fileUrl]);
+  return <div ref={containerRef} style={{ width: '100%', minHeight: 400, background: '#f9f9f9', borderRadius: 8, padding: 16, overflow: 'auto' }} />;
+}
 
 export default function TemplateViewPage() {
   const searchParams = useSearchParams();
   const fileUrl = searchParams.get("fileUrl");
   const docxUrl = searchParams.get("docxUrl");
   const name = searchParams.get("name") || "Template";
-  const templateId = fileUrl?.startsWith("/user-templates/") ? fileUrl.split("/").pop()?.split("_")[0] : null;
+  const templateId = searchParams.get("id");
 
   const [fields, setFields] = useState<string[]>([]);
   const [values, setValues] = useState<{ [key: string]: string }>({});
@@ -120,16 +146,37 @@ export default function TemplateViewPage() {
     <div className="max-w-7xl mx-auto py-8">
       <h1 className="text-2xl font-bold mb-6 text-center">{name}</h1>
       <div className="flex flex-col md:flex-row gap-8 items-start">
-        {/* Preview PDF à gauche */}
+        {/* Preview DOCX à gauche si PDF indisponible */}
         <div className="flex-1 w-full md:w-1/2">
-          {pdfPreviewUrl ? (
+          {fileUrl && fileUrl.endsWith('.docx') ? (
+            pdfPreviewUrl ? (
+              <iframe
+                src={pdfPreviewUrl}
+                className="w-full h-[80vh] border rounded mb-6"
+                title={name + " PDF Preview"}
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full w-full">
+                <DocxPreviewer fileUrl={fileUrl} />
+                <a
+                  href={fileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-4 bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
+                >
+                  Télécharger et ouvrir le DOCX
+                </a>
+                <div className="text-gray-500 text-center mt-2">La prévisualisation PDF n'est pas disponible.<br/>Aperçu Word affiché ci-dessus.</div>
+              </div>
+            )
+          ) : pdfPreviewUrl ? (
             <iframe
               src={pdfPreviewUrl}
               className="w-full h-[80vh] border rounded mb-6"
               title={name + " PDF Preview"}
             />
           ) : (
-            <div className="text-gray-500 text-center">Aucune prévisualisation PDF disponible.</div>
+            <div className="text-gray-500 text-center">Aucune prévisualisation disponible.</div>
           )}
         </div>
         {/* Formulaire à droite */}

@@ -11,21 +11,27 @@ import Docxtemplater from 'docxtemplater';
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
+    console.log('API DEBUG: Pas de session utilisateur');
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
   try {
     const { id, values } = await req.json();
     if (!id || !values) {
+      console.log('API DEBUG: id ou values manquants', { id, values });
       return NextResponse.json({ message: 'Missing template id or values' }, { status: 400 });
     }
     const template = await prisma.userTemplate.findUnique({ where: { id } });
+    console.log('API DEBUG', { id, sessionUserId: session.user.id, template });
     if (!template || template.userId !== session.user.id) {
+      console.log('API DEBUG: template introuvable ou non autorisé', { id, sessionUserId: session.user.id, template });
       return NextResponse.json({ message: 'Not found or forbidden' }, { status: 404 });
     }
     if (!template.fileUrl.endsWith('.docx')) {
+      console.log('API DEBUG: mauvais type de fichier', { fileUrl: template.fileUrl });
       return NextResponse.json({ message: 'Not a DOCX file' }, { status: 400 });
     }
     const filePath = path.join(process.cwd(), 'public', template.fileUrl);
+    console.log('API DEBUG filePath', filePath);
     const content = await fs.readFile(filePath);
     const zip = new PizZip(content);
     const doc = new Docxtemplater(zip, { paragraphLoop: true, linebreaks: true });

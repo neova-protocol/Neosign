@@ -78,7 +78,7 @@ export default function TemplatesPage() {
   }
 
   const handleUserTemplateOpen = (template: any) => {
-    router.push(`/dashboard/templates/view?fileUrl=${encodeURIComponent(template.fileUrl)}&name=${encodeURIComponent(template.name)}`)
+    router.push(`/dashboard/templates/view?id=${template.id}&fileUrl=${encodeURIComponent(template.fileUrl)}&name=${encodeURIComponent(template.name)}`)
   }
 
   const handleUploadClick = () => {
