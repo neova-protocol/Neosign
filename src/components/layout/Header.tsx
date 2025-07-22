@@ -21,13 +21,19 @@ function NotificationBell() {
   const unreadCount = notifications.filter(n => !n.read).length;
 
   useEffect(() => {
-    console.log("NotificationBell useEffect called");
-    fetch("/api/notifications")
-      .then(res => res.json())
-      .then(data => {
-        console.log("Notifications reçues :", data);
-        setNotifications(data);
-      });
+    let interval: NodeJS.Timeout;
+    const fetchNotifications = () => {
+      console.log("NotificationBell polling...");
+      fetch("/api/notifications")
+        .then(res => res.json())
+        .then(data => {
+          console.log("Notifications reçues :", data);
+          setNotifications(data);
+        });
+    };
+    fetchNotifications();
+    interval = setInterval(fetchNotifications, 1000000); // toutes les 1000s
+    return () => clearInterval(interval);
   }, []);
 
   const markAsRead = async (id: string) => {
