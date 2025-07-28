@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { User, Mail, Calendar, Shield } from "lucide-react";
 import ZKInfo from "@/components/dashboard/ZKInfo";
+import ChangePasswordForm from "@/components/settings/ChangePasswordForm";
 
 export default function ProfilePage() {
   const { data: session } = useSession();
@@ -136,6 +137,9 @@ export default function ProfilePage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Changement de mot de passe */}
+      <ChangePasswordForm hasPassword={!!(session.user as any).hashedPassword} />
 
       {/* Informations ZK - Déplacé ici */}
       {session.user && (
