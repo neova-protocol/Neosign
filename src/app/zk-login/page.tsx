@@ -22,18 +22,30 @@ export default function ZKLoginPage() {
 
   const handleZKSuccess = async (user: any) => {
     try {
+      console.log("Tentative de connexion avec NextAuth pour l'utilisateur:", user);
+      
       // Créer une session NextAuth avec les données ZK
       const result = await signIn("zk-credentials", {
         redirect: false,
-        zkUser: JSON.stringify(user),
+        zkUser: JSON.stringify({
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          commitment: user.commitment || user.zkCommitment, // S'assurer que le commitment est inclus
+        }),
       });
 
+      console.log("Résultat de signIn:", result);
+
       if (result?.error) {
-        setError("Erreur lors de la connexion");
+        console.error("Erreur NextAuth:", result.error);
+        setError("Erreur lors de la connexion: " + result.error);
       } else {
+        console.log("Connexion réussie, redirection vers le dashboard");
         router.push("/dashboard");
       }
     } catch (err) {
+      console.error("Erreur lors de la connexion:", err);
       setError("Erreur lors de la connexion");
     }
   };

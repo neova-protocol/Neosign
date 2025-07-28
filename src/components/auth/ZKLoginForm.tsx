@@ -129,6 +129,8 @@ export default function ZKLoginForm({ onSuccess, onError }: ZKLoginFormProps) {
       const userName = `Utilisateur ZK ${uniqueId}`;
       const userEmail = `zk-${uniqueId}@neosign.app`;
 
+      console.log("Création automatique d'un nouveau compte pour:", userEmail);
+
       const response = await fetch("/api/auth/zk", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -148,8 +150,22 @@ export default function ZKLoginForm({ onSuccess, onError }: ZKLoginFormProps) {
       }
 
       const { user } = await response.json();
-      // Pour l'enregistrement automatique, on ne sauvegarde pas de session ZK complète
-      onSuccess(user);
+      console.log("Nouveau compte créé avec succès:", user);
+      
+      // Sauvegarder la session ZK pour le nouvel utilisateur
+      ZKSessionManager.saveSession({
+        commitment: identity.commitment,
+        proof: null, // Pas de preuve pour l'enregistrement initial
+      });
+      
+      // Passer les données utilisateur avec le commitment pour NextAuth
+      const userWithCommitment = {
+        ...user,
+        commitment: identity.commitment, // Ajouter le commitment pour NextAuth
+      };
+      
+      console.log("Données utilisateur pour NextAuth:", userWithCommitment);
+      onSuccess(userWithCommitment);
     } catch (err) {
       const errorMessage =
         err instanceof Error
