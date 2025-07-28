@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const settingsMenuItems = [
-    { name: "Profile", href: "/dashboard/settings" },
+    { name: "Profile", href: "/dashboard/settings/profile" },
     { name: "Signatures", href: "/dashboard/settings/sign" },
     { name: "Notifications", href: "/dashboard/settings/notifications" },
     { name: "Security", href: "/dashboard/settings/security" },

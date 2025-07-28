@@ -44,6 +44,7 @@ model User {
   emailVerified DateTime?
   image         String?
   hashedPassword String?
+  zkCommitment  String?   @unique
   accounts      Account[]
   sessions      Session[]
   documents     Document[]

@@ -6,6 +6,7 @@ import { Adapter } from "next-auth/adapters"
 import bcrypt from 'bcrypt';
 import { NextAuthOptions } from "next-auth";
 import { NextRequest, NextResponse } from "next/server"
+import { zkCredentialsProvider } from "@/lib/zk-credentials-provider"
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as Adapter,
@@ -54,7 +55,8 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
       }
-    })
+    }),
+    zkCredentialsProvider
   ],
   session: {
     strategy: "jwt" as const,
