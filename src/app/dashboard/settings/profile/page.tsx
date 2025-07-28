@@ -164,7 +164,7 @@ export default function ProfilePage() {
       />
 
       {/* Gestion de l'identité ZK */}
-      {(session.user as { zkCommitment?: string }).zkCommitment && (
+      {session.user  && (
         <ZKIdentityManager />
       )}
 
