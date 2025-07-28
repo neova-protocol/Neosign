@@ -40,17 +40,25 @@ model Session {
 model User {
   id            String    @id @default(cuid())
   name          String?
-  email         String?   @unique
+  email         String    @unique
   emailVerified DateTime?
   image         String?
   hashedPassword String?
+  zkCommitment  String?   @unique
   accounts      Account[]
   sessions      Session[]
-
-  // Document-related fields
-  createdDocuments Document[]
-  signatoryEntries Signatory[]
-  events           DocumentEvent[]
+  documents     Document[]
+  contacts      Contact[]
+  signatories   Signatory[]
+  events        DocumentEvent[]
+  typedSignature String?
+  typedSignatureFont String?
+  drawnSignature String?
+  uploadedSignature String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  notifications Notification[]
+  userTemplates UserTemplate[]
 }
 
 model VerificationToken {
@@ -59,6 +67,27 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+// ---- Contact Model ----
+model Contact {
+  id        String  @id @default(cuid())
+  firstName String
+  lastName  String
+  email     String
+  phone     String?
+  company   String?
+  position  String?
+  location  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Each contact belongs to a user
+  ownerId String
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@unique([ownerId, email]) // A user can't have the same contact email twice
+  @@index([ownerId])
 }
 
 // ---- Document Models ----
@@ -77,29 +106,25 @@ model Document {
   signatories Signatory[]
   fields      SignatureField[]
   events      DocumentEvent[]
+  notifications Notification[]
 
   @@index([creatorId])
 }
 
 model Signatory {
-  id     String @id @default(cuid())
-  name   String
-  email  String
-  role   String
-  color  String
-  status String @default("preparing") // e.g., preparing, pending, signed, declined
-
+  id         String    @id @default(cuid())
   documentId String
   document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  name       String
+  email      String
+  token      String   @unique
+  status     String   @default("preparing") // preparing, pending, signed
+  signedAt   DateTime?
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  fields     SignatureField[] // A signatory can have multiple signature fields
 
-  // Optional link to a platform user
-  userId String?
-  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  fields SignatureField[]
-
-  @@index([documentId])
-  @@index([userId])
+  @@unique([documentId, email])
 }
 
 model SignatureField {
@@ -137,4 +162,29 @@ model DocumentEvent {
 
   @@index([documentId])
   @@index([userId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  documentId String?
+  document   Document? @relation(fields: [documentId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([documentId])
+}
+
+model UserTemplate {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  fileUrl   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

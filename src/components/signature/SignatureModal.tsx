@@ -10,6 +10,7 @@ import {
   DialogTitle,
   DialogFooter,
   DialogClose,
+  DialogDescription,
 } from '@/components/ui/dialog';
 
 interface SignatureModalProps {
@@ -27,8 +28,8 @@ export default function SignatureModal({ isOpen, onClose, onSave }: SignatureMod
 
   const save = () => {
     if (sigCanvas.current) {
-      // Get signature as a base64 encoded PNG
-      const signature = sigCanvas.current.getTrimmedCanvas().toDataURL('image/png');
+      // Get signature as a base64 encoded PNG using the more reliable method
+      const signature = sigCanvas.current.toDataURL('image/png');
       onSave(signature);
       onClose();
     }
@@ -38,15 +39,25 @@ export default function SignatureModal({ isOpen, onClose, onSave }: SignatureMod
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent 
+        className="sm:max-w-[425px]"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle>Please provide your signature</DialogTitle>
+          <DialogDescription>
+            Sign in the box below. This signature will be saved securely.
+          </DialogDescription>
         </DialogHeader>
         <div className="border rounded-md">
           <SignatureCanvas
             ref={sigCanvas}
             penColor='black'
-            canvasProps={{ className: 'w-full h-[200px]' }}
+            canvasProps={{ 
+              className: 'w-full h-[200px]',
+              // @ts-ignore
+              willreadfrequently: "true"
+            }}
           />
         </div>
         <DialogFooter>

@@ -2,91 +2,101 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { getServerSession } from "next-auth/next"
 import { authOptions } from '../../../../auth/[...nextauth]/route';
+import { revalidatePath } from 'next/cache';
 
 const prisma = new PrismaClient();
 
 interface Params {
-    params: {
-        documentId: string;
-        fieldId: string;
-    }
+    documentId: string;
+    fieldId: string;
 }
 
-export async function PUT(req: NextRequest, { params }: Params) {
-    const session = await getServerSession(authOptions);
-    if (!session || !session.user) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+export async function PUT(req: NextRequest, { params }: { params: Promise<Params> }) {
+    const { documentId, fieldId } = await params;
+    const { value } = await req.json();
 
     try {
-        const { documentId, fieldId } = await params;
-        const { x, y, value } = await req.json();
+        const session = await getServerSession(authOptions);
+        const token = req.nextUrl.searchParams.get('token');
+        let signatoryId: string | undefined;
 
-        if (x === undefined && y === undefined && value === undefined) {
-            return NextResponse.json({ error: 'No update data provided' }, { status: 400 });
+        if (token) {
+            const signatory = await prisma.signatory.findFirst({
+                where: { token, documentId },
+            });
+            if (!signatory) return NextResponse.json({ error: 'Invalid token' }, { status: 403 });
+            signatoryId = signatory.id;
+        } else if (session?.user?.id) {
+            const field = await prisma.signatureField.findUnique({
+                where: { id: fieldId },
+                select: { signatory: { select: { id: true, userId: true } } }
+            });
+            if (!field || !field.signatory || field.signatory.userId !== session.user.id) {
+                return NextResponse.json({ error: 'Forbidden: You cannot sign this field' }, { status: 403 });
+            }
+            signatoryId = field.signatory.id;
+        } else {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
         
-        const dataToUpdate: { x?: number, y?: number, value?: string } = {};
-        if (x !== undefined) dataToUpdate.x = x;
-        if (y !== undefined) dataToUpdate.y = y;
-        if (value !== undefined) dataToUpdate.value = value;
-        
+        if (!signatoryId) {
+            return NextResponse.json({ error: 'Could not determine signatory' }, { status: 400 });
+        }
+
         const updatedField = await prisma.$transaction(async (tx) => {
-            const field = await tx.signatureField.update({
+            const fieldUpdate = await tx.signatureField.update({
                 where: { id: fieldId },
-                data: dataToUpdate,
+                data: { value },
             });
 
-            if (value !== undefined && field.signatoryId) {
-                await tx.signatory.update({
-                    where: { id: field.signatoryId },
-                    data: { status: 'signed' }
-                });
+            await tx.signatory.update({
+                where: { id: signatoryId },
+                data: { status: 'signed', signedAt: new Date() },
+            });
 
+            const signatoryDetails = await tx.signatory.findUnique({ where: { id: signatoryId }});
+
+            await tx.documentEvent.create({
+                data: {
+                    documentId: documentId,
+                    type: 'signed',
+                    userName: signatoryDetails?.name ?? "Unknown",
+                },
+            });
+
+            const remainingSignatories = await tx.signatory.count({
+                where: { documentId, status: { not: 'signed' } },
+            });
+
+            if (remainingSignatories === 0) {
+                await tx.document.update({
+                    where: { id: documentId },
+                    data: { status: 'completed' },
+                });
                 await tx.documentEvent.create({
                     data: {
                         documentId: documentId,
-                        type: 'signed',
-                        userId: session.user.id,
-                        userName: session.user.name || 'Signatory',
-                    }
+                        type: 'completed',
+                        userName: 'System',
+                    },
                 });
-
-                const allSignatories = await tx.signatory.findMany({
-                    where: { documentId: documentId },
-                });
-
-                const allHaveSigned = allSignatories.every(s => s.status === 'signed');
-
-                if (allHaveSigned) {
-                    await tx.document.update({
-                        where: { id: documentId },
-                        data: { status: 'completed' }
-                    });
-
-                     await tx.documentEvent.create({
-                        data: {
-                           documentId: documentId,
-                           type: 'completed',
-                           userId: session.user.id,
-                           userName: 'System' 
-                        }
-                    });
-                }
             }
-            return field;
+
+            return fieldUpdate;
         });
 
-
+        revalidatePath(`/api/documents/${documentId}`);
+        revalidatePath(`/dashboard/documents/${documentId}`);
+        revalidatePath(`/dashboard/sign/document/${documentId}`);
+        
         return NextResponse.json(updatedField, { status: 200 });
-
     } catch (error) {
-        console.error(`Failed to update field ${params.fieldId}:`, error);
+        console.error(`Failed to update field ${fieldId}:`, error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }
 
-export async function DELETE(req: NextRequest, { params }: Params) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<Params> }) {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -111,8 +121,7 @@ export async function DELETE(req: NextRequest, { params }: Params) {
         return NextResponse.json({ message: 'Field deleted successfully' }, { status: 200 });
 
     } catch (error) {
-        // Log the full error for better debugging on the server
-        console.error(`Failed to delete field ${params.fieldId}:`, error);
+        console.error(`Failed to delete field:`, error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 } 

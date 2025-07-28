@@ -4,9 +4,10 @@ import { useSignature } from '@/contexts/SignatureContext';
 import { useSession } from 'next-auth/react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Plus, X, Save, Send, Loader2, Trash2, UserPlus } from 'lucide-react';
+import { Plus, X, Save, Send, Loader2, Trash2, UserPlus, BookUser } from 'lucide-react';
 import { Signatory } from '@/types';
 import { useRouter } from 'next/navigation';
+import ContactsModal from './ContactsModal';
 
 interface SignatoryPanelProps {
   selectedSignatoryId: string | null;
@@ -18,10 +19,11 @@ const colors = ["#FF5733", "#33FF57", "#3357FF", "#F1C40F", "#9B59B6"];
 const SignatoryPanel: React.FC<SignatoryPanelProps> = ({ selectedSignatoryId, onSelectSignatory }) => {
   const { data: session } = useSession();
   const currentUser = session?.user;
-  const { currentDocument, addSignatory, removeSignatory } = useSignature();
+  const { currentDocument, addSignatory, removeSignatory, addField } = useSignature();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [isContactsModalOpen, setIsContactsModalOpen] = useState(false);
   const router = useRouter();
 
   const handleAddMyself = () => {
@@ -40,6 +42,8 @@ const SignatoryPanel: React.FC<SignatoryPanelProps> = ({ selectedSignatoryId, on
         email: finalEmail,
         role: 'Signatory',
         color: colors[currentDocument.signatories.length % colors.length],
+        documentId: currentDocument.id,
+        token: '',
       };
       
       const newSignatory = await addSignatory(signatoryData);
@@ -55,6 +59,10 @@ const SignatoryPanel: React.FC<SignatoryPanelProps> = ({ selectedSignatoryId, on
     }
   };
   
+  const handleSelectSignatory = (signatoryId: string) => {
+    onSelectSignatory(signatoryId);
+  };
+
   const handleSend = async () => {
     if (!currentDocument || !currentUser) return;
     setIsSending(true);
@@ -91,6 +99,10 @@ const SignatoryPanel: React.FC<SignatoryPanelProps> = ({ selectedSignatoryId, on
         <Button onClick={handleAddMyself} variant="outline" className="w-full" disabled={isCurrentUserSignatory}>
           <UserPlus className="mr-2 h-4 w-4" /> Add Myself
         </Button>
+
+        <Button onClick={() => setIsContactsModalOpen(true)} variant="outline" className="w-full">
+            <BookUser className="mr-2 h-4 w-4" /> Add from Contacts
+        </Button>
         
         <div className="relative my-4">
           <div className="absolute inset-0 flex items-center" aria-hidden="true">
@@ -116,11 +128,20 @@ const SignatoryPanel: React.FC<SignatoryPanelProps> = ({ selectedSignatoryId, on
         </Button>
       </div>
 
+      <ContactsModal
+          isOpen={isContactsModalOpen}
+          onClose={() => setIsContactsModalOpen(false)}
+          onSelectContact={(contact: Signatory) => {
+              handleAddSignatory(contact.name, contact.email);
+              setIsContactsModalOpen(false);
+          }}
+      />
+
       <div className="flex-1 overflow-y-auto space-y-2">
         {currentDocument.signatories.map((signatory) => (
           <div
             key={signatory.id}
-            onClick={() => onSelectSignatory(signatory.id)}
+            onClick={() => handleSelectSignatory(signatory.id)}
             className={`p-3 rounded-lg cursor-pointer flex justify-between items-center transition-all ${
               selectedSignatoryId === signatory.id ? "ring-2 ring-offset-2" : "border"
             }`}

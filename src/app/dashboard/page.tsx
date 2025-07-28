@@ -14,11 +14,12 @@ import { getDocuments } from "@/lib/api";
 import { Document } from "@/types";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { BackgroundPattern } from "@/components/BackgroundPattern";
 
 export default function HomePage() {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [stats, setStats] = useState({
     completed: 0,
     inProgress: 0,
@@ -29,6 +30,9 @@ export default function HomePage() {
 
   useEffect(() => {
     async function fetchDocuments() {
+      if (status !== "authenticated") {
+        return;
+      }
       try {
         const docs = await getDocuments();
         setDocuments(docs);
@@ -57,40 +61,15 @@ export default function HomePage() {
     }
 
     fetchDocuments();
-  }, []);
+  }, [status]);
+
+  if (status === "loading") {
+    return <div className="flex items-center justify-center h-screen"><p>Loading session...</p></div>;
+  }
 
   return (
     <div className="flex-1 p-6 relative overflow-hidden">
-      <NeovaLogo
-        style={{
-          position: "absolute",
-          top: "2rem",
-          right: "4rem",
-          width: "500px",
-          height: "500px",
-          opacity: "0.1",
-        }}
-      />
       <main>
-        {/* Decorative dot patterns */}
-        <div className="absolute left-8 top-32 opacity-30">
-          <div className="grid grid-cols-6 gap-1.5">
-            {[...Array(36)].map((_, i) => (
-              <div key={i} className="w-1.5 h-1.5 bg-blue-400 rounded-full" />
-            ))}
-          </div>
-        </div>
-
-        <div className="absolute right-8 top-40 opacity-30">
-          <div className="grid grid-cols-8 gap-1">
-            {[...Array(64)].map((_, i) => (
-              <div
-                key={i}
-                className="w-1 h-1 bg-blue-500 rounded-full opacity-40"
-              />
-            ))}
-          </div>
-        </div>
 
         <div className="max-w-6xl mx-auto">
           {/* Hero Section */}
@@ -257,6 +236,8 @@ export default function HomePage() {
               </div>
             )}
           </div>
+
+
         </div>
       </main>
     </div>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { getServerSession } from "next-auth/next"
 import { authOptions } from '../../../auth/[...nextauth]/route';
+import crypto from 'crypto';
 
 const prisma = new PrismaClient();
 
@@ -30,14 +31,15 @@ export async function POST(req: NextRequest, { params }: Params) {
             where: { email },
         });
 
+        const token = crypto.randomBytes(32).toString('hex');
+
         const signatoryData = {
             documentId,
             name,
             email,
-            role: role || 'Signatory',
-            color: color || '#CCCCCC',
+            token,
             status: 'preparing',
-            userId: user ? user.id : null, // Link to existing user if found
+            userId: user ? user.id : null,
         };
         
         const newSignatory = await prisma.signatory.create({

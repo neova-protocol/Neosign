@@ -4,10 +4,11 @@ import { getServerSession } from "next-auth/next"
 import { authOptions } from '../auth/[...nextauth]/route';
 import { Resend } from 'resend';
 import { SignatureRequestEmail } from '@/components/emails/SignatureRequestEmail';
+import { prisma } from '@/lib/db';
 
-const prisma = new PrismaClient();
 const resend = new Resend(process.env.RESEND_API_KEY);
 const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+const fromEmail = process.env.RESEND_FROM_EMAIL || 'Neosign <onboarding@resend.dev>';
 
 // We are keeping Nodemailer commented out for now to focus on core functionality.
 // You can uncomment this section and configure it with a real email provider later.
@@ -43,10 +44,19 @@ export async function POST(req: NextRequest) {
 
     // Send email to each signatory
     for (const signatory of document.signatories) {
-      const signingUrl = `${baseUrl}/sign/${document.id}?token=${signatory.id}`;
+      // Vérifie et lie le signataire à un userId si besoin
+      let userId = signatory.userId;
+      if (!userId) {
+        const user = await prisma.user.findUnique({ where: { email: signatory.email } });
+        if (user) {
+          await prisma.signatory.update({ where: { id: signatory.id }, data: { userId: user.id } });
+          userId = user.id;
+        }
+      }
+      const signingUrl = `${baseUrl}/sign/${document.id}?token=${signatory.token}`;
       try {
         await resend.emails.send({
-          from: 'Neosign <onboarding@resend.dev>',
+          from: fromEmail,
           to: [signatory.email],
           subject: `Signature Request: ${document.name}`,
           react: SignatureRequestEmail({
@@ -55,6 +65,17 @@ export async function POST(req: NextRequest) {
             actionUrl: signingUrl,
           }) as React.ReactElement,
         });
+        // Génération notification si le signataire est un utilisateur
+        if (userId) {
+          await prisma.notification.create({
+            data: {
+              userId,
+              type: 'signature_request',
+              message: `You have been requested to sign the document: ${document.name}`,
+              documentId: document.id,
+            }
+          });
+        }
       } catch (emailError) {
         console.error(`Failed to send email to ${signatory.email}:`, emailError);
         // We might want to decide if a single failed email should stop the whole process.

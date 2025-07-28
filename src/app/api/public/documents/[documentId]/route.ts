@@ -20,7 +20,7 @@ export async function GET(request: NextRequest, { params }: Params) {
     try {
         const signatory = await prisma.signatory.findFirst({
             where: {
-                id: token,
+                token: token,
                 documentId: documentId,
             },
         });
