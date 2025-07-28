@@ -1,14 +1,14 @@
-"use client"
-import React, { useState } from 'react';
+"use client";
+import React, { useState } from "react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import SignaturePad from './SignaturePad';
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import SignaturePad from "./SignaturePad";
 
 interface SignatureDialogProps {
   open: boolean;
@@ -59,4 +59,4 @@ const SignatureDialog: React.FC<SignatureDialogProps> = ({
   );
 };
 
-export default SignatureDialog; 
+export default SignatureDialog;

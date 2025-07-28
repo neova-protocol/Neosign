@@ -1,9 +1,17 @@
-"use client"
+"use client";
 
-import { Button } from "@/components/ui/button"
-import { NeovaLogo } from "@/components/NeovaLogo"
-import { DecorativePattern } from "@/components/DecorativePattern"
-import { Check, Eye, Bell, Edit, Calendar, MoreHorizontal, ExternalLink } from "lucide-react"
+import { Button } from "@/components/ui/button";
+import { NeovaLogo } from "@/components/NeovaLogo";
+import { DecorativePattern } from "@/components/DecorativePattern";
+import {
+  Check,
+  Eye,
+  Bell,
+  Edit,
+  Calendar,
+  MoreHorizontal,
+  ExternalLink,
+} from "lucide-react";
 
 export default function SignStatusPage() {
   return (
@@ -12,7 +20,7 @@ export default function SignStatusPage() {
         style={{
           position: "absolute",
           top: "2rem",
-          right: "4rem", 
+          right: "4rem",
           width: "500px",
           height: "500px",
           opacity: "0.05",
@@ -27,9 +35,13 @@ export default function SignStatusPage() {
               <div className="bg-gray-50 rounded-lg p-8 flex items-center justify-center min-h-[300px] mb-4">
                 <div className="text-center">
                   <div className="w-20 h-24 bg-white border-2 border-gray-200 rounded mx-auto mb-4 flex items-center justify-center shadow-sm">
-                    <span className="text-sm text-gray-500 font-medium">PDF</span>
+                    <span className="text-sm text-gray-500 font-medium">
+                      PDF
+                    </span>
                   </div>
-                  <p className="text-sm text-gray-600 font-medium">Neova - NDA Contract</p>
+                  <p className="text-sm text-gray-600 font-medium">
+                    Neova - NDA Contract
+                  </p>
                   <p className="text-xs text-gray-500">2025.pdf</p>
                 </div>
               </div>
@@ -81,7 +93,9 @@ export default function SignStatusPage() {
                 <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                   <div className="flex-1">
                     <div className="flex items-center space-x-3 mb-2">
-                      <h3 className="font-semibold text-gray-900">Guillaume Gournier</h3>
+                      <h3 className="font-semibold text-gray-900">
+                        Guillaume Gournier
+                      </h3>
                       <span className="bg-green-100 text-green-700 text-xs px-3 py-1 rounded-full font-medium">
                         Signed
                       </span>
@@ -89,15 +103,21 @@ export default function SignStatusPage() {
                         <MoreHorizontal className="h-3 w-3" />
                       </Button>
                     </div>
-                    <p className="text-sm text-gray-600 mb-1">guillaume@neova.io</p>
-                    <p className="text-xs text-gray-500 italic">Valid proof of identity</p>
+                    <p className="text-sm text-gray-600 mb-1">
+                      guillaume@neova.io
+                    </p>
+                    <p className="text-xs text-gray-500 italic">
+                      Valid proof of identity
+                    </p>
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                   <div className="flex-1">
                     <div className="flex items-center space-x-3 mb-2">
-                      <h3 className="font-semibold text-gray-900">Quentin Clement</h3>
+                      <h3 className="font-semibold text-gray-900">
+                        Quentin Clement
+                      </h3>
                       <span className="bg-green-100 text-green-700 text-xs px-3 py-1 rounded-full font-medium">
                         Signed
                       </span>
@@ -105,8 +125,12 @@ export default function SignStatusPage() {
                         <MoreHorizontal className="h-3 w-3" />
                       </Button>
                     </div>
-                    <p className="text-sm text-gray-600 mb-1">quentin@neova.io</p>
-                    <p className="text-xs text-gray-500 italic">Valid proof of identity</p>
+                    <p className="text-sm text-gray-600 mb-1">
+                      quentin@neova.io
+                    </p>
+                    <p className="text-xs text-gray-500 italic">
+                      Valid proof of identity
+                    </p>
                   </div>
                 </div>
               </div>
@@ -124,7 +148,9 @@ export default function SignStatusPage() {
                   <Edit className="h-4 w-4 text-gray-600" />
                 </div>
                 <div className="max-w-24">
-                  <p className="text-xs font-medium text-gray-900 mb-1">Invitation created</p>
+                  <p className="text-xs font-medium text-gray-900 mb-1">
+                    Invitation created
+                  </p>
                   <p className="text-xs text-gray-500">Guillaume G.</p>
                 </div>
               </div>
@@ -135,7 +161,9 @@ export default function SignStatusPage() {
                   <Calendar className="h-4 w-4 text-gray-600" />
                 </div>
                 <div className="max-w-24">
-                  <p className="text-xs font-medium text-gray-900 mb-1">Invitation sent</p>
+                  <p className="text-xs font-medium text-gray-900 mb-1">
+                    Invitation sent
+                  </p>
                   <p className="text-xs text-gray-500">Guillaume G.</p>
                 </div>
               </div>
@@ -146,7 +174,9 @@ export default function SignStatusPage() {
                   <Eye className="h-4 w-4 text-gray-600" />
                 </div>
                 <div className="max-w-24">
-                  <p className="text-xs font-medium text-gray-900 mb-1">Document consulted</p>
+                  <p className="text-xs font-medium text-gray-900 mb-1">
+                    Document consulted
+                  </p>
                   <p className="text-xs text-gray-500">Quentin C.</p>
                 </div>
               </div>
@@ -157,7 +187,9 @@ export default function SignStatusPage() {
                   <Bell className="h-4 w-4 text-gray-600" />
                 </div>
                 <div className="max-w-24">
-                  <p className="text-xs font-medium text-gray-900 mb-1">Automatic reminder to all</p>
+                  <p className="text-xs font-medium text-gray-900 mb-1">
+                    Automatic reminder to all
+                  </p>
                 </div>
               </div>
 
@@ -167,7 +199,9 @@ export default function SignStatusPage() {
                   <Edit className="h-4 w-4 text-gray-600" />
                 </div>
                 <div className="max-w-24">
-                  <p className="text-xs font-medium text-gray-900 mb-1">Document signed</p>
+                  <p className="text-xs font-medium text-gray-900 mb-1">
+                    Document signed
+                  </p>
                   <p className="text-xs text-gray-500">Guillaume G.</p>
                 </div>
               </div>
@@ -178,7 +212,9 @@ export default function SignStatusPage() {
                   <Bell className="h-4 w-4 text-gray-600" />
                 </div>
                 <div className="max-w-24">
-                  <p className="text-xs font-medium text-gray-900 mb-1">Manual reminder to Quentin C.</p>
+                  <p className="text-xs font-medium text-gray-900 mb-1">
+                    Manual reminder to Quentin C.
+                  </p>
                 </div>
               </div>
 
@@ -188,7 +224,9 @@ export default function SignStatusPage() {
                   <Eye className="h-4 w-4 text-gray-600" />
                 </div>
                 <div className="max-w-24">
-                  <p className="text-xs font-medium text-gray-900 mb-1">Document consulted</p>
+                  <p className="text-xs font-medium text-gray-900 mb-1">
+                    Document consulted
+                  </p>
                   <p className="text-xs text-gray-500">Quentin C.</p>
                 </div>
               </div>
@@ -199,16 +237,18 @@ export default function SignStatusPage() {
                   <Edit className="h-4 w-4 text-gray-600" />
                 </div>
                 <div className="max-w-24">
-                  <p className="text-xs font-medium text-gray-900 mb-1">Document signed</p>
+                  <p className="text-xs font-medium text-gray-900 mb-1">
+                    Document signed
+                  </p>
                   <p className="text-xs text-gray-500">Quentin C.</p>
                 </div>
               </div>
             </div>
-            
+
             {/* Timeline Line */}
             <div className="absolute top-9 left-5 right-5 h-0.5 bg-gray-300 -z-10"></div>
           </div>
-          
+
           {/* Decorative Pattern at bottom of timeline */}
           <div className="flex justify-center mt-6">
             <DecorativePattern />
@@ -216,5 +256,5 @@ export default function SignStatusPage() {
         </div>
       </main>
     </div>
-  )
-} 
+  );
+}

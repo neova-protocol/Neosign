@@ -1,10 +1,10 @@
-"use client"
-import React from 'react';
+"use client";
+import React from "react";
 
 export default function SignLayout({
-    children,
+  children,
 }: {
-    children: React.ReactNode
+  children: React.ReactNode;
 }) {
-    return <>{children}</>
-} 
+  return <>{children}</>;
+}

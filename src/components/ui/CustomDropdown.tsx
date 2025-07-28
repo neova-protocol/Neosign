@@ -1,34 +1,47 @@
-"use client"
-import React, { useState, useRef, useEffect } from 'react';
+"use client";
+import React, { useState, useRef, useEffect } from "react";
 
 interface DropdownItem {
   id: string;
   label: string;
+  onClick?: () => void;
 }
 
 interface CustomDropdownProps {
   trigger: React.ReactNode;
   items: DropdownItem[];
-  onSelect: (id: string) => void;
+  onSelect?: (id: string) => void;
 }
 
-const CustomDropdown: React.FC<CustomDropdownProps> = ({ trigger, items, onSelect }) => {
+const CustomDropdown: React.FC<CustomDropdownProps> = ({
+  trigger,
+  items,
+  onSelect,
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const handleSelect = (id: string) => {
-    onSelect(id);
+  const handleSelect = (item: DropdownItem) => {
+    if (onSelect) {
+      onSelect(item.id);
+    }
+    if (item.onClick) {
+      item.onClick();
+    }
     setIsOpen(false);
   };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   return (
@@ -37,13 +50,13 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({ trigger, items, onSelec
       {isOpen && (
         <div className="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
           <div className="py-1">
-            {items.map(item => (
+            {items.map((item) => (
               <a
                 key={item.id}
                 href="#"
                 onClick={(e) => {
                   e.preventDefault();
-                  handleSelect(item.id);
+                  handleSelect(item);
                 }}
                 className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
               >
@@ -57,4 +70,4 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({ trigger, items, onSelec
   );
 };
 
-export default CustomDropdown; 
+export default CustomDropdown;

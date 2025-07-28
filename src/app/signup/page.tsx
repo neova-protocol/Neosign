@@ -1,67 +1,110 @@
 "use client";
-import { useState } from "react";
-import axios from "axios";
-import { useRouter } from "next/navigation";
 
-export default function SignupPage() {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+import { Suspense } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import Link from "next/link";
+import { useSearchParams, useRouter } from "next/navigation";
+import { useState } from "react";
+import { signIn } from "next-auth/react";
+
+function SignUpForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const emailFromQuery = searchParams.get("email");
+  const [email, setEmail] = useState(emailFromQuery || "");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError("");
-    try {
-      const res = await axios.post(
-        process.env.NEXT_PUBLIC_API_URL + "/auth/register",
-        { name, email, password },
-        { headers: { "Content-Type": "application/json" } }
-      );
-      localStorage.setItem("token", res.data.token);
-      router.push("/dashboard");
-    } catch (err: unknown) {
-      if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.error || "Erreur lors de l'inscription");
-      } else if (err instanceof Error) {
-        setError(err.message);
+    setError(null);
+
+    const response = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password, name }),
+    });
+
+    if (response.ok) {
+      // Connexion automatique après inscription
+      const signInRes = await signIn("credentials", {
+        redirect: false,
+        email,
+        password,
+      });
+      if (signInRes && !signInRes.error) {
+        router.push("/dashboard");
       } else {
-        setError("Erreur lors de l'inscription");
+        setError("Account created, but automatic login failed. Please log in.");
       }
-    } finally {
-      setLoading(false);
+    } else {
+      const data = await response.json();
+      setError(data.message || "An error occurred during sign up.");
     }
   };
 
   return (
-    <main style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f5f6fa' }}>
-      <div style={{ background: '#fff', padding: '2rem 2.5rem', borderRadius: 12, boxShadow: '0 2px 16px 0 rgba(60,60,60,0.08)', maxWidth: 370, width: '100%' }}>
-        <h2 style={{ textAlign: 'center', marginBottom: 24 }}>Créer un compte</h2>
-        <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: 16 }}>
-            <label htmlFor="name">Nom</label>
-            <input id="name" type="text" placeholder="Nom" required value={name} onChange={e => setName(e.target.value)} style={{ width: '100%', padding: '0.7rem 1rem', borderRadius: 6, border: '1px solid #d1d5db', marginTop: 4 }} />
-          </div>
-          <div style={{ marginBottom: 16 }}>
-            <label htmlFor="email">Email</label>
-            <input id="email" type="email" placeholder="Email" required value={email} onChange={e => setEmail(e.target.value)} style={{ width: '100%', padding: '0.7rem 1rem', borderRadius: 6, border: '1px solid #d1d5db', marginTop: 4 }} />
-          </div>
-          <div style={{ marginBottom: 16 }}>
-            <label htmlFor="password">Mot de passe</label>
-            <input id="password" type="password" placeholder="Mot de passe" required value={password} onChange={e => setPassword(e.target.value)} style={{ width: '100%', padding: '0.7rem 1rem', borderRadius: 6, border: '1px solid #d1d5db', marginTop: 4 }} />
-          </div>
-          <button type="submit" style={{ width: '100%', background: '#646cff', color: '#fff', border: 'none', borderRadius: 6, padding: '0.8rem 0', fontWeight: 600, fontSize: '1.1rem', cursor: 'pointer' }} disabled={loading}>
-            {loading ? 'Création...' : 'Créer le compte'}
-          </button>
-          {error && <div style={{ color: '#e74c3c', background: '#fbeaea', borderRadius: 4, padding: '0.5rem 1rem', marginTop: 8, textAlign: 'center', fontSize: '0.98rem' }}>{error}</div>}
-        </form>
-        <div style={{ textAlign: 'center', marginTop: 16 }}>
-          Déjà un compte ? <a href="/login" style={{ color: '#646cff', textDecoration: 'none', fontWeight: 500 }}>Se connecter</a>
+    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+      <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold">Create your account</h1>
+          <p className="text-gray-500">
+            Already have an account?{" "}
+            <Link href="/login" className="text-blue-600 hover:underline">
+              Log in
+            </Link>
+          </p>
         </div>
+        <form className="space-y-6" onSubmit={handleSubmit}>
+          {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+          <div className="space-y-2">
+            <Label htmlFor="name">Name</Label>
+            <Input
+              id="name"
+              type="text"
+              placeholder="John Doe"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="john@example.com"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
+          <Button type="submit" className="w-full">
+            Create account
+          </Button>
+        </form>
       </div>
-    </main>
+    </div>
   );
-} 
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SignUpForm />
+    </Suspense>
+  );
+}

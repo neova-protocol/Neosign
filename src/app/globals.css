@@ -1,9 +1,48 @@
 /* Import signature fonts */
-@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;500;600;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;500;600;700&display=swap");
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* React-PDF styles pour forcer l'affichage correct */
+.pdf-container {
+  min-width: 300px !important;
+  min-height: 600px !important;
+}
+
+.react-pdf__Document {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  width: 100% !important;
+}
+
+.react-pdf__Page {
+  margin-bottom: 1rem !important;
+  display: flex !important;
+  justify-content: center !important;
+}
+
+.react-pdf__Page__canvas {
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+/* Canvas container styling */
+.react-pdf__Page > div {
+  position: relative !important;
+}
+
+/* Force minimum dimensions */
+.react-pdf__Document > div {
+  min-width: 300px !important;
+}
+
+/* Fix for container sizing issues
+.pdf-container > div {
+  width: 100% !important;
+} */
 
 /* Ajoute ici tes styles globaux personnalisés si besoin */
 
@@ -101,24 +140,6 @@ a {
   }
 }
 
-/* React-PDF styles */
-.react-pdf__Page {
-  margin-bottom: 1rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-}
-
-.react-pdf__Page__canvas {
-  display: block;
-  max-width: 100%;
-  height: auto;
-}
-
-.react-pdf__Document {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
 /* Signature field animations */
 .signature-field {
   transition: all 0.3s ease;
@@ -169,7 +190,7 @@ a {
 
 /* Signature font classes */
 .signature-font {
-  font-family: 'Dancing Script', cursive;
+  font-family: "Dancing Script", cursive;
 }
 
 /* Field placement animation */
@@ -206,8 +227,12 @@ a {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* Custom scrollbar */
@@ -268,7 +293,7 @@ a {
   .react-pdf__Page {
     @apply mb-2;
   }
-  
+
   .pdf-loading-container {
     @apply py-10;
   }

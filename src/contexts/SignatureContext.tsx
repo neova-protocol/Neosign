@@ -1,240 +1,262 @@
-import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
-import { useAuth } from './AuthContext';
+"use client";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  ReactNode,
+  useCallback,
+} from "react";
+import { v4 as uuidv4 } from "uuid";
+import {
+  getDocumentById,
+  getDocumentsForUser,
+  createDocument as apiCreateDocument,
+  deleteSignatureField,
+  addSignatureField as apiAddSignatureField,
+  updateSignatureField,
+  addSignatory as apiAddSignatory,
+  updateFieldPosition,
+} from "@/lib/api";
+import { Document, Signatory, SignatureField, DocumentEvent } from "@/types";
 
-export interface DocumentEvent {
-  id: string;
-  type: 'created' | 'sent' | 'consulted' | 'signed' | 'reminder';
-  date: Date;
-  userId: string;
-  userName: string;
-}
-
-export interface Signatory {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  color: string;
-  signatures: string[];
-  status: 'preparing' | 'pending' | 'signed' | 'declined';
-}
-
-export interface Document {
-  id: string;
-  name: string;
-  file: File | null;
-  fileUrl?: string;
-  pages: number;
-  fields: SignatureField[];
-  signatories: Signatory[];
-  status: 'draft' | 'sent' | 'completed';
-  createdAt: Date;
-  updatedAt: Date;
-  events: DocumentEvent[];
-}
-
-export interface SignatureField {
-  id: string;
-  type: 'signature' | 'text' | 'date';
-  page: number;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  signatoryId: string | null;
-  value?: string;
-}
-
-interface SignatureContextType {
+type SignatureContextType = {
+  documents: Document[];
+  setDocuments: React.Dispatch<React.SetStateAction<Document[]>>;
   currentDocument: Document | null;
-  setCurrentDocument: (document: Document | null) => void;
-  
-  // Document management
-  createDocument: (file: File) => Promise<Document>;
-  updateDocument: (document: Document) => void;
-  
-  // Signatory management
-  addSignatory: (signatory: Partial<Signatory> & Omit<Signatory, 'signatures' | 'status'>) => void;
-  updateSignatory: (id: string, updates: Partial<Signatory>) => void;
-  removeSignatory: (id: string) => void;
-  
-  // Field management
-  addField: (field: Omit<SignatureField, 'id'>) => void;
-  updateField: (id: string, updates: Partial<SignatureField>) => void;
-  removeField: (id: string) => void;
-  
-  // Signature management
-  addSignature: (signatoryId: string, signature: string) => void;
-  getSignatoryFields: (signatoryId: string) => SignatureField[];
-}
-
-const SignatureContext = createContext<SignatureContextType | undefined>(undefined);
-
-export const useSignature = () => {
-  const context = useContext(SignatureContext);
-  if (context === undefined) {
-    throw new Error('useSignature must be used within a SignatureProvider');
-  }
-  return context;
+  setCurrentDocument: React.Dispatch<React.SetStateAction<Document | null>>;
+  refreshDocument: (documentId: string) => Promise<void>;
+  addSignatory: (
+    signatory: Omit<Signatory, "id" | "status" | "userId">,
+  ) => Promise<Signatory | null>;
+  removeSignatory: (signatoryId: string) => void;
+  addField: (field: Omit<SignatureField, "id">) => Promise<void>;
+  updateField: (id: string, updates: Partial<SignatureField>) => Promise<void>;
+  removeField: (id: string) => Promise<void>;
+  updateFieldPosition: (
+    fieldId: string,
+    position: { x: number; y: number },
+  ) => Promise<void>;
+  viewVersion: number;
 };
 
-interface SignatureProviderProps {
-  children: ReactNode;
-}
+const SignatureContext = createContext<SignatureContextType | undefined>(
+  undefined,
+);
 
-export const SignatureProvider: React.FC<SignatureProviderProps> = ({ children }) => {
+export const SignatureProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
   const [currentDocument, setCurrentDocument] = useState<Document | null>(null);
-  const { currentUser } = useAuth();
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [viewVersion, setViewVersion] = useState(0);
 
-  const fileToDataUrl = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = (error) => reject(error);
-      reader.readAsDataURL(file);
-    });
-  };
-
-  const createDocument = useCallback(async (file: File): Promise<Document> => {
-    const fileUrl = await fileToDataUrl(file);
-    const document: Document = {
-      id: `doc-${Date.now()}`,
-      name: file.name,
-      file,
-      fileUrl,
-      pages: 1, // Will be updated when PDF loads
-      fields: [],
-      signatories: [],
-      status: 'draft',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      events: [
-        {
-          id: `evt-${Date.now()}`,
-          type: 'created',
-          date: new Date(),
-          userId: currentUser.id,
-          userName: currentUser.name,
-        },
-      ],
-    };
-    
-    setCurrentDocument(document);
-    return document;
-  }, [currentUser]);
-
-  const updateDocument = useCallback((document: Document) => {
-    setCurrentDocument(document);
+  const refreshDocument = useCallback(async (documentId: string) => {
+    const freshDocument = await getDocumentById(documentId);
+    if (freshDocument) {
+      setCurrentDocument(freshDocument);
+    }
   }, []);
 
-  const addSignatory = useCallback((signatoryData: Partial<Signatory> & Omit<Signatory, 'signatures' | 'status'>) => {
-    const newSignatory: Signatory = {
-      id: signatoryData.id || `sig-${Date.now()}`,
-      name: signatoryData.name,
-      email: signatoryData.email,
-      role: signatoryData.role,
-      color: signatoryData.color,
-      signatures: [],
-      status: 'preparing',
-    };
+  const addSignatory = useCallback(
+    async (signatory: Omit<Signatory, "id" | "status" | "userId">) => {
+      if (!currentDocument) return;
 
-    setCurrentDocument(doc => {
-      if (!doc) return null;
-      // Prevent adding duplicates
-      if (doc.signatories.some(s => s.id === newSignatory.id)) {
-        return doc;
+      try {
+        // Call the API first to get the real database ID
+        const newSignatory = await apiAddSignatory(
+          currentDocument.id,
+          signatory,
+        );
+
+        if (newSignatory) {
+          // Update the local state with the signatory that has the correct database ID
+          setCurrentDocument((prev) => {
+            if (!prev) return null;
+            return {
+              ...prev,
+              signatories: [...prev.signatories, newSignatory],
+            };
+          });
+        }
+
+        return newSignatory;
+      } catch (error) {
+        console.error("Failed to add signatory", error);
+        return null;
       }
+    },
+    [currentDocument],
+  );
+
+  const addField = useCallback(
+    async (field: Omit<SignatureField, "id">) => {
+      if (!currentDocument) return;
+
+      console.log("🔥 addField called in context with:", field);
+      console.log("🔍 Field coordinates check:", {
+        x: {
+          value: field.x,
+          type: typeof field.x,
+          isValid: typeof field.x === "number",
+        },
+        y: {
+          value: field.y,
+          type: typeof field.y,
+          isValid: typeof field.y === "number",
+        },
+        width: {
+          value: field.width,
+          type: typeof field.width,
+          isValid: typeof field.width === "number",
+        },
+        height: {
+          value: field.height,
+          type: typeof field.height,
+          isValid: typeof field.height === "number",
+        },
+      });
+
+      const newField = await apiAddSignatureField(currentDocument.id, field);
+
+      if (newField) {
+        console.log("✅ Field created successfully, updating state");
+        setCurrentDocument((prev) => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            fields: [...prev.fields, newField],
+          };
+        });
+      } else {
+        console.error("❌ Failed to create field");
+      }
+    },
+    [currentDocument],
+  );
+
+  const updateField = useCallback(
+    async (id: string, updates: Partial<SignatureField>) => {
+      if (!currentDocument) return;
+
+      const originalFields = currentDocument.fields;
+
+      // Optimistic update
+      setCurrentDocument((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          fields: prev.fields.map((f) =>
+            f.id === id ? { ...f, ...updates } : f,
+          ),
+        };
+      });
+      setViewVersion((v) => v + 1);
+
+      try {
+        await updateSignatureField(currentDocument.id, id, updates);
+      } catch (error) {
+        console.error("Failed to update field, rolling back:", error);
+        // Rollback on failure
+        setCurrentDocument((prev) => {
+          if (!prev) return null;
+          return { ...prev, fields: originalFields };
+        });
+        setViewVersion((v) => v + 1);
+        alert("Failed to save signature. Please try again.");
+      }
+    },
+    [currentDocument],
+  );
+
+  const updateFieldPositionInContext = async (
+    fieldId: string,
+    position: { x: number; y: number },
+  ) => {
+    if (!currentDocument) return;
+
+    console.log("🔄 updateFieldPositionInContext called with:", {
+      fieldId,
+      position,
+      positionType: typeof position,
+      xType: typeof position?.x,
+      yType: typeof position?.y,
+    });
+
+    // Validation des coordonnées avant envoi à l'API
+    if (
+      !position ||
+      typeof position.x !== "number" ||
+      typeof position.y !== "number" ||
+      !isFinite(position.x) ||
+      !isFinite(position.y)
+    ) {
+      console.error("❌ Invalid position data:", position);
+      return;
+    }
+
+    try {
+      const updatedField = await updateFieldPosition(
+        currentDocument.id,
+        fieldId,
+        position,
+      );
+      if (updatedField) {
+        console.log("✅ Field position updated, updating local state");
+        setCurrentDocument((prev) => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            fields: prev.fields.map((f) =>
+              f.id === fieldId ? { ...f, x: position.x, y: position.y } : f,
+            ),
+          };
+        });
+      } else {
+        console.error("❌ Failed to update field position");
+      }
+    } catch (error) {
+      console.error("💥 Error updating field position:", error);
+    }
+  };
+
+  const removeField = useCallback(
+    async (id: string) => {
+      if (!currentDocument) return;
+      await deleteSignatureField(currentDocument.id, id);
+      setCurrentDocument((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          fields: prev.fields.filter((f) => f.id !== id),
+        };
+      });
+    },
+    [currentDocument],
+  );
+
+  const removeSignatory = useCallback((signatoryId: string) => {
+    setCurrentDocument((prev) => {
+      if (!prev) return null;
       return {
-        ...doc,
-        signatories: [...doc.signatories, newSignatory],
-        updatedAt: new Date()
+        ...prev,
+        signatories: prev.signatories.filter((s) => s.id !== signatoryId),
       };
     });
   }, []);
 
-  const updateSignatory = useCallback((id: string, updates: Partial<Signatory>) => {
-    setCurrentDocument(doc => doc ? {
-      ...doc,
-      signatories: doc.signatories.map(sig =>
-        sig.id === id ? { ...sig, ...updates } : sig
-      ),
-      updatedAt: new Date()
-    } : null);
-  }, []);
-
-  const removeSignatory = useCallback((id: string) => {
-    setCurrentDocument(doc => doc ? {
-      ...doc,
-      signatories: doc.signatories.filter(sig => sig.id !== id),
-      fields: doc.fields.filter(field => field.signatoryId !== id),
-      updatedAt: new Date()
-    } : null);
-  }, []);
-
-  const addField = useCallback((fieldData: Omit<SignatureField, 'id'>) => {
-    const newField: SignatureField = {
-      ...fieldData,
-      id: `field-${Date.now()}`
-    };
-
-    setCurrentDocument(doc => doc ? {
-      ...doc,
-      fields: [...doc.fields, newField],
-      updatedAt: new Date()
-    } : null);
-  }, []);
-
-  const updateField = useCallback((id: string, updates: Partial<SignatureField>) => {
-    setCurrentDocument(doc => doc ? {
-      ...doc,
-      fields: doc.fields.map(field =>
-        field.id === id ? { ...field, ...updates } : field
-      ),
-      updatedAt: new Date()
-    } : null);
-  }, []);
-
-  const removeField = useCallback((id: string) => {
-    setCurrentDocument(doc => doc ? {
-      ...doc,
-      fields: doc.fields.filter(field => field.id !== id),
-      updatedAt: new Date()
-    } : null);
-  }, []);
-
-  const addSignature = useCallback((signatoryId: string, signature: string) => {
-    setCurrentDocument(doc => doc ? {
-      ...doc,
-      signatories: doc.signatories.map(sig =>
-        sig.id === signatoryId
-          ? { ...sig, signatures: [...sig.signatures, signature] }
-          : sig
-      ),
-      updatedAt: new Date()
-    } : null);
-  }, []);
-
-  const getSignatoryFields = useCallback((signatoryId: string): SignatureField[] => {
-    if (!currentDocument) return [];
-    
-    return currentDocument.fields.filter(
-      field => field.signatoryId === signatoryId
-    );
-  }, [currentDocument]);
-
-  const value: SignatureContextType = {
+  const value = {
+    documents,
+    setDocuments,
     currentDocument,
     setCurrentDocument,
-    createDocument,
-    updateDocument,
+    refreshDocument,
     addSignatory,
-    updateSignatory,
     removeSignatory,
     addField,
     updateField,
     removeField,
-    addSignature,
-    getSignatoryFields
+    updateFieldPosition: updateFieldPositionInContext,
+    viewVersion,
   };
 
   return (
@@ -244,4 +266,12 @@ export const SignatureProvider: React.FC<SignatureProviderProps> = ({ children }
   );
 };
 
-export default SignatureProvider; 
+export const useSignature = () => {
+  const context = useContext(SignatureContext);
+  if (context === undefined) {
+    throw new Error("useSignature must be used within a SignatureProvider");
+  }
+  return context;
+};
+
+export default SignatureProvider;
