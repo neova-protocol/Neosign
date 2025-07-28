@@ -94,6 +94,14 @@ export default function ZKLoginForm({ onSuccess, onError }: ZKLoginFormProps) {
 
       if (!verifyResponse.ok) {
         const errorData = await verifyResponse.json();
+        
+        // Si l'utilisateur n'existe pas, créer automatiquement un compte
+        if (verifyResponse.status === 404) {
+          console.log("Utilisateur non trouvé, création automatique d'un compte...");
+          await handleAutoRegister();
+          return;
+        }
+        
         throw new Error(errorData.error || "Échec de la vérification");
       }
 
@@ -109,6 +117,46 @@ export default function ZKLoginForm({ onSuccess, onError }: ZKLoginFormProps) {
       onError(errorMessage);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleAutoRegister = async () => {
+    if (!identity) return;
+
+    try {
+      // Générer un nom d'utilisateur unique basé sur le commitment
+      const uniqueId = identity.commitment.substring(0, 8);
+      const userName = `Utilisateur ZK ${uniqueId}`;
+      const userEmail = `zk-${uniqueId}@neosign.app`;
+
+      const response = await fetch("/api/auth/zk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "register",
+          data: {
+            name: userName,
+            email: userEmail,
+            commitment: identity.commitment,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Erreur lors de la création automatique du compte");
+      }
+
+      const { user } = await response.json();
+      // Pour l'enregistrement automatique, on ne sauvegarde pas de session ZK complète
+      onSuccess(user);
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : "Erreur lors de la création automatique du compte";
+      setError(errorMessage);
+      onError(errorMessage);
     }
   };
 
