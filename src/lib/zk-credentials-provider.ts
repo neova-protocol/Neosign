@@ -19,7 +19,7 @@ export const zkCredentialsProvider = CredentialsProvider({
       const user = await prisma.user.findFirst({
         where: { 
           zkCommitment: zkUser.commitment 
-        }
+        } as any
       });
 
       if (!user) {
@@ -31,7 +31,9 @@ export const zkCredentialsProvider = CredentialsProvider({
         name: user.name,
         email: user.email,
         createdAt: user.createdAt,
-        image: user.image
+        image: user.image,
+        hashedPassword: user.hashedPassword,
+        zkCommitment: (user as any).zkCommitment
       };
     } catch (error) {
       console.error("Erreur lors de l'authentification ZK:", error);

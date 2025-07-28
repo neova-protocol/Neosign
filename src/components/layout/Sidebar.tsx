@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation"
 import { LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { NeovaLogo } from "@/components/NeovaLogo"
+import { signOut } from "next-auth/react"
 import {
   DashboardIcon,
   SignIcon,
@@ -54,6 +55,8 @@ export default function Sidebar() {
           variant="ghost"
           size="icon"
           className="h-10 w-10 text-gray-500 hover:bg-gray-100"
+          onClick={() => signOut({ callbackUrl: '/' })}
+          title="Se déconnecter"
         >
           <LogOut className="h-5 w-5" />
         </Button>

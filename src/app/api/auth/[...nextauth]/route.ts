@@ -68,6 +68,8 @@ export const authOptions: NextAuthOptions = {
         token.createdAt = user.createdAt;
         token.name = user.name;
         token.image = user.image;
+        token.hashedPassword = (user as any).hashedPassword;
+        token.zkCommitment = (user as any).zkCommitment;
       }
 
       const dbUser = await prisma.user.findUnique({
@@ -77,6 +79,8 @@ export const authOptions: NextAuthOptions = {
       if (dbUser) {
         token.name = dbUser.name;
         token.image = dbUser.image;
+        token.hashedPassword = dbUser.hashedPassword;
+        token.zkCommitment = (dbUser as any).zkCommitment;
       }
 
       return token;
@@ -87,6 +91,8 @@ export const authOptions: NextAuthOptions = {
         session.user.createdAt = token.createdAt as Date;
         session.user.name = token.name as string;
         session.user.image = token.image as string;
+        (session.user as any).hashedPassword = token.hashedPassword as string;
+        (session.user as any).zkCommitment = token.zkCommitment as string;
       }
       return session;
     },

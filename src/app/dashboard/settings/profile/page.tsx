@@ -90,7 +90,12 @@ export default function ProfilePage() {
               <div>
                 <h4 className="font-medium">Authentification par Email</h4>
                 <p className="text-sm text-gray-500">
-                  {(session.user as any).hashedPassword ? "Activée" : "Non configurée"}
+                  {(session.user as any).hashedPassword 
+                    ? "Activée" 
+                    : (session.user as any).zkCommitment 
+                      ? "Non utilisée (ZK actif)" 
+                      : "Non configurée"
+                  }
                 </p>
               </div>
             </div>
@@ -98,6 +103,22 @@ export default function ProfilePage() {
               {(session.user as any).hashedPassword ? "Active" : "Inactive"}
             </Badge>
           </div>
+
+          {/* Section ZK - Toujours visible pour les utilisateurs ZK */}
+          {(session.user as any).zkCommitment && (
+            <div className="flex items-center justify-between p-4 border rounded-lg">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <Shield className="h-4 w-4 text-green-600" />
+                </div>
+                <div>
+                  <h4 className="font-medium">Authentification ZK</h4>
+                  <p className="text-sm text-gray-500">Zero Knowledge active</p>
+                </div>
+              </div>
+              <Badge variant="default">Active</Badge>
+            </div>
+          )}
 
           {(session.user as any).zkCommitment && (
             <div className="flex items-center justify-between p-4 border rounded-lg">
