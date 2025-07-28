@@ -16,6 +16,7 @@ import { User, Mail, Calendar, Shield } from "lucide-react";
 import ZKInfo from "@/components/dashboard/ZKInfo";
 import ChangePasswordForm from "@/components/settings/ChangePasswordForm";
 import ZKIdentityManager from "@/components/settings/ZKIdentityManager";
+import AddEmailPasswordForm from "@/components/settings/AddEmailPasswordForm";
 
 export default function ProfilePage() {
   const { data: session } = useSession();
@@ -146,6 +147,14 @@ export default function ProfilePage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Ajout d'email/mot de passe pour les utilisateurs ZK */}
+      {(session.user as { zkCommitment?: string }).zkCommitment && (
+        <AddEmailPasswordForm
+          hasEmailPassword={!!(session.user as { hashedPassword?: string }).hashedPassword}
+          currentEmail={session.user.email || undefined}
+        />
+      )}
 
       {/* Changement de mot de passe */}
       <ChangePasswordForm
