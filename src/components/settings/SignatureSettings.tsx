@@ -1,18 +1,31 @@
-"use client"
+"use client";
 
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Switch } from "@/components/ui/switch"
-import { Download } from "lucide-react"
-import { useState, useRef, useEffect } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import SignatureCanvas from 'react-signature-canvas';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Switch } from "@/components/ui/switch";
+import { Download } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import SignatureCanvas from "react-signature-canvas";
 
 export default function SignatureSettings() {
   const [isTypedModalOpen, setIsTypedModalOpen] = useState(false);
@@ -21,12 +34,14 @@ export default function SignatureSettings() {
   const [user, setUser] = useState<any | null>(null);
   const [typedSignature, setTypedSignature] = useState("Your Name");
   const [selectedFont, setSelectedFont] = useState("cursive");
-  const [uploadedSignature, setUploadedSignature] = useState<string | null>(null);
+  const [uploadedSignature, setUploadedSignature] = useState<string | null>(
+    null,
+  );
   const sigCanvas = useRef<SignatureCanvas>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
 
   const fetchUser = async () => {
-    const response = await fetch('/api/user/me');
+    const response = await fetch("/api/user/me");
     const userData = await response.json();
     if (userData) {
       setUser(userData);
@@ -45,9 +60,9 @@ export default function SignatureSettings() {
 
   const handleSaveSignature = async () => {
     try {
-      await fetch('/api/user/signature', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      await fetch("/api/user/signature", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ signature: typedSignature, font: selectedFont }),
       });
       setIsTypedModalOpen(false);
@@ -56,14 +71,14 @@ export default function SignatureSettings() {
       console.error("Failed to save signature", error);
     }
   };
-  
+
   const handleSaveDrawnSignature = async () => {
     if (sigCanvas.current) {
       const signature = sigCanvas.current.toDataURL();
       try {
-        await fetch('/api/user/signature', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        await fetch("/api/user/signature", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ drawnSignature: signature }),
         });
         setIsDrawnModalOpen(false);
@@ -77,9 +92,9 @@ export default function SignatureSettings() {
   const handleSaveUploadedSignature = async () => {
     if (uploadedSignature) {
       try {
-        await fetch('/api/user/signature', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        await fetch("/api/user/signature", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ uploadedSignature }),
         });
         setIsUploadModalOpen(false);
@@ -114,18 +129,22 @@ export default function SignatureSettings() {
       sigCanvas.current.clear();
     }
   };
-  
+
   return (
     <>
       <Card>
         <CardHeader>
           <CardTitle className="text-xl">Signatures settings</CardTitle>
-          <p className="text-gray-600 text-sm">Configure your invitation to sign</p>
+          <p className="text-gray-600 text-sm">
+            Configure your invitation to sign
+          </p>
         </CardHeader>
         <CardContent className="space-y-8">
           <div className="space-y-3">
             <Label className="text-base font-medium">Default sender</Label>
-            <p className="text-sm text-gray-600">Define the default sender for invitations to sign</p>
+            <p className="text-sm text-gray-600">
+              Define the default sender for invitations to sign
+            </p>
             <RadioGroup defaultValue="neova" className="flex gap-4">
               <div className="flex items-center space-x-2 border rounded-lg p-3 flex-1">
                 <RadioGroupItem value="neova" id="neova" />
@@ -145,15 +164,18 @@ export default function SignatureSettings() {
           <div className="space-y-3">
             <Label className="text-base font-medium">Signature style</Label>
             <p className="text-sm text-gray-600">
-              Define the signature styles available for your signature invitations
+              Define the signature styles available for your signature
+              invitations
             </p>
             <div className="grid grid-cols-3 gap-4">
-              <div 
+              <div
                 className="border rounded-lg p-4 text-center space-y-2 cursor-pointer hover:border-blue-500"
                 onClick={() => setIsTypedModalOpen(true)}
               >
                 <div className="h-12 flex items-center justify-center">
-                  <span className={`text-2xl font-${(user?.typedSignatureFont || selectedFont).toLowerCase()}`}>
+                  <span
+                    className={`text-2xl font-${(user?.typedSignatureFont || selectedFont).toLowerCase()}`}
+                  >
                     {user?.typedSignature || typedSignature}
                   </span>
                 </div>
@@ -162,15 +184,21 @@ export default function SignatureSettings() {
                   <span className="text-xs">Default signature</span>
                 </div>
               </div>
-              <div 
+              <div
                 className="border rounded-lg p-4 text-center space-y-2 cursor-pointer hover:border-blue-500"
                 onClick={() => setIsDrawnModalOpen(true)}
               >
                 <div className="h-12 flex items-center justify-center">
                   {user?.drawnSignature ? (
-                    <img src={user.drawnSignature} alt="Drawn Signature" className="h-12 mx-auto" />
+                    <img
+                      src={user.drawnSignature}
+                      alt="Drawn Signature"
+                      className="h-12 mx-auto"
+                    />
                   ) : (
-                    <span className="text-2xl font-script italic transform -rotate-2">Name</span>
+                    <span className="text-2xl font-script italic transform -rotate-2">
+                      Name
+                    </span>
                   )}
                 </div>
                 <div className="flex items-center justify-center gap-2">
@@ -178,13 +206,17 @@ export default function SignatureSettings() {
                   <span className="text-xs">Signature drawn</span>
                 </div>
               </div>
-              <div 
+              <div
                 className="border rounded-lg p-4 text-center space-y-2 cursor-pointer hover:border-blue-500"
                 onClick={handleUploadClick}
               >
                 <div className="h-12 flex items-center justify-center">
                   {user?.uploadedSignature ? (
-                    <img src={user.uploadedSignature} alt="Uploaded Signature" className="h-12 mx-auto" />
+                    <img
+                      src={user.uploadedSignature}
+                      alt="Uploaded Signature"
+                      className="h-12 mx-auto"
+                    />
                   ) : (
                     <Download className="w-8 h-8 text-gray-600" />
                   )}
@@ -195,9 +227,9 @@ export default function SignatureSettings() {
                 </div>
               </div>
             </div>
-            <input 
-              type="file" 
-              ref={uploadInputRef} 
+            <input
+              type="file"
+              ref={uploadInputRef}
               onChange={handleFileChange}
               className="hidden"
               accept="image/png"
@@ -205,9 +237,12 @@ export default function SignatureSettings() {
           </div>
 
           <div className="space-y-3">
-            <Label className="text-base font-medium">Preferences for signature project expiry</Label>
+            <Label className="text-base font-medium">
+              Preferences for signature project expiry
+            </Label>
             <p className="text-sm text-gray-600">
-              Define a default validity period during which your recipients can sign
+              Define a default validity period during which your recipients can
+              sign
             </p>
             <div className="flex gap-4 items-center">
               <Input type="number" defaultValue="3" className="w-20" />
@@ -254,7 +289,9 @@ export default function SignatureSettings() {
 
           <div className="space-y-4">
             <Label className="text-base font-medium">Signature flows</Label>
-            <p className="text-sm text-gray-600">The signer must register on NeoSign to sign</p>
+            <p className="text-sm text-gray-600">
+              The signer must register on NeoSign to sign
+            </p>
 
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -262,7 +299,9 @@ export default function SignatureSettings() {
                 <Switch defaultChecked />
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm">Allow signer to terminate document</span>
+                <span className="text-sm">
+                  Allow signer to terminate document
+                </span>
                 <Switch defaultChecked />
               </div>
             </div>
@@ -270,7 +309,9 @@ export default function SignatureSettings() {
 
           <div className="space-y-3">
             <Label className="text-base font-medium">Reference settings</Label>
-            <p className="text-sm text-gray-600">Confirm reference to use when signing when sending the document</p>
+            <p className="text-sm text-gray-600">
+              Confirm reference to use when signing when sending the document
+            </p>
 
             <RadioGroup defaultValue="agreement" className="space-y-2">
               <div className="flex items-center space-x-2">
@@ -305,7 +346,7 @@ export default function SignatureSettings() {
           </div>
         </CardContent>
       </Card>
-      
+
       <Dialog open={isTypedModalOpen} onOpenChange={setIsTypedModalOpen}>
         <DialogContent>
           <DialogHeader>
@@ -314,7 +355,7 @@ export default function SignatureSettings() {
               Type your name and choose a font style.
             </DialogDescription>
           </DialogHeader>
-          <Input 
+          <Input
             value={typedSignature}
             onChange={(e) => setTypedSignature(e.target.value)}
             className="my-4"
@@ -342,21 +383,23 @@ export default function SignatureSettings() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-  
+
       <Dialog open={isDrawnModalOpen} onOpenChange={setIsDrawnModalOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Draw your signature</DialogTitle>
           </DialogHeader>
           <div className="border rounded-lg">
-            <SignatureCanvas 
+            <SignatureCanvas
               ref={sigCanvas}
-              penColor='black'
-              canvasProps={{className: 'w-full h-48'}} 
+              penColor="black"
+              canvasProps={{ className: "w-full h-48" }}
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={clearCanvas}>Clear</Button>
+            <Button variant="outline" onClick={clearCanvas}>
+              Clear
+            </Button>
             <Button onClick={handleSaveDrawnSignature}>Save</Button>
           </DialogFooter>
         </DialogContent>
@@ -372,15 +415,24 @@ export default function SignatureSettings() {
           </DialogHeader>
           {uploadedSignature && (
             <div className="flex justify-center my-4">
-              <img src={uploadedSignature} alt="Uploaded Signature" className="h-24 border rounded-md" />
+              <img
+                src={uploadedSignature}
+                alt="Uploaded Signature"
+                className="h-24 border rounded-md"
+              />
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsUploadModalOpen(false)}>Cancel</Button>
+            <Button
+              variant="outline"
+              onClick={() => setIsUploadModalOpen(false)}
+            >
+              Cancel
+            </Button>
             <Button onClick={handleSaveUploadedSignature}>Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
-  )
-} 
+  );
+}

@@ -45,19 +45,19 @@ export const ContactsClientPage: FC<ContactsClientPageProps> = ({
   };
 
   const handleContactAdded = (newContact: Contact) => {
-    setContacts(prev => [newContact, ...prev]);
+    setContacts((prev) => [newContact, ...prev]);
   };
 
   const handleContactUpdated = (updatedContact: Contact) => {
-    setContacts(prev => 
-      prev.map(contact => 
-        contact.id === updatedContact.id ? updatedContact : contact
-      )
+    setContacts((prev) =>
+      prev.map((contact) =>
+        contact.id === updatedContact.id ? updatedContact : contact,
+      ),
     );
   };
 
   const handleContactDeleted = (contactId: string) => {
-    setContacts(prev => prev.filter(contact => contact.id !== contactId));
+    setContacts((prev) => prev.filter((contact) => contact.id !== contactId));
   };
 
   const handleEditContact = (contact: Contact) => {
@@ -116,29 +116,58 @@ export const ContactsClientPage: FC<ContactsClientPageProps> = ({
               <TableHead className="w-12 pl-4">
                 <Checkbox />
               </TableHead>
-              <TableHead className="text-gray-600 font-medium">First Name</TableHead>
-              <TableHead className="text-gray-600 font-medium">Last Name</TableHead>
+              <TableHead className="text-gray-600 font-medium">
+                First Name
+              </TableHead>
+              <TableHead className="text-gray-600 font-medium">
+                Last Name
+              </TableHead>
               <TableHead className="text-gray-600 font-medium">Email</TableHead>
-              <TableHead className="text-gray-600 font-medium">Phone Number</TableHead>
-              <TableHead className="text-gray-600 font-medium">Company</TableHead>
-              <TableHead className="text-gray-600 font-medium">Position</TableHead>
-              <TableHead className="text-gray-600 font-medium">Location</TableHead>
-              <TableHead className="text-gray-600 font-medium">Actions</TableHead>
+              <TableHead className="text-gray-600 font-medium">
+                Phone Number
+              </TableHead>
+              <TableHead className="text-gray-600 font-medium">
+                Company
+              </TableHead>
+              <TableHead className="text-gray-600 font-medium">
+                Position
+              </TableHead>
+              <TableHead className="text-gray-600 font-medium">
+                Location
+              </TableHead>
+              <TableHead className="text-gray-600 font-medium">
+                Actions
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredContacts.map((contact) => (
-              <TableRow key={contact.id} className="border-b border-gray-100 hover:bg-gray-50">
+              <TableRow
+                key={contact.id}
+                className="border-b border-gray-100 hover:bg-gray-50"
+              >
                 <TableCell className="pl-4">
                   <Checkbox />
                 </TableCell>
-                <TableCell className="font-medium text-gray-900">{contact.firstName}</TableCell>
-                <TableCell className="text-gray-900">{contact.lastName}</TableCell>
+                <TableCell className="font-medium text-gray-900">
+                  {contact.firstName}
+                </TableCell>
+                <TableCell className="text-gray-900">
+                  {contact.lastName}
+                </TableCell>
                 <TableCell className="text-gray-600">{contact.email}</TableCell>
-                <TableCell className="text-gray-600">{contact.phone || ""}</TableCell>
-                <TableCell className="text-gray-600">{contact.company || ""}</TableCell>
-                <TableCell className="text-gray-600">{contact.position || ""}</TableCell>
-                <TableCell className="text-gray-600">{contact.location || ""}</TableCell>
+                <TableCell className="text-gray-600">
+                  {contact.phone || ""}
+                </TableCell>
+                <TableCell className="text-gray-600">
+                  {contact.company || ""}
+                </TableCell>
+                <TableCell className="text-gray-600">
+                  {contact.position || ""}
+                </TableCell>
+                <TableCell className="text-gray-600">
+                  {contact.location || ""}
+                </TableCell>
                 <TableCell>
                   <ContactActions
                     contact={contact}
@@ -161,4 +190,4 @@ export const ContactsClientPage: FC<ContactsClientPageProps> = ({
       />
     </div>
   );
-}; 
+};

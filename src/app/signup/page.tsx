@@ -1,48 +1,48 @@
 "use client";
 
-import { Suspense } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import Link from 'next/link';
-import { useSearchParams, useRouter } from 'next/navigation';
-import { useState } from 'react';
-import { signIn } from 'next-auth/react';
+import { Suspense } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import Link from "next/link";
+import { useSearchParams, useRouter } from "next/navigation";
+import { useState } from "react";
+import { signIn } from "next-auth/react";
 
 function SignUpForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const emailFromQuery = searchParams.get('email');
-  const [email, setEmail] = useState(emailFromQuery || '');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
+  const emailFromQuery = searchParams.get("email");
+  const [email, setEmail] = useState(emailFromQuery || "");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    const response = await fetch('/api/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const response = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password, name }),
     });
 
     if (response.ok) {
       // Connexion automatique après inscription
-      const signInRes = await signIn('credentials', {
+      const signInRes = await signIn("credentials", {
         redirect: false,
         email,
         password,
       });
       if (signInRes && !signInRes.error) {
-        router.push('/dashboard');
+        router.push("/dashboard");
       } else {
-        setError('Account created, but automatic login failed. Please log in.');
+        setError("Account created, but automatic login failed. Please log in.");
       }
     } else {
       const data = await response.json();
-      setError(data.message || 'An error occurred during sign up.');
+      setError(data.message || "An error occurred during sign up.");
     }
   };
 
@@ -52,7 +52,7 @@ function SignUpForm() {
         <div className="text-center">
           <h1 className="text-3xl font-bold">Create your account</h1>
           <p className="text-gray-500">
-            Already have an account?{' '}
+            Already have an account?{" "}
             <Link href="/login" className="text-blue-600 hover:underline">
               Log in
             </Link>
@@ -107,4 +107,4 @@ export default function SignUpPage() {
       <SignUpForm />
     </Suspense>
   );
-} 
+}

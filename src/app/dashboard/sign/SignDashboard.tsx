@@ -10,8 +10,8 @@ export default function SignDashboard() {
         <h2 className="text-xl font-semibold mb-4">Start a new signature</h2>
         <UploadView />
       </div>
-      
+
       <DocumentList />
     </div>
   );
-} 
+}

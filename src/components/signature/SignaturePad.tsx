@@ -1,5 +1,5 @@
-"use client"
-import React, { useRef, useEffect, MouseEvent } from 'react';
+"use client";
+import React, { useRef, useEffect, MouseEvent } from "react";
 
 interface SignaturePadProps {
   onEnd: (dataUrl: string) => void;
@@ -13,21 +13,20 @@ const SignaturePad: React.FC<SignaturePadProps> = ({ onEnd, onClear }) => {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 2;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
 
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    ctx.strokeStyle = "#000";
+    ctx.lineWidth = 2;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
   }, []);
 
   const startDrawing = (e: MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     isDrawing.current = true;
@@ -37,10 +36,10 @@ const SignaturePad: React.FC<SignaturePadProps> = ({ onEnd, onClear }) => {
 
   const draw = (e: MouseEvent<HTMLCanvasElement>) => {
     if (!isDrawing.current) return;
-    
+
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     ctx.lineTo(e.nativeEvent.offsetX, e.nativeEvent.offsetY);
@@ -57,9 +56,9 @@ const SignaturePad: React.FC<SignaturePadProps> = ({ onEnd, onClear }) => {
   const handleClear = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     onClear();
   };
@@ -76,9 +75,11 @@ const SignaturePad: React.FC<SignaturePadProps> = ({ onEnd, onClear }) => {
         onMouseUp={stopDrawing}
         onMouseLeave={stopDrawing}
       />
-      <button onClick={handleClear} className="mt-2 text-sm text-gray-500">Clear</button>
+      <button onClick={handleClear} className="mt-2 text-sm text-gray-500">
+        Clear
+      </button>
     </div>
   );
 };
 
-export default SignaturePad; 
+export default SignaturePad;

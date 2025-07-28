@@ -1,14 +1,17 @@
-import { NextRequest, NextResponse } from 'next/server';
-import bcrypt from 'bcrypt';
-import { Prisma } from '@prisma/client';
-import { prisma } from '@/lib/db';
+import { NextRequest, NextResponse } from "next/server";
+import bcrypt from "bcrypt";
+import { Prisma } from "@prisma/client";
+import { prisma } from "@/lib/db";
 
 export async function POST(req: NextRequest) {
   try {
     const { name, email, password } = await req.json();
 
     if (!name || !email || !password) {
-      return NextResponse.json({ error: 'Missing name, email, or password' }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing name, email, or password" },
+        { status: 400 },
+      );
     }
 
     const existingUser = await prisma.user.findUnique({
@@ -16,7 +19,10 @@ export async function POST(req: NextRequest) {
     });
 
     if (existingUser) {
-      return NextResponse.json({ error: 'User with this email already exists' }, { status: 409 });
+      return NextResponse.json(
+        { error: "User with this email already exists" },
+        { status: 409 },
+      );
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -38,20 +44,25 @@ export async function POST(req: NextRequest) {
 
     // Link to existing signatories
     await prisma.signatory.updateMany({
-        where: whereClause,
-        data: {
-          userId: newUser.id,
-        },
+      where: whereClause,
+      data: {
+        userId: newUser.id,
+      },
     });
 
-    return NextResponse.json({
-      id: newUser.id,
-      name: newUser.name,
-      email: newUser.email,
-    }, { status: 201 });
-
+    return NextResponse.json(
+      {
+        id: newUser.id,
+        name: newUser.name,
+        email: newUser.email,
+      },
+      { status: 201 },
+    );
   } catch (error) {
-    console.error('Registration failed:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    console.error("Registration failed:", error);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }

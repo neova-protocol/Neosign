@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useRef } from 'react';
-import SignatureCanvas from 'react-signature-canvas';
-import { Button } from '@/components/ui/button';
+import React, { useRef } from "react";
+import SignatureCanvas from "react-signature-canvas";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -11,7 +11,7 @@ import {
   DialogFooter,
   DialogClose,
   DialogDescription,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 
 interface SignatureModalProps {
   isOpen: boolean;
@@ -19,7 +19,11 @@ interface SignatureModalProps {
   onSave: (signatureDataUrl: string) => void;
 }
 
-export default function SignatureModal({ isOpen, onClose, onSave }: SignatureModalProps) {
+export default function SignatureModal({
+  isOpen,
+  onClose,
+  onSave,
+}: SignatureModalProps) {
   const sigCanvas = useRef<SignatureCanvas>(null);
 
   const clear = () => {
@@ -29,7 +33,7 @@ export default function SignatureModal({ isOpen, onClose, onSave }: SignatureMod
   const save = () => {
     if (sigCanvas.current) {
       // Get signature as a base64 encoded PNG using the more reliable method
-      const signature = sigCanvas.current.toDataURL('image/png');
+      const signature = sigCanvas.current.toDataURL("image/png");
       onSave(signature);
       onClose();
     }
@@ -39,7 +43,7 @@ export default function SignatureModal({ isOpen, onClose, onSave }: SignatureMod
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent 
+      <DialogContent
         className="sm:max-w-[425px]"
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
@@ -52,19 +56,23 @@ export default function SignatureModal({ isOpen, onClose, onSave }: SignatureMod
         <div className="border rounded-md">
           <SignatureCanvas
             ref={sigCanvas}
-            penColor='black'
-            canvasProps={{ 
-              className: 'w-full h-[200px]',
+            penColor="black"
+            canvasProps={{
+              className: "w-full h-[200px]",
               // @ts-ignore
-              willreadfrequently: "true"
+              willreadfrequently: "true",
             }}
           />
         </div>
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={clear}>Clear</Button>
-          <Button type="submit" onClick={save}>Save Signature</Button>
+          <Button type="button" variant="outline" onClick={clear}>
+            Clear
+          </Button>
+          <Button type="submit" onClick={save}>
+            Save Signature
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
-} 
+}

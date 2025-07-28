@@ -5,7 +5,9 @@ interface IconProps {
   className?: string;
 }
 
-export const DashboardIcon: React.FC<IconProps> = ({ className = "h-5 w-5" }) => (
+export const DashboardIcon: React.FC<IconProps> = ({
+  className = "h-5 w-5",
+}) => (
   <Image
     src="/dashboardicon.svg"
     alt="Dashboard Icon"
@@ -27,7 +29,9 @@ export const TemplatesIcon: React.FC<IconProps> = ({
   />
 );
 
-export const ContactsIcon: React.FC<IconProps> = ({ className = "h-5 w-5" }) => (
+export const ContactsIcon: React.FC<IconProps> = ({
+  className = "h-5 w-5",
+}) => (
   <Image
     src="/contactsicon.svg"
     alt="Contacts Icon"
@@ -37,7 +41,9 @@ export const ContactsIcon: React.FC<IconProps> = ({ className = "h-5 w-5" }) => 
   />
 );
 
-export const SettingsIcon: React.FC<IconProps> = ({ className = "h-5 w-5" }) => (
+export const SettingsIcon: React.FC<IconProps> = ({
+  className = "h-5 w-5",
+}) => (
   <Image
     src="/settingsicon.svg"
     alt="Settings Icon"
@@ -55,4 +61,4 @@ export const SignIcon: React.FC<IconProps> = ({ className = "h-5 w-5" }) => (
     height={52}
     className={className}
   />
-); 
+);

@@ -1,30 +1,30 @@
-"use client"
+"use client";
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Switch } from "@/components/ui/switch"
-import { Check } from "lucide-react"
-import { useState } from "react"
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Switch } from "@/components/ui/switch";
+import { Check } from "lucide-react";
+import { useState } from "react";
 
 interface PlanFeature {
-  text: string
-  included: boolean
+  text: string;
+  included: boolean;
 }
 
 interface PricingPlan {
-  name: string
-  icon: string
-  price: string
-  subtitle?: string
-  isCurrentPlan: boolean
-  features: PlanFeature[]
-  badge?: string
+  name: string;
+  icon: string;
+  price: string;
+  subtitle?: string;
+  isCurrentPlan: boolean;
+  features: PlanFeature[];
+  badge?: string;
 }
 
 export default function BillingSettings() {
-  const [isYearly, setIsYearly] = useState(true)
+  const [isYearly, setIsYearly] = useState(true);
 
   const plans: PricingPlan[] = [
     {
@@ -78,7 +78,7 @@ export default function BillingSettings() {
         { text: "Dedicated support", included: true },
       ],
     },
-  ]
+  ];
 
   return (
     <div className="flex-1 p-6 bg-gray-50">
@@ -87,12 +87,17 @@ export default function BillingSettings() {
         <div className="space-y-6">
           {/* Header */}
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold">Upgrade and get more security</h1>
+            <h1 className="text-2xl font-bold">
+              Upgrade and get more security
+            </h1>
             <div className="flex items-center gap-4">
               <span className="text-sm">Bill monthly</span>
               <Switch checked={isYearly} onCheckedChange={setIsYearly} />
               <span className="text-sm">Bill yearly</span>
-              <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs">
+              <Badge
+                variant="secondary"
+                className="bg-green-100 text-green-800 text-xs"
+              >
                 -30%
               </Badge>
             </div>
@@ -114,7 +119,9 @@ export default function BillingSettings() {
               <span className="text-sm font-medium text-gray-600">Premium</span>
             </div>
             <div className="text-center">
-              <span className="text-sm font-medium text-gray-600">Corporate</span>
+              <span className="text-sm font-medium text-gray-600">
+                Corporate
+              </span>
             </div>
           </div>
 
@@ -124,12 +131,16 @@ export default function BillingSettings() {
               <Card
                 key={index}
                 className={`relative ${
-                  plan.isCurrentPlan ? "border-2 border-blue-500 shadow-lg" : "border border-gray-200"
+                  plan.isCurrentPlan
+                    ? "border-2 border-blue-500 shadow-lg"
+                    : "border border-gray-200"
                 }`}
               >
                 {plan.badge && (
                   <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                    <Badge className="bg-gray-800 text-white px-3 py-1">{plan.badge}</Badge>
+                    <Badge className="bg-gray-800 text-white px-3 py-1">
+                      {plan.badge}
+                    </Badge>
                   </div>
                 )}
                 <CardHeader className="text-center pb-4">
@@ -139,7 +150,9 @@ export default function BillingSettings() {
                   <h3 className="text-xl font-semibold">{plan.name}</h3>
                   <div className="space-y-1">
                     <p className="text-2xl font-bold">{plan.price}</p>
-                    {plan.subtitle && <p className="text-sm text-gray-500">{plan.subtitle}</p>}
+                    {plan.subtitle && (
+                      <p className="text-sm text-gray-500">{plan.subtitle}</p>
+                    )}
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -155,9 +168,14 @@ export default function BillingSettings() {
                   </Button>
                   <div className="space-y-3">
                     {plan.features.map((feature, featureIndex) => (
-                      <div key={featureIndex} className="flex items-start gap-3">
+                      <div
+                        key={featureIndex}
+                        className="flex items-start gap-3"
+                      >
                         <Check className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
-                        <span className="text-sm text-gray-700">{feature.text}</span>
+                        <span className="text-sm text-gray-700">
+                          {feature.text}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -168,5 +186,5 @@ export default function BillingSettings() {
         </div>
       </div>
     </div>
-  )
-} 
+  );
+}

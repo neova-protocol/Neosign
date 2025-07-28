@@ -1,11 +1,17 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Shield, Key, Eye, EyeOff } from 'lucide-react';
-import { ZKSessionManager } from '@/lib/zk-auth';
+import { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Shield, Key, Eye, EyeOff } from "lucide-react";
+import { ZKSessionManager } from "@/lib/zk-auth";
 
 interface ZKInfoProps {
   user: any;
@@ -19,7 +25,7 @@ export default function ZKInfo({ user }: ZKInfoProps) {
   useEffect(() => {
     const savedIdentity = ZKSessionManager.getIdentity();
     const savedSession = ZKSessionManager.getSession();
-    
+
     setIdentity(savedIdentity);
     setSession(savedSession);
   }, []);
@@ -53,19 +59,19 @@ export default function ZKInfo({ user }: ZKInfoProps) {
             <Badge variant={identity ? "default" : "secondary"}>
               {identity ? "Identité Active" : "Identité Inactive"}
             </Badge>
-            {session && (
-              <Badge variant="outline">
-                Session Active
-              </Badge>
-            )}
+            {session && <Badge variant="outline">Session Active</Badge>}
           </div>
-          
+
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setShowDetails(!showDetails)}
           >
-            {showDetails ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            {showDetails ? (
+              <EyeOff className="h-4 w-4" />
+            ) : (
+              <Eye className="h-4 w-4" />
+            )}
           </Button>
         </div>
 
@@ -100,8 +106,14 @@ export default function ZKInfo({ user }: ZKInfoProps) {
                   Session Active
                 </h4>
                 <div className="text-xs">
-                  <p><span className="font-medium">Timestamp:</span> {new Date(session.timestamp).toLocaleString()}</p>
-                  <p><span className="font-medium">Public Input:</span> {session.publicInput.substring(0, 32)}...</p>
+                  <p>
+                    <span className="font-medium">Timestamp:</span>{" "}
+                    {new Date(session.timestamp).toLocaleString()}
+                  </p>
+                  <p>
+                    <span className="font-medium">Public Input:</span>{" "}
+                    {session.publicInput.substring(0, 32)}...
+                  </p>
                 </div>
               </div>
             )}
@@ -131,11 +143,13 @@ export default function ZKInfo({ user }: ZKInfoProps) {
         </div>
 
         <div className="text-xs text-gray-500">
-          <p>• Votre identité ZK est stockée localement dans votre navigateur</p>
+          <p>
+            • Votre identité ZK est stockée localement dans votre navigateur
+          </p>
           <p>• Aucune information sensible n'est transmise au serveur</p>
           <p>• Vous pouvez effacer vos données ZK à tout moment</p>
         </div>
       </CardContent>
     </Card>
   );
-} 
+}

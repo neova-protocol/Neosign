@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '../auth/[...nextauth]/route';
+import { authOptions } from "@/lib/auth-options";
 import { prisma } from '@/lib/db';
 import { promises as fs } from 'fs';
 import path from 'path';

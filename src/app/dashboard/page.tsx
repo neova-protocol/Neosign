@@ -1,10 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  MoreHorizontal,
-  ExternalLink,
-} from "lucide-react";
+import { MoreHorizontal, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from "next/link";
@@ -38,13 +35,13 @@ export default function HomePage() {
         setDocuments(docs);
 
         const completed = docs.filter(
-          (doc: Document) => doc.status === "completed"
+          (doc: Document) => doc.status === "completed",
         ).length;
         const inProgress = docs.filter(
-          (doc: Document) => doc.status === "sent"
+          (doc: Document) => doc.status === "sent",
         ).length;
         const drafts = docs.filter(
-          (doc: Document) => doc.status === "draft"
+          (doc: Document) => doc.status === "draft",
         ).length;
 
         setStats({
@@ -64,21 +61,22 @@ export default function HomePage() {
   }, [status]);
 
   if (status === "loading") {
-    return <div className="flex items-center justify-center h-screen"><p>Loading session...</p></div>;
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p>Loading session...</p>
+      </div>
+    );
   }
 
   return (
     <div className="flex-1 p-6 relative overflow-hidden">
       <main>
-
         <div className="max-w-6xl mx-auto">
           {/* Hero Section */}
           <div className="mb-16 pt-8">
             <h1 className="text-4xl font-bold text-gray-900 mb-6 leading-tight max-w-2xl">
               Create, manage and sign docs by{" "}
-              <span className="text-blue-500">
-                leveraging decentralisation
-              </span>
+              <span className="text-blue-500">leveraging decentralisation</span>
             </h1>
             <button className="text-gray-900 font-medium border-b-2 border-gray-900 pb-1 hover:border-blue-500 hover:text-blue-500 transition-colors">
               Learn more
@@ -189,8 +187,8 @@ export default function HomePage() {
                             doc.status === "completed"
                               ? "bg-green-500"
                               : doc.status === "draft"
-                              ? "bg-gray-400"
-                              : "bg-blue-500"
+                                ? "bg-gray-400"
+                                : "bg-blue-500"
                           }`}
                         ></div>
                         <span className="text-sm font-medium text-gray-900 capitalize">
@@ -229,15 +227,11 @@ export default function HomePage() {
               <div className="text-center p-10 bg-white rounded-lg shadow-sm">
                 <p className="text-gray-500">No documents to display.</p>
                 <Link href="/dashboard/sign">
-                  <Button className="mt-4">
-                    Create your first document
-                  </Button>
+                  <Button className="mt-4">Create your first document</Button>
                 </Link>
               </div>
             )}
           </div>
-
-
         </div>
       </main>
     </div>

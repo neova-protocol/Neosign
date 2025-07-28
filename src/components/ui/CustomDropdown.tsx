@@ -1,5 +1,5 @@
-"use client"
-import React, { useState, useRef, useEffect } from 'react';
+"use client";
+import React, { useState, useRef, useEffect } from "react";
 
 interface DropdownItem {
   id: string;
@@ -13,7 +13,11 @@ interface CustomDropdownProps {
   onSelect?: (id: string) => void;
 }
 
-const CustomDropdown: React.FC<CustomDropdownProps> = ({ trigger, items, onSelect }) => {
+const CustomDropdown: React.FC<CustomDropdownProps> = ({
+  trigger,
+  items,
+  onSelect,
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -29,12 +33,15 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({ trigger, items, onSelec
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   return (
@@ -43,7 +50,7 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({ trigger, items, onSelec
       {isOpen && (
         <div className="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
           <div className="py-1">
-            {items.map(item => (
+            {items.map((item) => (
               <a
                 key={item.id}
                 href="#"
@@ -63,4 +70,4 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({ trigger, items, onSelec
   );
 };
 
-export default CustomDropdown; 
+export default CustomDropdown;

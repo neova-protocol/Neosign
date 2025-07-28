@@ -1,32 +1,37 @@
-'use client';
+"use client";
 
-import { useParams, useSearchParams } from 'next/navigation';
-import { useEffect, useState, useMemo } from 'react';
-import dynamic from 'next/dynamic';
-import { Document as AppDocument, SignatureField } from '@/types';
-import SignatureModal from '@/components/signature/SignatureModal';
-import PostSignatureModal from '@/components/signature/PostSignatureModal';
-import { updateSignatureField } from '@/lib/api';
+import { useParams, useSearchParams } from "next/navigation";
+import { useEffect, useState, useMemo } from "react";
+import dynamic from "next/dynamic";
+import { Document as AppDocument, SignatureField } from "@/types";
+import SignatureModal from "@/components/signature/SignatureModal";
+import PostSignatureModal from "@/components/signature/PostSignatureModal";
+import { updateSignatureField } from "@/lib/api";
 
-const PDFViewer = dynamic(() => import('@/components/pdf/PDFViewer'), { 
-    ssr: false,
-    loading: () => <p>Loading PDF Viewer...</p>
+const PDFViewer = dynamic(() => import("@/components/pdf/PDFViewer"), {
+  ssr: false,
+  loading: () => <p>Loading PDF Viewer...</p>,
 });
 
-async function getPublicDocument(documentId: string, token: string): Promise<AppDocument | null> {
-    const response = await fetch(`/api/public/documents/${documentId}?token=${token}`);
-    if (!response.ok) {
-        return null;
-    }
-    return response.json();
+async function getPublicDocument(
+  documentId: string,
+  token: string,
+): Promise<AppDocument | null> {
+  const response = await fetch(
+    `/api/public/documents/${documentId}?token=${token}`,
+  );
+  if (!response.ok) {
+    return null;
+  }
+  return response.json();
 }
 
 export default function PublicSignPage() {
   const params = useParams();
   const searchParams = useSearchParams();
-  
+
   const documentId = params.documentId as string;
-  const token = searchParams.get('token');
+  const token = searchParams.get("token");
 
   const [document, setDocument] = useState<AppDocument | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -37,31 +42,33 @@ export default function PublicSignPage() {
   useEffect(() => {
     if (documentId && token) {
       getPublicDocument(documentId, token)
-        .then(doc => {
+        .then((doc) => {
           if (doc) {
             setDocument(doc);
           } else {
-            setError('Could not retrieve document. The link may be invalid or expired.');
+            setError(
+              "Could not retrieve document. The link may be invalid or expired.",
+            );
           }
         })
-        .catch(() => setError('An unexpected error occurred.'))
+        .catch(() => setError("An unexpected error occurred."))
         .finally(() => setIsLoading(false));
     } else {
-        setError('Missing document ID or token.');
-        setIsLoading(false);
+      setError("Missing document ID or token.");
+      setIsLoading(false);
     }
   }, [documentId, token]);
 
   const signatory = useMemo(() => {
     if (!document || !token) return null;
-    return document.signatories.find(s => s.token === token);
+    return document.signatories.find((s) => s.token === token);
   }, [document, token]);
-  
+
   const handleSignClick = (field: SignatureField) => {
     if (signatory && field.signatoryId === signatory.id) {
-        setFieldToSign(field);
+      setFieldToSign(field);
     } else {
-        alert("You are not authorized to sign this field.");
+      alert("You are not authorized to sign this field.");
     }
   };
 
@@ -69,29 +76,36 @@ export default function PublicSignPage() {
     if (!document || !fieldToSign || !token) return;
 
     try {
-        const updatedField = await updateSignatureField(document.id, fieldToSign.id, { value: signatureDataUrl }, token);
-    
-        if (updatedField) {
-            setDocument(prevDoc => {
-                if (!prevDoc) return null;
-                return {
-                    ...prevDoc,
-                    fields: prevDoc.fields.map(f => f.id === updatedField.id ? updatedField : f),
-                };
-            });
-            setFieldToSign(null);
-            setShowConfirmation(true);
-        } else {
-            alert("Failed to save signature.");
-            setFieldToSign(null);
-        }
-    } catch (error) {
-        console.error("Error saving signature:", error);
-        alert("An error occurred while saving the signature. Please try again.");
+      const updatedField = await updateSignatureField(
+        document.id,
+        fieldToSign.id,
+        { value: signatureDataUrl },
+        token,
+      );
+
+      if (updatedField) {
+        setDocument((prevDoc) => {
+          if (!prevDoc) return null;
+          return {
+            ...prevDoc,
+            fields: prevDoc.fields.map((f) =>
+              f.id === updatedField.id ? updatedField : f,
+            ),
+          };
+        });
         setFieldToSign(null);
+        setShowConfirmation(true);
+      } else {
+        alert("Failed to save signature.");
+        setFieldToSign(null);
+      }
+    } catch (error) {
+      console.error("Error saving signature:", error);
+      alert("An error occurred while saving the signature. Please try again.");
+      setFieldToSign(null);
     }
   };
-  
+
   if (isLoading) {
     return <div className="p-8 text-center">Loading...</div>;
   }
@@ -106,24 +120,24 @@ export default function PublicSignPage() {
 
   return (
     <div className="w-full h-screen bg-gray-100">
-       <PDFViewer
-            fileUrl={document.fileUrl}
-            document={document}
-            onSignClick={handleSignClick}
-            activeSignatoryId={signatory?.id}
+      <PDFViewer
+        fileUrl={document.fileUrl}
+        document={document}
+        onSignClick={handleSignClick}
+        activeSignatoryId={signatory?.id}
+      />
+      {fieldToSign && signatory && (
+        <SignatureModal
+          isOpen={!!fieldToSign}
+          onClose={() => setFieldToSign(null)}
+          onSave={handleConfirmSignature}
         />
-        {fieldToSign && signatory && (
-            <SignatureModal
-                isOpen={!!fieldToSign}
-                onClose={() => setFieldToSign(null)}
-                onSave={handleConfirmSignature}
-            />
-        )}
-        <PostSignatureModal 
-            open={showConfirmation}
-            onOpenChange={setShowConfirmation}
-            signatoryEmail={signatory?.email}
-        />
+      )}
+      <PostSignatureModal
+        open={showConfirmation}
+        onOpenChange={setShowConfirmation}
+        signatoryEmail={signatory?.email}
+      />
     </div>
   );
-} 
+}

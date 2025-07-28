@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '../../auth/[...nextauth]/route';
+import { authOptions } from "@/lib/auth-options";
 import { prisma } from '@/lib/db';
 import path from 'path';
 import fs from 'fs/promises';
@@ -40,7 +40,10 @@ export async function POST(req: NextRequest) {
       doc.render();
     } catch (error) {
       console.error('Docxtemplater render error:', error);
-      return NextResponse.json({ message: 'Template rendering error', details: error.message }, { status: 400 });
+      return NextResponse.json({
+        message: 'Template rendering error',
+        details: error instanceof Error ? error.message : String(error)
+      }, { status: 400 });
     }
     const buf = doc.getZip().generate({ type: 'nodebuffer' });
     return new NextResponse(buf, {

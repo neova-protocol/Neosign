@@ -17,26 +17,34 @@ interface ContactActionsProps {
   onDelete: (contactId: string) => void;
 }
 
-export function ContactActions({ contact, onEdit, onDelete }: ContactActionsProps) {
+export function ContactActions({
+  contact,
+  onEdit,
+  onDelete,
+}: ContactActionsProps) {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDelete = async () => {
-    if (window.confirm(`Êtes-vous sûr de vouloir supprimer ${contact.firstName} ${contact.lastName} ?`)) {
+    if (
+      window.confirm(
+        `Êtes-vous sûr de vouloir supprimer ${contact.firstName} ${contact.lastName} ?`,
+      )
+    ) {
       setIsDeleting(true);
       try {
         const response = await fetch(`/api/contacts/${contact.id}`, {
-          method: 'DELETE',
+          method: "DELETE",
         });
 
         if (response.ok) {
           onDelete(contact.id);
         } else {
-          console.error('Failed to delete contact');
-          alert('Erreur lors de la suppression du contact');
+          console.error("Failed to delete contact");
+          alert("Erreur lors de la suppression du contact");
         }
       } catch (error) {
-        console.error('Error deleting contact:', error);
-        alert('Erreur lors de la suppression du contact');
+        console.error("Error deleting contact:", error);
+        alert("Erreur lors de la suppression du contact");
       } finally {
         setIsDeleting(false);
       }
@@ -56,7 +64,7 @@ export function ContactActions({ contact, onEdit, onDelete }: ContactActionsProp
           <Edit className="mr-2 h-4 w-4" />
           Modifier
         </DropdownMenuItem>
-        <DropdownMenuItem 
+        <DropdownMenuItem
           onClick={handleDelete}
           className="text-red-600 focus:text-red-600"
           disabled={isDeleting}
@@ -67,4 +75,4 @@ export function ContactActions({ contact, onEdit, onDelete }: ContactActionsProp
       </DropdownMenuContent>
     </DropdownMenu>
   );
-} 
+}

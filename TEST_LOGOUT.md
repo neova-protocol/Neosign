@@ -3,17 +3,20 @@
 ## ✅ **Problème Résolu**
 
 Le bouton de déconnexion dans la sidebar ne fonctionnait pas car il manquait :
+
 - L'import de `signOut` depuis `next-auth/react`
 - La fonction `onClick` pour déclencher la déconnexion
 
 ## 🔧 **Modifications Effectuées**
 
 ### **1. Import ajouté**
+
 ```typescript
-import { signOut } from "next-auth/react"
+import { signOut } from "next-auth/react";
 ```
 
 ### **2. Fonction onClick ajoutée**
+
 ```typescript
 <Button
   variant="ghost"
@@ -45,6 +48,7 @@ import { signOut } from "next-auth/react"
 ## 🔍 **Vérification Technique**
 
 ### **Dans la Console du Navigateur :**
+
 ```javascript
 // Avant déconnexion
 console.log(session); // Devrait afficher les infos utilisateur
@@ -54,6 +58,7 @@ console.log(session); // Devrait être null
 ```
 
 ### **Test de la Redirection :**
+
 ```bash
 # Vérifier que la redirection fonctionne
 curl -s "http://localhost:3000/dashboard" | grep -o "Se déconnecter"
@@ -80,4 +85,4 @@ curl -s "http://localhost:3000/dashboard" | grep -o "Se déconnecter"
 
 ---
 
-**🎉 Le bouton de déconnexion est maintenant fonctionnel !** 
+**🎉 Le bouton de déconnexion est maintenant fonctionnel !**

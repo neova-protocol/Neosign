@@ -19,27 +19,31 @@ Le composant `ZKInfo` a été déplacé avec succès de `/dashboard` vers `/dash
 ## 📋 **Contenu de la Page de Profil**
 
 ### **1. Informations du Profil**
+
 - **Avatar** : Photo de profil de l'utilisateur
 - **Nom complet** : Nom affiché
 - **Email** : Adresse email (non modifiable)
-- **Badges** : 
+- **Badges** :
   - Type d'utilisateur (ZK ou Standard)
   - Date d'inscription
 
 ### **2. Sécurité du Compte**
+
 - **Authentification par Email** : Statut (Active/Inactive)
 - **Authentification ZK** : Visible uniquement pour les utilisateurs ZK
 
 ### **3. Informations ZK** (Section déplacée)
+
 - **Identité ZK** : Commitment, nullifier, trapdoor
 - **Session ZK** : Informations de session active
-- **Actions** : 
+- **Actions** :
   - Afficher/masquer les détails
   - Effacer les données ZK locales
 
 ## 🧪 **Tests à Effectuer**
 
 ### **Test 1 : Navigation**
+
 ```bash
 # Accès direct à la page de profil
 curl -s "http://localhost:3000/dashboard/settings/profile" | grep -o "Informations du Profil"
@@ -49,6 +53,7 @@ curl -s "http://localhost:3000/dashboard/settings" | grep -o "Redirection vers l
 ```
 
 ### **Test 2 : Authentification ZK**
+
 1. **Connectez-vous en ZK** :
    - Allez sur `/zk-login`
    - Créez une nouvelle identité ZK
@@ -60,6 +65,7 @@ curl -s "http://localhost:3000/dashboard/settings" | grep -o "Redirection vers l
    - Testez l'affichage/masquage des détails
 
 ### **Test 3 : Authentification Classique**
+
 1. **Connectez-vous classiquement** :
    - Allez sur `/login`
    - Utilisez email/mot de passe
@@ -103,4 +109,4 @@ src/app/dashboard/settings/
 
 ---
 
-**🎉 Le déplacement est terminé et fonctionnel !** 
+**🎉 Le déplacement est terminé et fonctionnel !**

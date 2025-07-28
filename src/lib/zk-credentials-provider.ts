@@ -5,7 +5,7 @@ export const zkCredentialsProvider = CredentialsProvider({
   id: "zk-credentials",
   name: "ZK Credentials",
   credentials: {
-    zkUser: { label: "ZK User", type: "text" }
+    zkUser: { label: "ZK User", type: "text" },
   },
   async authorize(credentials) {
     if (!credentials?.zkUser) {
@@ -14,12 +14,12 @@ export const zkCredentialsProvider = CredentialsProvider({
 
     try {
       const zkUser = JSON.parse(credentials.zkUser);
-      
+
       // Vérifier que l'utilisateur existe dans la base de données
       const user = await prisma.user.findFirst({
-        where: { 
-          zkCommitment: zkUser.commitment 
-        } as any
+        where: {
+          zkCommitment: zkUser.commitment,
+        } as any,
       });
 
       if (!user) {
@@ -33,11 +33,11 @@ export const zkCredentialsProvider = CredentialsProvider({
         createdAt: user.createdAt,
         image: user.image,
         hashedPassword: user.hashedPassword,
-        zkCommitment: (user as any).zkCommitment
+        zkCommitment: (user as any).zkCommitment,
       };
     } catch (error) {
       console.error("Erreur lors de l'authentification ZK:", error);
       return null;
     }
-  }
-}); 
+  },
+});

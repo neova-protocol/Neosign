@@ -32,16 +32,19 @@ onClick={() => signOut({ callbackUrl: '/login' })}
 ## 🎯 **Avantages de cette Redirection**
 
 ### **1. Expérience Utilisateur Améliorée :**
+
 - **Logique intuitive** : Déconnexion → Page de connexion
 - **Pas de confusion** : L'utilisateur sait où il est
 - **Reconnexion facile** : Formulaire de connexion immédiatement disponible
 
 ### **2. Cohérence avec NextAuth :**
+
 - **Configuration NextAuth** : `signIn: '/login'`
 - **Redirection de déconnexion** : `callbackUrl: '/login'`
 - **Flux cohérent** : Connexion et déconnexion pointent vers la même page
 
 ### **3. Gestion des Sessions :**
+
 - **Session effacée** : NextAuth nettoie la session
 - **État propre** : Plus de données utilisateur en mémoire
 - **Sécurité** : Accès aux pages protégées impossible
@@ -49,6 +52,7 @@ onClick={() => signOut({ callbackUrl: '/login' })}
 ## 🔍 **Vérification Technique**
 
 ### **Test de la Redirection :**
+
 ```bash
 # Vérifier que le bouton est présent
 curl -s "http://localhost:3000/dashboard" | grep -o "Se déconnecter"
@@ -56,6 +60,7 @@ curl -s "http://localhost:3000/dashboard" | grep -o "Se déconnecter"
 ```
 
 ### **Test Manuel :**
+
 1. **Connectez-vous** avec n'importe quelle méthode
 2. **Cliquez sur déconnexion**
 3. **Vérifiez l'URL** : Doit être `http://localhost:3000/login`
@@ -64,18 +69,21 @@ curl -s "http://localhost:3000/dashboard" | grep -o "Se déconnecter"
 ## 🚀 **Scénarios de Test**
 
 ### **Test 1 : Utilisateur ZK**
+
 1. Connectez-vous en ZK
 2. Déconnectez-vous
 3. Vérifiez la redirection vers `/login`
 4. Testez la reconnexion ZK
 
 ### **Test 2 : Utilisateur Email**
+
 1. Connectez-vous avec email/mot de passe
 2. Déconnectez-vous
 3. Vérifiez la redirection vers `/login`
 4. Testez la reconnexion email
 
 ### **Test 3 : Navigation**
+
 1. Allez sur différentes pages du dashboard
 2. Déconnectez-vous depuis chaque page
 3. Vérifiez que la redirection fonctionne partout
@@ -88,4 +96,4 @@ curl -s "http://localhost:3000/dashboard" | grep -o "Se déconnecter"
 
 ---
 
-**🎉 La redirection de déconnexion pointe maintenant vers `/login` !** 
+**🎉 La redirection de déconnexion pointe maintenant vers `/login` !**

@@ -1,11 +1,11 @@
-"use client"
+"use client";
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Unlink, Trash2 } from "lucide-react"
-import { useState } from "react"
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Unlink, Trash2 } from "lucide-react";
+import { useState } from "react";
 
 // Mock data for the chart
 const usageData = [
@@ -22,10 +22,10 @@ const usageData = [
   { month: "Dec 2024", value: 6 },
   { month: "Jan 2025", value: 0 },
   { month: "Feb 2025", value: 0 },
-]
+];
 
 function UsageChart() {
-  const maxValue = Math.max(...usageData.map((d) => d.value))
+  const maxValue = Math.max(...usageData.map((d) => d.value));
 
   return (
     <div className="space-y-4">
@@ -57,38 +57,41 @@ function UsageChart() {
       {/* X-axis labels */}
       <div className="flex justify-between text-xs text-gray-500 px-4">
         {usageData.map((data, index) => (
-          <span key={index} className="transform -rotate-45 origin-left whitespace-nowrap">
+          <span
+            key={index}
+            className="transform -rotate-45 origin-left whitespace-nowrap"
+          >
             {data.month}
           </span>
         ))}
       </div>
     </div>
-  )
+  );
 }
 
 export default function AdvancedSettings() {
-  const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false)
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleDisconnectWallet = () => {
     if (showDisconnectConfirm) {
       // Perform disconnect action
-      console.log("Wallet disconnected")
-      setShowDisconnectConfirm(false)
+      console.log("Wallet disconnected");
+      setShowDisconnectConfirm(false);
     } else {
-      setShowDisconnectConfirm(true)
+      setShowDisconnectConfirm(true);
     }
-  }
+  };
 
   const handleDeleteAccount = () => {
     if (showDeleteConfirm) {
       // Perform delete action
-      console.log("Account deleted")
-      setShowDeleteConfirm(false)
+      console.log("Account deleted");
+      setShowDeleteConfirm(false);
     } else {
-      setShowDeleteConfirm(true)
+      setShowDeleteConfirm(true);
     }
-  }
+  };
 
   return (
     <div className="flex-1 p-6 bg-gray-50">
@@ -100,8 +103,12 @@ export default function AdvancedSettings() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-semibold mb-2">Disconnect your wallet</h3>
-                  <p className="text-gray-600 text-sm">Sometimes you can desire to change your wallet...</p>
+                  <h3 className="text-lg font-semibold mb-2">
+                    Disconnect your wallet
+                  </h3>
+                  <p className="text-gray-600 text-sm">
+                    Sometimes you can desire to change your wallet...
+                  </p>
                 </div>
                 <Button
                   variant="destructive"
@@ -115,10 +122,15 @@ export default function AdvancedSettings() {
               {showDisconnectConfirm && (
                 <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
                   <p className="text-red-800 text-sm">
-                    Are you sure you want to disconnect your wallet? This action cannot be undone.
+                    Are you sure you want to disconnect your wallet? This action
+                    cannot be undone.
                   </p>
                   <div className="flex gap-2 mt-2">
-                    <Button size="sm" variant="outline" onClick={() => setShowDisconnectConfirm(false)}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setShowDisconnectConfirm(false)}
+                    >
                       Cancel
                     </Button>
                   </div>
@@ -132,7 +144,9 @@ export default function AdvancedSettings() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-semibold mb-2">Delete my account</h3>
+                  <h3 className="text-lg font-semibold mb-2">
+                    Delete my account
+                  </h3>
                   <p className="text-gray-600 text-sm">
                     We regret seeing you leave NeoSign!
                     <br />
@@ -151,11 +165,16 @@ export default function AdvancedSettings() {
               {showDeleteConfirm && (
                 <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
                   <p className="text-red-800 text-sm">
-                    <strong>Warning:</strong> This will permanently delete your account and all associated data. This
-                    action cannot be undone.
+                    <strong>Warning:</strong> This will permanently delete your
+                    account and all associated data. This action cannot be
+                    undone.
                   </p>
                   <div className="flex gap-2 mt-2">
-                    <Button size="sm" variant="outline" onClick={() => setShowDeleteConfirm(false)}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setShowDeleteConfirm(false)}
+                    >
                       Cancel
                     </Button>
                   </div>
@@ -169,10 +188,17 @@ export default function AdvancedSettings() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-lg">Overview of electronic signature usage</CardTitle>
-                  <p className="text-gray-600 text-sm mt-1">Track your usage over time</p>
+                  <CardTitle className="text-lg">
+                    Overview of electronic signature usage
+                  </CardTitle>
+                  <p className="text-gray-600 text-sm mt-1">
+                    Track your usage over time
+                  </p>
                 </div>
-                <Button variant="link" className="text-blue-600 hover:text-blue-700 p-0">
+                <Button
+                  variant="link"
+                  className="text-blue-600 hover:text-blue-700 p-0"
+                >
                   Upgrade Plan
                 </Button>
               </div>
@@ -191,5 +217,5 @@ export default function AdvancedSettings() {
         </div>
       </div>
     </div>
-  )
-} 
+  );
+}

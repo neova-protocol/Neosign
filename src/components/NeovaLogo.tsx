@@ -1,11 +1,11 @@
 interface Ellipse {
-  id?: string
-  cx: number
-  cy: number
-  rx: number
-  ry: number
-  transform: string
-  fill: string
+  id?: string;
+  cx: number;
+  cy: number;
+  rx: number;
+  ry: number;
+  transform: string;
+  fill: string;
 }
 
 const ellipses: Ellipse[] = [
@@ -154,7 +154,7 @@ const ellipses: Ellipse[] = [
     ry: 12.1673,
     transform: "rotate(171.22 56.102 13.3867)",
   },
-]
+];
 
 export const NeovaLogo = (props: any) => {
   return (
@@ -169,5 +169,5 @@ export const NeovaLogo = (props: any) => {
         <ellipse key={index} {...ellipse} />
       ))}
     </svg>
-  )
-} 
+  );
+};

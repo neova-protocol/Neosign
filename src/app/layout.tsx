@@ -4,7 +4,7 @@ import "./globals.css";
 import { SignatureProvider } from "@/contexts/SignatureContext";
 import NextAuthProvider from "@/components/providers/NextAuthProvider";
 
-const inter = Inter({ 
+const inter = Inter({
   subsets: ["latin"],
   variable: "--font-sans",
 });
@@ -27,11 +27,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${corinthia.variable} font-sans bg-neutral-100`}>
+      <body
+        className={`${inter.variable} ${corinthia.variable} font-sans bg-neutral-100`}
+      >
         <NextAuthProvider>
-          <SignatureProvider>
-          {children}
-          </SignatureProvider>
+          <SignatureProvider>{children}</SignatureProvider>
         </NextAuthProvider>
       </body>
     </html>

@@ -50,31 +50,34 @@ J'ai ajouté une section "Changement de Mot de Passe" dans la page de profil ave
 ## 🔍 **Fonctionnalités**
 
 ### **✅ Sécurité :**
+
 - **Vérification du mot de passe actuel** avant modification
 - **Hachage bcrypt** du nouveau mot de passe
 - **Validation côté serveur** et client
 - **Session utilisateur requise**
 
 ### **✅ Interface :**
+
 - **Champs avec boutons œil** pour afficher/masquer
 - **Validation en temps réel** des champs
 - **Messages d'erreur/succès** clairs
 - **État de chargement** pendant la mise à jour
 
 ### **✅ Gestion des Cas :**
+
 - **Utilisateur avec mot de passe** → Formulaire complet
 - **Utilisateur ZK uniquement** → Message informatif
 - **Erreurs de validation** → Messages explicites
 
 ## 🎯 **Comportements Attendus**
 
-| Scénario | Comportement |
-|----------|-------------|
-| **Mot de passe correct** | ✅ Mise à jour réussie + message de succès |
-| **Mot de passe incorrect** | ❌ Erreur "Mot de passe actuel incorrect" |
-| **Nouveau mot de passe court** | ❌ Erreur "Au moins 6 caractères" |
-| **Confirmation différente** | ❌ Erreur "Mots de passe ne correspondent pas" |
-| **Utilisateur ZK uniquement** | ℹ️ Message "Pas de mot de passe configuré" |
+| Scénario                       | Comportement                                   |
+| ------------------------------ | ---------------------------------------------- |
+| **Mot de passe correct**       | ✅ Mise à jour réussie + message de succès     |
+| **Mot de passe incorrect**     | ❌ Erreur "Mot de passe actuel incorrect"      |
+| **Nouveau mot de passe court** | ❌ Erreur "Au moins 6 caractères"              |
+| **Confirmation différente**    | ❌ Erreur "Mots de passe ne correspondent pas" |
+| **Utilisateur ZK uniquement**  | ℹ️ Message "Pas de mot de passe configuré"     |
 
 ## 🚀 **Prochaines Étapes**
 
@@ -93,4 +96,4 @@ J'ai ajouté une section "Changement de Mot de Passe" dans la page de profil ave
 
 ---
 
-**🎉 La fonctionnalité de changement de mot de passe est maintenant disponible !** 
+**🎉 La fonctionnalité de changement de mot de passe est maintenant disponible !**

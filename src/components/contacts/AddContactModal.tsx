@@ -31,9 +31,9 @@ export function AddContactModal({ onContactAdded }: AddContactModalProps) {
   });
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
@@ -42,10 +42,10 @@ export function AddContactModal({ onContactAdded }: AddContactModalProps) {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/contacts', {
-        method: 'POST',
+      const response = await fetch("/api/contacts", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(formData),
       });
@@ -64,10 +64,10 @@ export function AddContactModal({ onContactAdded }: AddContactModalProps) {
           location: "",
         });
       } else {
-        console.error('Failed to create contact');
+        console.error("Failed to create contact");
       }
     } catch (error) {
-      console.error('Error creating contact:', error);
+      console.error("Error creating contact:", error);
     } finally {
       setIsLoading(false);
     }
@@ -82,15 +82,22 @@ export function AddContactModal({ onContactAdded }: AddContactModalProps) {
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle className="text-xl font-semibold">Add a contact</DialogTitle>
+          <DialogTitle className="text-xl font-semibold">
+            Add a contact
+          </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Personal informations */}
           <div>
-            <h3 className="text-sm font-medium text-gray-900 mb-4">Personal informations</h3>
+            <h3 className="text-sm font-medium text-gray-900 mb-4">
+              Personal informations
+            </h3>
             <div className="space-y-4">
               <div>
-                <Label htmlFor="firstName" className="text-sm font-medium text-gray-700">
+                <Label
+                  htmlFor="firstName"
+                  className="text-sm font-medium text-gray-700"
+                >
                   First name
                 </Label>
                 <Input
@@ -98,13 +105,18 @@ export function AddContactModal({ onContactAdded }: AddContactModalProps) {
                   type="text"
                   placeholder="John"
                   value={formData.firstName}
-                  onChange={(e) => handleInputChange('firstName', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("firstName", e.target.value)
+                  }
                   required
                   className="mt-1"
                 />
               </div>
               <div>
-                <Label htmlFor="lastName" className="text-sm font-medium text-gray-700">
+                <Label
+                  htmlFor="lastName"
+                  className="text-sm font-medium text-gray-700"
+                >
                   Last name
                 </Label>
                 <Input
@@ -112,13 +124,18 @@ export function AddContactModal({ onContactAdded }: AddContactModalProps) {
                   type="text"
                   placeholder="Doe"
                   value={formData.lastName}
-                  onChange={(e) => handleInputChange('lastName', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("lastName", e.target.value)
+                  }
                   required
                   className="mt-1"
                 />
               </div>
               <div>
-                <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+                <Label
+                  htmlFor="email"
+                  className="text-sm font-medium text-gray-700"
+                >
                   Email
                 </Label>
                 <Input
@@ -126,13 +143,16 @@ export function AddContactModal({ onContactAdded }: AddContactModalProps) {
                   type="email"
                   placeholder="john.doe@neova.io"
                   value={formData.email}
-                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  onChange={(e) => handleInputChange("email", e.target.value)}
                   required
                   className="mt-1"
                 />
               </div>
               <div>
-                <Label htmlFor="phone" className="text-sm font-medium text-gray-700">
+                <Label
+                  htmlFor="phone"
+                  className="text-sm font-medium text-gray-700"
+                >
                   Phone number
                 </Label>
                 <Input
@@ -140,7 +160,7 @@ export function AddContactModal({ onContactAdded }: AddContactModalProps) {
                   type="tel"
                   placeholder="+33) 06 07 08 09 00"
                   value={formData.phone}
-                  onChange={(e) => handleInputChange('phone', e.target.value)}
+                  onChange={(e) => handleInputChange("phone", e.target.value)}
                   className="mt-1"
                 />
               </div>
@@ -149,10 +169,15 @@ export function AddContactModal({ onContactAdded }: AddContactModalProps) {
 
           {/* Professional informations */}
           <div>
-            <h3 className="text-sm font-medium text-gray-900 mb-4">Professional informations</h3>
+            <h3 className="text-sm font-medium text-gray-900 mb-4">
+              Professional informations
+            </h3>
             <div className="space-y-4">
               <div>
-                <Label htmlFor="company" className="text-sm font-medium text-gray-700">
+                <Label
+                  htmlFor="company"
+                  className="text-sm font-medium text-gray-700"
+                >
                   Company name
                 </Label>
                 <Input
@@ -160,12 +185,15 @@ export function AddContactModal({ onContactAdded }: AddContactModalProps) {
                   type="text"
                   placeholder="Neova"
                   value={formData.company}
-                  onChange={(e) => handleInputChange('company', e.target.value)}
+                  onChange={(e) => handleInputChange("company", e.target.value)}
                   className="mt-1"
                 />
               </div>
               <div>
-                <Label htmlFor="position" className="text-sm font-medium text-gray-700">
+                <Label
+                  htmlFor="position"
+                  className="text-sm font-medium text-gray-700"
+                >
                   Position
                 </Label>
                 <Input
@@ -173,12 +201,17 @@ export function AddContactModal({ onContactAdded }: AddContactModalProps) {
                   type="text"
                   placeholder="Sales..."
                   value={formData.position}
-                  onChange={(e) => handleInputChange('position', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("position", e.target.value)
+                  }
                   className="mt-1"
                 />
               </div>
               <div>
-                <Label htmlFor="location" className="text-sm font-medium text-gray-700">
+                <Label
+                  htmlFor="location"
+                  className="text-sm font-medium text-gray-700"
+                >
                   Location
                 </Label>
                 <Input
@@ -186,7 +219,9 @@ export function AddContactModal({ onContactAdded }: AddContactModalProps) {
                   type="text"
                   placeholder="United States..."
                   value={formData.location}
-                  onChange={(e) => handleInputChange('location', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("location", e.target.value)
+                  }
                   className="mt-1"
                 />
               </div>
@@ -204,4 +239,4 @@ export function AddContactModal({ onContactAdded }: AddContactModalProps) {
       </DialogContent>
     </Dialog>
   );
-} 
+}

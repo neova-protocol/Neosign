@@ -1,4 +1,4 @@
-import * as React from 'react';
+import * as React from "react";
 
 interface SignatureRequestEmailProps {
   documentName: string;
@@ -6,22 +6,17 @@ interface SignatureRequestEmailProps {
   actionUrl: string;
 }
 
-export const SignatureRequestEmail: React.FC<Readonly<SignatureRequestEmailProps>> = ({
-  documentName,
-  senderName,
-  actionUrl,
-}) => (
+export const SignatureRequestEmail: React.FC<
+  Readonly<SignatureRequestEmailProps>
+> = ({ documentName, senderName, actionUrl }) => (
   <div>
     <h1>Signature Request for {documentName}</h1>
+    <p>Hello,</p>
     <p>
-      Hello,
+      {senderName} has requested your signature on the document:{" "}
+      <strong>{documentName}</strong>.
     </p>
-    <p>
-      {senderName} has requested your signature on the document: <strong>{documentName}</strong>.
-    </p>
-    <p>
-      Please click the button below to review and sign the document.
-    </p>
+    <p>Please click the button below to review and sign the document.</p>
     <a href={actionUrl} target="_blank" rel="noopener noreferrer">
       View and Sign Document
     </a>
@@ -34,4 +29,4 @@ export const SignatureRequestEmail: React.FC<Readonly<SignatureRequestEmailProps
       The Neosign Team
     </p>
   </div>
-); 
+);

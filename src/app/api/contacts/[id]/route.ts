@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth-options";
 
 interface RouteParams {
   params: {
@@ -21,7 +21,8 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
     const { id } = await params;
     const body = await req.json();
 
-    const { firstName, lastName, email, phone, company, position, location } = body;
+    const { firstName, lastName, email, phone, company, position, location } =
+      body;
 
     // Check if the contact exists and belongs to the user
     const existingContact = await prisma.contact.findFirst({
@@ -32,10 +33,7 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
     });
 
     if (!existingContact) {
-      return NextResponse.json(
-        { error: "Contact not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Contact not found" }, { status: 404 });
     }
 
     // Update the contact
@@ -57,7 +55,7 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
     console.error("Error updating contact:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -82,10 +80,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
     });
 
     if (!existingContact) {
-      return NextResponse.json(
-        { error: "Contact not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Contact not found" }, { status: 404 });
     }
 
     // Delete the contact
@@ -98,7 +93,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
     console.error("Error deleting contact:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
-} 
+}

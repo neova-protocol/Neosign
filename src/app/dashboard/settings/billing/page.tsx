@@ -1,9 +1,7 @@
-"use client"
+"use client";
 
-import BillingSettings from "@/components/settings/BillingSettings"
+import BillingSettings from "@/components/settings/BillingSettings";
 
 export default function BillingPage() {
-  return (
-    <BillingSettings />
-  )
+  return <BillingSettings />;
 }

@@ -1,5 +1,5 @@
 /* Import signature fonts */
-@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;500;600;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;500;600;700&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -190,7 +190,7 @@ a {
 
 /* Signature font classes */
 .signature-font {
-  font-family: 'Dancing Script', cursive;
+  font-family: "Dancing Script", cursive;
 }
 
 /* Field placement animation */
@@ -227,8 +227,12 @@ a {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* Custom scrollbar */
@@ -289,7 +293,7 @@ a {
   .react-pdf__Page {
     @apply mb-2;
   }
-  
+
   .pdf-loading-container {
     @apply py-10;
   }

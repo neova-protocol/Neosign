@@ -1,38 +1,38 @@
 "use client";
 
-import { useState } from 'react';
-import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Shield } from 'lucide-react';
-import Link from 'next/link';
+import { useState } from "react";
+import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Shield } from "lucide-react";
+import Link from "next/link";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     try {
-      const result = await signIn('credentials', {
+      const result = await signIn("credentials", {
         redirect: false,
         email,
         password,
       });
 
       if (result?.error) {
-        setError('Invalid email or password');
+        setError("Invalid email or password");
       } else {
-        router.push('/dashboard');
+        router.push("/dashboard");
       }
     } catch (err) {
-      setError('An error occurred. Please try again.');
+      setError("An error occurred. Please try again.");
     }
   };
 
@@ -75,17 +75,20 @@ export default function LoginPage() {
               <span className="bg-white px-2 text-gray-500">Ou</span>
             </div>
           </div>
-          
+
           <Link href="/zk-login">
             <Button variant="outline" className="w-full">
               <Shield className="mr-2 h-4 w-4" />
               Authentification ZK
             </Button>
           </Link>
-          
+
           <p className="text-sm text-center text-gray-600">
-            Don't have an account?{' '}
-            <a href="/signup" className="font-medium text-indigo-600 hover:text-indigo-500">
+            Don't have an account?{" "}
+            <a
+              href="/signup"
+              className="font-medium text-indigo-600 hover:text-indigo-500"
+            >
               Sign up
             </a>
           </p>
@@ -93,4 +96,4 @@ export default function LoginPage() {
       </div>
     </div>
   );
-} 
+}

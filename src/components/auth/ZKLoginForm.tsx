@@ -1,13 +1,19 @@
 "use client";
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Shield, Key } from 'lucide-react';
-import { ZKAuth, ZKSessionManager } from '@/lib/zk-auth';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2, Shield, Key } from "lucide-react";
+import { ZKAuth, ZKSessionManager } from "@/lib/zk-auth";
 
 interface ZKLoginFormProps {
   onSuccess: (user: any) => void;
@@ -16,23 +22,23 @@ interface ZKLoginFormProps {
 
 export default function ZKLoginForm({ onSuccess, onError }: ZKLoginFormProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [step, setStep] = useState<'identity' | 'proof'>('identity');
+  const [step, setStep] = useState<"identity" | "proof">("identity");
   const [identity, setIdentity] = useState<any>(null);
-  const [challenge, setChallenge] = useState<string>('');
-  const [error, setError] = useState<string>('');
+  const [challenge, setChallenge] = useState<string>("");
+  const [error, setError] = useState<string>("");
 
   const handleCreateIdentity = async () => {
     setIsLoading(true);
-    setError('');
+    setError("");
 
     try {
       const newIdentity = await ZKAuth.generateIdentity();
       setIdentity(newIdentity);
       ZKSessionManager.saveIdentity(newIdentity);
-      setStep('proof');
+      setStep("proof");
     } catch (err) {
-      setError('Erreur lors de la création de l\'identité ZK');
-      onError('Erreur lors de la création de l\'identité ZK');
+      setError("Erreur lors de la création de l'identité ZK");
+      onError("Erreur lors de la création de l'identité ZK");
     } finally {
       setIsLoading(false);
     }
@@ -42,9 +48,9 @@ export default function ZKLoginForm({ onSuccess, onError }: ZKLoginFormProps) {
     const savedIdentity = ZKSessionManager.getIdentity();
     if (savedIdentity) {
       setIdentity(savedIdentity);
-      setStep('proof');
+      setStep("proof");
     } else {
-      setError('Aucune identité ZK trouvée');
+      setError("Aucune identité ZK trouvée");
     }
   };
 
@@ -52,18 +58,18 @@ export default function ZKLoginForm({ onSuccess, onError }: ZKLoginFormProps) {
     if (!identity) return;
 
     setIsLoading(true);
-    setError('');
+    setError("");
 
     try {
       // Générer un challenge depuis le serveur
-      const response = await fetch('/api/auth/zk', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'generate_challenge' })
+      const response = await fetch("/api/auth/zk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "generate_challenge" }),
       });
 
       if (!response.ok) {
-        throw new Error('Erreur lors de la génération du challenge');
+        throw new Error("Erreur lors de la génération du challenge");
       }
 
       const { challenge: serverChallenge } = await response.json();
@@ -73,29 +79,32 @@ export default function ZKLoginForm({ onSuccess, onError }: ZKLoginFormProps) {
       const proof = await ZKAuth.generateProof(identity, serverChallenge);
 
       // Vérifier la preuve avec le serveur
-      const verifyResponse = await fetch('/api/auth/zk', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const verifyResponse = await fetch("/api/auth/zk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          action: 'verify_proof',
+          action: "verify_proof",
           data: {
             commitment: identity.commitment,
             proof: proof.proof,
-            challenge: serverChallenge
-          }
-        })
+            challenge: serverChallenge,
+          },
+        }),
       });
 
       if (!verifyResponse.ok) {
         const errorData = await verifyResponse.json();
-        throw new Error(errorData.error || 'Échec de la vérification');
+        throw new Error(errorData.error || "Échec de la vérification");
       }
 
       const { user } = await verifyResponse.json();
       ZKSessionManager.saveSession(proof);
       onSuccess(user);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erreur lors de l\'authentification ZK';
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : "Erreur lors de l'authentification ZK";
       setError(errorMessage);
       onError(errorMessage);
     } finally {
@@ -107,31 +116,34 @@ export default function ZKLoginForm({ onSuccess, onError }: ZKLoginFormProps) {
     if (!identity) return;
 
     setIsLoading(true);
-    setError('');
+    setError("");
 
     try {
-      const response = await fetch('/api/auth/zk', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/auth/zk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          action: 'register',
+          action: "register",
           data: {
-            name: 'Utilisateur ZK',
+            name: "Utilisateur ZK",
             email: `zk-${Date.now()}@example.com`,
-            commitment: identity.commitment
-          }
-        })
+            commitment: identity.commitment,
+          },
+        }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Erreur lors de l\'enregistrement');
+        throw new Error(errorData.error || "Erreur lors de l'enregistrement");
       }
 
       const { user } = await response.json();
       onSuccess(user);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erreur lors de l\'enregistrement ZK';
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : "Erreur lors de l'enregistrement ZK";
       setError(errorMessage);
       onError(errorMessage);
     } finally {
@@ -139,14 +151,16 @@ export default function ZKLoginForm({ onSuccess, onError }: ZKLoginFormProps) {
     }
   };
 
-  if (step === 'identity') {
+  if (step === "identity") {
     return (
       <Card className="w-full max-w-md mx-auto">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
             <Shield className="h-6 w-6 text-blue-600" />
           </div>
-          <CardTitle className="text-2xl font-bold">Authentification ZK</CardTitle>
+          <CardTitle className="text-2xl font-bold">
+            Authentification ZK
+          </CardTitle>
           <CardDescription>
             Connectez-vous de manière sécurisée avec Zero Knowledge
           </CardDescription>
@@ -157,7 +171,7 @@ export default function ZKLoginForm({ onSuccess, onError }: ZKLoginFormProps) {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-          
+
           <div className="space-y-2">
             <Button
               onClick={handleCreateIdentity}
@@ -171,7 +185,7 @@ export default function ZKLoginForm({ onSuccess, onError }: ZKLoginFormProps) {
               )}
               Créer une nouvelle identité ZK
             </Button>
-            
+
             <Button
               onClick={handleLoadIdentity}
               variant="outline"
@@ -225,17 +239,13 @@ export default function ZKLoginForm({ onSuccess, onError }: ZKLoginFormProps) {
             )}
             S'authentifier avec ZK
           </Button>
-          
-          <Button
-            onClick={handleRegister}
-            variant="outline"
-            className="w-full"
-          >
+
+          <Button onClick={handleRegister} variant="outline" className="w-full">
             S'enregistrer avec cette identité
           </Button>
-          
+
           <Button
-            onClick={() => setStep('identity')}
+            onClick={() => setStep("identity")}
             variant="ghost"
             className="w-full"
           >
@@ -245,4 +255,4 @@ export default function ZKLoginForm({ onSuccess, onError }: ZKLoginFormProps) {
       </CardContent>
     </Card>
   );
-} 
+}

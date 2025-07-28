@@ -1,4 +1,7 @@
-import { ContactsClientPage, Contact } from "@/components/contacts/ContactsClientPage";
+import {
+  ContactsClientPage,
+  Contact,
+} from "@/components/contacts/ContactsClientPage";
 import { FC } from "react";
 import { getContacts } from "./actions";
 
@@ -7,4 +10,4 @@ const ContactsPage: FC = async () => {
   return <ContactsClientPage initialContacts={contacts} />;
 };
 
-export default ContactsPage; 
+export default ContactsPage;

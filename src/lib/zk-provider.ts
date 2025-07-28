@@ -1,4 +1,4 @@
-import { ZKAuth, ZKProof, ZKIdentity } from './zk-auth';
+import { ZKAuth, ZKProof, ZKIdentity } from "./zk-auth";
 
 export interface ZKCredentials {
   commitment: string;
@@ -22,12 +22,15 @@ export class ZKProvider {
       const proof: ZKProof = {
         publicInput: credentials.commitment,
         proof: credentials.proof,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       return await ZKAuth.verifyProof(proof, credentials.challenge);
     } catch (error) {
-      console.error('Erreur lors de la vérification des credentials ZK:', error);
+      console.error(
+        "Erreur lors de la vérification des credentials ZK:",
+        error,
+      );
       return false;
     }
   }
@@ -42,7 +45,10 @@ export class ZKProvider {
   /**
    * Génère une preuve ZK pour une identité donnée
    */
-  static async generateProof(identity: ZKIdentity, challenge: string): Promise<ZKProof> {
+  static async generateProof(
+    identity: ZKIdentity,
+    challenge: string,
+  ): Promise<ZKProof> {
     return await ZKAuth.generateProof(identity, challenge);
   }
-} 
+}

@@ -47,4 +47,4 @@ export type Document = {
   signatories: Signatory[];
   fields: SignatureField[];
   events: DocumentEvent[];
-}; 
+};

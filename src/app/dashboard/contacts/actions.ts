@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth-options";
 
 // Manually define the types to avoid Prisma client issues
 interface Contact {
@@ -17,9 +17,9 @@ interface Contact {
 }
 
 interface Signatory {
-    id: string;
-    name: string;
-    email: string;
+  id: string;
+  name: string;
+  email: string;
 }
 
 export async function getContacts(): Promise<Contact[]> {
@@ -47,7 +47,7 @@ export async function getContacts(): Promise<Contact[]> {
         id: true,
         name: true,
         email: true,
-      }
+      },
     });
 
     const combinedContacts: Contact[] = [
@@ -74,7 +74,7 @@ export async function getContacts(): Promise<Contact[]> {
     ];
 
     const uniqueContacts = Array.from(
-      new Map(combinedContacts.map((c) => [c.email, c])).values()
+      new Map(combinedContacts.map((c) => [c.email, c])).values(),
     );
 
     return uniqueContacts;
@@ -82,4 +82,4 @@ export async function getContacts(): Promise<Contact[]> {
     console.error("Error fetching contacts:", error);
     return [];
   }
-} 
+}

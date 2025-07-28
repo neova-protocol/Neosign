@@ -1,22 +1,29 @@
-"use client"
+"use client";
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Switch } from "@/components/ui/switch"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Eye, EyeOff } from "lucide-react"
-import { useState } from "react"
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Eye, EyeOff } from "lucide-react";
+import { useState } from "react";
 
 export default function SecuritySettings() {
-  const [showPassword, setShowPassword] = useState(false)
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(true)
-  const [phoneVerificationEnabled, setPhoneVerificationEnabled] = useState(true)
-  const [authAppEnabled, setAuthAppEnabled] = useState(false)
-  const [autoLogoutEnabled, setAutoLogoutEnabled] = useState(true)
+  const [showPassword, setShowPassword] = useState(false);
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
+  const [phoneVerificationEnabled, setPhoneVerificationEnabled] =
+    useState(true);
+  const [authAppEnabled, setAuthAppEnabled] = useState(false);
+  const [autoLogoutEnabled, setAutoLogoutEnabled] = useState(true);
 
   return (
     <div className="flex-1 p-6 bg-gray-50">
@@ -27,14 +34,21 @@ export default function SecuritySettings() {
           <Card>
             <CardHeader>
               <CardTitle className="text-xl">Connection options</CardTitle>
-              <p className="text-gray-600 text-sm">Configure your email information</p>
+              <p className="text-gray-600 text-sm">
+                Configure your email information
+              </p>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Email */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Email</Label>
                 <div className="flex gap-2">
-                  <Input type="email" defaultValue="quentin@neova.io" className="flex-1" readOnly />
+                  <Input
+                    type="email"
+                    defaultValue="quentin@neova.io"
+                    className="flex-1"
+                    readOnly
+                  />
                   <Button variant="outline" size="sm">
                     Update
                   </Button>
@@ -49,13 +63,21 @@ export default function SecuritySettings() {
                 <Label className="text-sm font-medium">Password</Label>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
-                    <Input type={showPassword ? "text" : "password"} defaultValue="NeOvAqyiOkQ5" className="pr-10" />
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      defaultValue="NeOvAqyiOkQ5"
+                      className="pr-10"
+                    />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
                     >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      {showPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
                     </button>
                   </div>
                   <Button variant="outline" size="sm">
@@ -69,14 +91,20 @@ export default function SecuritySettings() {
           {/* Wallet Configuration */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm text-gray-600">Configure your wallet information</CardTitle>
+              <CardTitle className="text-sm text-gray-600">
+                Configure your wallet information
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Wallet */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Wallet</Label>
                 <div className="flex gap-2">
-                  <Input defaultValue="0x01234..." className="flex-1" readOnly />
+                  <Input
+                    defaultValue="0x01234..."
+                    className="flex-1"
+                    readOnly
+                  />
                   <Button variant="outline" size="sm">
                     Connect
                   </Button>
@@ -108,9 +136,14 @@ export default function SecuritySettings() {
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-xl">2-step verification</CardTitle>
-                <p className="text-gray-600 text-sm">An extra layer of protection to access</p>
+                <p className="text-gray-600 text-sm">
+                  An extra layer of protection to access
+                </p>
               </div>
-              <Switch checked={twoFactorEnabled} onCheckedChange={setTwoFactorEnabled} />
+              <Switch
+                checked={twoFactorEnabled}
+                onCheckedChange={setTwoFactorEnabled}
+              />
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -119,8 +152,16 @@ export default function SecuritySettings() {
               <div className="flex-1 space-y-2">
                 <Label className="text-sm font-medium">Phone number</Label>
                 <div className="flex gap-2">
-                  <Input defaultValue="+1 987 654 432" className="flex-1" disabled={!twoFactorEnabled} />
-                  <Button variant="outline" size="sm" disabled={!twoFactorEnabled}>
+                  <Input
+                    defaultValue="+1 987 654 432"
+                    className="flex-1"
+                    disabled={!twoFactorEnabled}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={!twoFactorEnabled}
+                  >
                     Edit
                   </Button>
                 </div>
@@ -138,8 +179,17 @@ export default function SecuritySettings() {
               <div className="flex-1 space-y-2">
                 <Label className="text-sm font-medium">Auth Application</Label>
                 <div className="flex gap-2">
-                  <Input type="password" defaultValue="••••••••••••" className="flex-1" disabled={!twoFactorEnabled} />
-                  <Button variant="outline" size="sm" disabled={!twoFactorEnabled}>
+                  <Input
+                    type="password"
+                    defaultValue="••••••••••••"
+                    className="flex-1"
+                    disabled={!twoFactorEnabled}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={!twoFactorEnabled}
+                  >
                     Edit
                   </Button>
                 </div>
@@ -161,11 +211,18 @@ export default function SecuritySettings() {
               <div>
                 <CardTitle className="text-xl">Automatic unlogging</CardTitle>
                 <div className="space-y-1">
-                  <p className="text-gray-600 text-sm">In case of inactivity, it is better to be safe</p>
-                  <p className="text-gray-600 text-sm">Active automatic unlogging to lock your digital safe vault</p>
+                  <p className="text-gray-600 text-sm">
+                    In case of inactivity, it is better to be safe
+                  </p>
+                  <p className="text-gray-600 text-sm">
+                    Active automatic unlogging to lock your digital safe vault
+                  </p>
                 </div>
               </div>
-              <Switch checked={autoLogoutEnabled} onCheckedChange={setAutoLogoutEnabled} />
+              <Switch
+                checked={autoLogoutEnabled}
+                onCheckedChange={setAutoLogoutEnabled}
+              />
             </div>
           </CardHeader>
           <CardContent>
@@ -187,5 +244,5 @@ export default function SecuritySettings() {
         </Card>
       </div>
     </div>
-  )
-} 
+  );
+}

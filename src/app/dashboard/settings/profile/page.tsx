@@ -1,8 +1,13 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -10,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { User, Mail, Calendar, Shield } from "lucide-react";
 import ZKInfo from "@/components/dashboard/ZKInfo";
 import ChangePasswordForm from "@/components/settings/ChangePasswordForm";
+import ZKIdentityManager from "@/components/settings/ZKIdentityManager";
 
 export default function ProfilePage() {
   const { data: session } = useSession();
@@ -43,11 +49,14 @@ export default function ProfilePage() {
               <h3 className="text-lg font-medium">{session.user.name}</h3>
               <p className="text-sm text-gray-500">{session.user.email}</p>
               <div className="flex items-center gap-2">
-                               <Badge variant="outline">
-                 {(session.user as any).zkCommitment ? "Utilisateur ZK" : "Utilisateur Standard"}
-               </Badge>
+                <Badge variant="outline">
+                  {(session.user as { zkCommitment?: string }).zkCommitment
+                    ? "Utilisateur ZK"
+                    : "Utilisateur Standard"}
+                </Badge>
                 <Badge variant="secondary">
-                  Membre depuis {new Date(session.user.createdAt).toLocaleDateString()}
+                  Membre depuis{" "}
+                  {new Date(session.user.createdAt).toLocaleDateString()}
                 </Badge>
               </div>
             </div>
@@ -60,13 +69,21 @@ export default function ProfilePage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" defaultValue={session.user.email || ""} disabled />
+              <Input
+                id="email"
+                type="email"
+                defaultValue={session.user.email || ""}
+                disabled
+              />
             </div>
           </div>
 
           <div className="flex items-center gap-2 text-sm text-gray-500">
             <Calendar className="h-4 w-4" />
-            <span>Compte créé le {new Date(session.user.createdAt).toLocaleDateString()}</span>
+            <span>
+              Compte créé le{" "}
+              {new Date(session.user.createdAt).toLocaleDateString()}
+            </span>
           </div>
         </CardContent>
       </Card>
@@ -91,37 +108,29 @@ export default function ProfilePage() {
               <div>
                 <h4 className="font-medium">Authentification par Email</h4>
                 <p className="text-sm text-gray-500">
-                  {(session.user as any).hashedPassword 
-                    ? "Activée" 
-                    : (session.user as any).zkCommitment 
-                      ? "Non utilisée (ZK actif)" 
-                      : "Non configurée"
-                  }
+                  {(session.user as { hashedPassword?: string }).hashedPassword
+                    ? "Activée"
+                    : (session.user as { zkCommitment?: string }).zkCommitment
+                      ? "Non utilisée (ZK actif)"
+                      : "Non configurée"}
                 </p>
               </div>
             </div>
-            <Badge variant={(session.user as any).hashedPassword ? "default" : "secondary"}>
-              {(session.user as any).hashedPassword ? "Active" : "Inactive"}
+            <Badge
+              variant={
+                (session.user as { hashedPassword?: string }).hashedPassword
+                  ? "default"
+                  : "secondary"
+              }
+            >
+              {(session.user as { hashedPassword?: string }).hashedPassword
+                ? "Active"
+                : "Inactive"}
             </Badge>
           </div>
 
           {/* Section ZK - Toujours visible pour les utilisateurs ZK */}
-          {(session.user as any).zkCommitment && (
-            <div className="flex items-center justify-between p-4 border rounded-lg">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <Shield className="h-4 w-4 text-green-600" />
-                </div>
-                <div>
-                  <h4 className="font-medium">Authentification ZK</h4>
-                  <p className="text-sm text-gray-500">Zero Knowledge active</p>
-                </div>
-              </div>
-              <Badge variant="default">Active</Badge>
-            </div>
-          )}
-
-          {(session.user as any).zkCommitment && (
+          {(session.user as { zkCommitment?: string }).zkCommitment && (
             <div className="flex items-center justify-between p-4 border rounded-lg">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-green-100 rounded-lg">
@@ -139,12 +148,19 @@ export default function ProfilePage() {
       </Card>
 
       {/* Changement de mot de passe */}
-      <ChangePasswordForm hasPassword={!!(session.user as any).hashedPassword} />
+      <ChangePasswordForm
+        hasPassword={
+          !!(session.user as { hashedPassword?: string }).hashedPassword
+        }
+      />
+
+      {/* Gestion de l'identité ZK */}
+      {(session.user as { zkCommitment?: string }).zkCommitment && (
+        <ZKIdentityManager />
+      )}
 
       {/* Informations ZK - Déplacé ici */}
-      {session.user && (
-        <ZKInfo user={session.user} />
-      )}
+      {session.user && <ZKInfo user={session.user} />}
     </div>
   );
-} 
+}

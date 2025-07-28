@@ -20,4 +20,4 @@ module.exports.ImageData = ImageData;
 
 // Export ES6 pour compatibilité
 export default canvasFallback;
-export { createCanvas, loadImage, Image, ImageData }; 
+export { createCanvas, loadImage, Image, ImageData };

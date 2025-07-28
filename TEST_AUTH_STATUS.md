@@ -7,6 +7,7 @@ J'ai modifié les providers NextAuth pour inclure `hashedPassword` et `zkCommitm
 ## 🔧 **Modifications Effectuées**
 
 ### **1. Provider ZK (`src/lib/zk-credentials-provider.ts`)**
+
 ```typescript
 return {
   id: user.id,
@@ -14,12 +15,13 @@ return {
   email: user.email,
   createdAt: user.createdAt,
   image: user.image,
-  hashedPassword: user.hashedPassword,        // ← Ajouté
-  zkCommitment: (user as any).zkCommitment   // ← Ajouté
+  hashedPassword: user.hashedPassword, // ← Ajouté
+  zkCommitment: (user as any).zkCommitment, // ← Ajouté
 };
 ```
 
 ### **2. Callbacks NextAuth (`src/app/api/auth/[...nextauth]/route.ts`)**
+
 ```typescript
 // Dans le callback jwt
 token.hashedPassword = (user as any).hashedPassword;
@@ -35,6 +37,7 @@ token.zkCommitment = (user as any).zkCommitment;
 ### **Test 1 : Utilisateur avec Email + ZK**
 
 1. **Créez un utilisateur avec email** :
+
    ```bash
    # Via l'interface ou directement en base
    # L'utilisateur doit avoir hashedPassword ET zkCommitment
@@ -82,6 +85,7 @@ token.zkCommitment = (user as any).zkCommitment;
 ## 🔍 **Vérification Technique**
 
 ### **Vérifier la Session**
+
 ```javascript
 // Dans la console du navigateur
 console.log(session.user);
@@ -96,20 +100,21 @@ console.log(session.user);
 ```
 
 ### **Vérifier la Base de Données**
+
 ```sql
 -- Vérifier un utilisateur avec les deux méthodes
-SELECT id, email, hashedPassword, zkCommitment 
-FROM User 
+SELECT id, email, hashedPassword, zkCommitment
+FROM User
 WHERE email = 'votre-email@example.com';
 ```
 
 ## 🎯 **Résultats Attendus**
 
-| Type d'Utilisateur | Email Auth | ZK Auth | Section ZK |
-|-------------------|------------|---------|------------|
-| **Email + ZK** | ✅ Active | ✅ Active | ✅ Visible |
-| **ZK uniquement** | ⚠️ Inactive | ✅ Active | ✅ Visible |
-| **Email uniquement** | ✅ Active | ❌ Absent | ❌ Masquée |
+| Type d'Utilisateur   | Email Auth  | ZK Auth   | Section ZK |
+| -------------------- | ----------- | --------- | ---------- |
+| **Email + ZK**       | ✅ Active   | ✅ Active | ✅ Visible |
+| **ZK uniquement**    | ⚠️ Inactive | ✅ Active | ✅ Visible |
+| **Email uniquement** | ✅ Active   | ❌ Absent | ❌ Masquée |
 
 ## 🚀 **Prochaines Étapes**
 
@@ -120,4 +125,4 @@ WHERE email = 'votre-email@example.com';
 
 ---
 
-**🎉 Maintenant, les deux méthodes d'authentification devraient être correctement détectées !** 
+**🎉 Maintenant, les deux méthodes d'authentification devraient être correctement détectées !**

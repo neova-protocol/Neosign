@@ -71,7 +71,7 @@ npm run start
 ✅ **Configuration unifiée** : Un seul fichier next.config.js  
 ✅ **Dépendances** : @svgr/webpack et file-loader installés  
 ✅ **PDF.js** : Configuration adaptée pour Turbopack  
-✅ **Serveur** : Démarre correctement  
+✅ **Serveur** : Démarre correctement
 
 ## Notes importantes
 
@@ -88,4 +88,4 @@ Si vous rencontrez des issues :
 2. **Nettoyer le cache** : `rm -rf .next && npm run dev`
 3. **Vérifier les dépendances** : `npm install`
 
-Votre projet est maintenant optimisé avec Turbopack ! 🎉 
+Votre projet est maintenant optimisé avec Turbopack ! 🎉

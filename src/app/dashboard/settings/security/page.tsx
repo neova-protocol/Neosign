@@ -1,9 +1,7 @@
-"use client"
+"use client";
 
-import SecuritySettings from "@/components/settings/SecuritySettings"
+import SecuritySettings from "@/components/settings/SecuritySettings";
 
 export default function SecurityPage() {
-  return (
-    <SecuritySettings />
-  )
+  return <SecuritySettings />;
 }

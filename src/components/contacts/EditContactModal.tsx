@@ -19,11 +19,11 @@ interface EditContactModalProps {
   onContactUpdated: (updatedContact: Contact) => void;
 }
 
-export function EditContactModal({ 
-  contact, 
-  isOpen, 
-  onClose, 
-  onContactUpdated 
+export function EditContactModal({
+  contact,
+  isOpen,
+  onClose,
+  onContactUpdated,
 }: EditContactModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -51,23 +51,23 @@ export function EditContactModal({
   }, [contact]);
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!contact) return;
-    
+
     setIsLoading(true);
 
     try {
       const response = await fetch(`/api/contacts/${contact.id}`, {
-        method: 'PUT',
+        method: "PUT",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(formData),
       });
@@ -77,12 +77,12 @@ export function EditContactModal({
         onContactUpdated(updatedContact);
         onClose();
       } else {
-        console.error('Failed to update contact');
-        alert('Erreur lors de la mise à jour du contact');
+        console.error("Failed to update contact");
+        alert("Erreur lors de la mise à jour du contact");
       }
     } catch (error) {
-      console.error('Error updating contact:', error);
-      alert('Erreur lors de la mise à jour du contact');
+      console.error("Error updating contact:", error);
+      alert("Erreur lors de la mise à jour du contact");
     } finally {
       setIsLoading(false);
     }
@@ -106,53 +106,69 @@ export function EditContactModal({
             </h3>
             <div className="space-y-4">
               <div>
-                <Label htmlFor="firstName" className="text-sm font-medium text-gray-700">
+                <Label
+                  htmlFor="firstName"
+                  className="text-sm font-medium text-gray-700"
+                >
                   Prénom
                 </Label>
                 <Input
                   id="firstName"
                   type="text"
                   value={formData.firstName}
-                  onChange={(e) => handleInputChange('firstName', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("firstName", e.target.value)
+                  }
                   required
                   className="mt-1"
                 />
               </div>
               <div>
-                <Label htmlFor="lastName" className="text-sm font-medium text-gray-700">
+                <Label
+                  htmlFor="lastName"
+                  className="text-sm font-medium text-gray-700"
+                >
                   Nom
                 </Label>
                 <Input
                   id="lastName"
                   type="text"
                   value={formData.lastName}
-                  onChange={(e) => handleInputChange('lastName', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("lastName", e.target.value)
+                  }
                   required
                   className="mt-1"
                 />
               </div>
               <div>
-                <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+                <Label
+                  htmlFor="email"
+                  className="text-sm font-medium text-gray-700"
+                >
                   Email
                 </Label>
                 <Input
                   id="email"
                   type="email"
                   value={formData.email}
-                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  onChange={(e) => handleInputChange("email", e.target.value)}
                   required
                   className="mt-1"
                 />
               </div>
               <div>
-                <Label htmlFor="phone" className="text-sm font-medium text-gray-700">
+                <Label
+                  htmlFor="phone"
+                  className="text-sm font-medium text-gray-700"
+                >
                   Téléphone
                 </Label>
                 <Input
                   id="phone"
                   type="tel"
                   value={formData.phone}
-                  onChange={(e) => handleInputChange('phone', e.target.value)}
+                  onChange={(e) => handleInputChange("phone", e.target.value)}
                   className="mt-1"
                 />
               </div>
@@ -166,38 +182,51 @@ export function EditContactModal({
             </h3>
             <div className="space-y-4">
               <div>
-                <Label htmlFor="company" className="text-sm font-medium text-gray-700">
+                <Label
+                  htmlFor="company"
+                  className="text-sm font-medium text-gray-700"
+                >
                   Entreprise
                 </Label>
                 <Input
                   id="company"
                   type="text"
                   value={formData.company}
-                  onChange={(e) => handleInputChange('company', e.target.value)}
+                  onChange={(e) => handleInputChange("company", e.target.value)}
                   className="mt-1"
                 />
               </div>
               <div>
-                <Label htmlFor="position" className="text-sm font-medium text-gray-700">
+                <Label
+                  htmlFor="position"
+                  className="text-sm font-medium text-gray-700"
+                >
                   Poste
                 </Label>
                 <Input
                   id="position"
                   type="text"
                   value={formData.position}
-                  onChange={(e) => handleInputChange('position', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("position", e.target.value)
+                  }
                   className="mt-1"
                 />
               </div>
               <div>
-                <Label htmlFor="location" className="text-sm font-medium text-gray-700">
+                <Label
+                  htmlFor="location"
+                  className="text-sm font-medium text-gray-700"
+                >
                   Localisation
                 </Label>
                 <Input
                   id="location"
                   type="text"
                   value={formData.location}
-                  onChange={(e) => handleInputChange('location', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("location", e.target.value)
+                  }
                   className="mt-1"
                 />
               </div>
@@ -225,4 +254,4 @@ export function EditContactModal({
       </DialogContent>
     </Dialog>
   );
-} 
+}

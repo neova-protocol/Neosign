@@ -2,7 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { createDocument } from "@/lib/api";
 import { renderAsync } from "docx-preview";
@@ -14,14 +14,15 @@ function DocxPreviewer({ fileUrl }: { fileUrl: string }) {
     async function fetchAndRender() {
       if (!fileUrl || !containerRef.current) return;
       // Nettoie le container
-      containerRef.current.innerHTML = '';
+      containerRef.current.innerHTML = "";
       try {
         const res = await fetch(fileUrl);
         const blob = await res.blob();
         revokedUrl = URL.createObjectURL(blob);
         await renderAsync(blob, containerRef.current!);
       } catch (e) {
-        containerRef.current.innerHTML = '<div style="color:gray;text-align:center">Impossible d\'afficher le document DOCX</div>';
+        containerRef.current.innerHTML =
+          '<div style="color:gray;text-align:center">Impossible d\'afficher le document DOCX</div>';
       }
     }
     fetchAndRender();
@@ -29,10 +30,22 @@ function DocxPreviewer({ fileUrl }: { fileUrl: string }) {
       if (revokedUrl) URL.revokeObjectURL(revokedUrl);
     };
   }, [fileUrl]);
-  return <div ref={containerRef} style={{ width: '100%', minHeight: 400, background: '#f9f9f9', borderRadius: 8, padding: 16, overflow: 'auto' }} />;
+  return (
+    <div
+      ref={containerRef}
+      style={{
+        width: "100%",
+        minHeight: 400,
+        background: "#f9f9f9",
+        borderRadius: 8,
+        padding: 16,
+        overflow: "auto",
+      }}
+    />
+  );
 }
 
-export default function TemplateViewPage() {
+function TemplateViewContent() {
   const searchParams = useSearchParams();
   const fileUrl = searchParams.get("fileUrl");
   const docxUrl = searchParams.get("docxUrl");
@@ -52,15 +65,15 @@ export default function TemplateViewPage() {
     if (fileUrl && fileUrl.endsWith(".docx") && templateId) {
       setLoadingFields(true);
       fetch(`/api/user-templates/fields?id=${templateId}`)
-        .then(res => res.json())
-        .then(data => {
+        .then((res) => res.json())
+        .then((data) => {
           let detectedFields = data.fields || [];
           const requiredFields = [
             "company_details",
             "company_name",
             "date",
             "place",
-            "customer_name"
+            "customer_name",
           ];
           for (const field of requiredFields.reverse()) {
             if (!detectedFields.includes(field)) {
@@ -74,7 +87,7 @@ export default function TemplateViewPage() {
   }, [fileUrl, templateId]);
 
   const handleChange = (field: string, value: string) => {
-    setValues(v => ({ ...v, [field]: value }));
+    setValues((v) => ({ ...v, [field]: value }));
   };
 
   // Nouveau flux : génération, conversion, upload, création, redirection
@@ -86,21 +99,37 @@ export default function TemplateViewPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: templateId, values }),
     });
-    if (!docxRes.ok) { setGenerating(false); return; }
+    if (!docxRes.ok) {
+      setGenerating(false);
+      return;
+    }
     const docxBlob = await docxRes.blob();
     // 2. Convertir en PDF
     const pdfRes = await fetch("/api/convert-to-pdf", {
       method: "POST",
       body: docxBlob,
     });
-    if (!pdfRes.ok) { setGenerating(false); return; }
+    if (!pdfRes.ok) {
+      setGenerating(false);
+      return;
+    }
     const pdfBlob = await pdfRes.blob();
     // 3. Upload PDF (simulate upload to /public/uploads/)
-    const pdfFile = new File([pdfBlob], `generated_${name.replace(/\s+/g, "_")}.pdf`, { type: "application/pdf" });
+    const pdfFile = new File(
+      [pdfBlob],
+      `generated_${name.replace(/\s+/g, "_")}.pdf`,
+      { type: "application/pdf" },
+    );
     const uploadForm = new FormData();
     uploadForm.append("file", pdfFile);
-    const uploadRes = await fetch("/api/upload", { method: "POST", body: uploadForm });
-    if (!uploadRes.ok) { setGenerating(false); return; }
+    const uploadRes = await fetch("/api/upload", {
+      method: "POST",
+      body: uploadForm,
+    });
+    if (!uploadRes.ok) {
+      setGenerating(false);
+      return;
+    }
     const { fileUrl: uploadedPdfUrl } = await uploadRes.json();
     // 4. Créer le document
     const newDoc = await createDocument(name, uploadedPdfUrl);
@@ -111,8 +140,10 @@ export default function TemplateViewPage() {
   };
 
   // Génère la prévisualisation PDF à partir du DOCX (vierge ou rempli)
-  const generatePdfPreview = async (customValues?: { [key: string]: string }) => {
-    if (!fileUrl || !fileUrl.endsWith('.docx') || !templateId) return;
+  const generatePdfPreview = async (customValues?: {
+    [key: string]: string;
+  }) => {
+    if (!fileUrl || !fileUrl.endsWith(".docx") || !templateId) return;
     setPreviewGenerating(true);
     // 1. Générer le DOCX rempli (ou vierge)
     const docxRes = await fetch("/api/user-templates/fill", {
@@ -120,14 +151,20 @@ export default function TemplateViewPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: templateId, values: customValues || values }),
     });
-    if (!docxRes.ok) { setPreviewGenerating(false); return; }
+    if (!docxRes.ok) {
+      setPreviewGenerating(false);
+      return;
+    }
     const docxBlob = await docxRes.blob();
     // 2. Convertir en PDF
     const pdfRes = await fetch("/api/convert-to-pdf", {
       method: "POST",
       body: docxBlob,
     });
-    if (!pdfRes.ok) { setPreviewGenerating(false); return; }
+    if (!pdfRes.ok) {
+      setPreviewGenerating(false);
+      return;
+    }
     const pdfBlob = await pdfRes.blob();
     const url = window.URL.createObjectURL(pdfBlob);
     setPdfPreviewUrl(url);
@@ -136,7 +173,7 @@ export default function TemplateViewPage() {
 
   // Génère la preview PDF au chargement
   useEffect(() => {
-    if (fileUrl && fileUrl.endsWith('.docx') && templateId) {
+    if (fileUrl && fileUrl.endsWith(".docx") && templateId) {
       generatePdfPreview();
     }
     // eslint-disable-next-line
@@ -148,7 +185,7 @@ export default function TemplateViewPage() {
       <div className="flex flex-col md:flex-row gap-8 items-start">
         {/* Preview DOCX à gauche si PDF indisponible */}
         <div className="flex-1 w-full md:w-1/2">
-          {fileUrl && fileUrl.endsWith('.docx') ? (
+          {fileUrl && fileUrl.endsWith(".docx") ? (
             pdfPreviewUrl ? (
               <iframe
                 src={pdfPreviewUrl}
@@ -166,7 +203,11 @@ export default function TemplateViewPage() {
                 >
                   Télécharger et ouvrir le DOCX
                 </a>
-                <div className="text-gray-500 text-center mt-2">La prévisualisation PDF n'est pas disponible.<br/>Aperçu Word affiché ci-dessus.</div>
+                <div className="text-gray-500 text-center mt-2">
+                  La prévisualisation PDF n'est pas disponible.
+                  <br />
+                  Aperçu Word affiché ci-dessus.
+                </div>
               </div>
             )
           ) : pdfPreviewUrl ? (
@@ -176,7 +217,9 @@ export default function TemplateViewPage() {
               title={name + " PDF Preview"}
             />
           ) : (
-            <div className="text-gray-500 text-center">Aucune prévisualisation disponible.</div>
+            <div className="text-gray-500 text-center">
+              Aucune prévisualisation disponible.
+            </div>
           )}
         </div>
         {/* Formulaire à droite */}
@@ -184,38 +227,57 @@ export default function TemplateViewPage() {
           {fileUrl && fileUrl.endsWith(".docx") ? (
             <div className="w-full max-w-lg mx-auto mb-6">
               {loadingFields ? (
-                <div className="text-center text-gray-500">Loading fields...</div>
+                <div className="text-center text-gray-500">
+                  Loading fields...
+                </div>
               ) : fields.length > 0 ? (
                 <form
-                  onSubmit={e => {
+                  onSubmit={(e) => {
                     e.preventDefault();
                     handleFullGenerate();
                   }}
                   className="space-y-4"
                   autoComplete="off"
                 >
-                  {fields.map(field => (
+                  {fields.map((field) => (
                     <div key={field} className="flex flex-col gap-1">
-                      <label className="font-medium text-sm capitalize">{field.replace(/_/g, ' ')}</label>
+                      <label className="font-medium text-sm capitalize">
+                        {field.replace(/_/g, " ")}
+                      </label>
                       <input
                         className="border rounded px-3 py-2"
                         value={values[field] || ""}
-                        onChange={e => handleChange(field, e.target.value)}
+                        onChange={(e) => handleChange(field, e.target.value)}
                         required
                       />
                     </div>
                   ))}
                   <div className="flex gap-2 mt-4">
-                    <Button type="button" variant="outline" onClick={() => generatePdfPreview()} disabled={previewGenerating}>
-                      {previewGenerating ? "Mise à jour..." : "Mettre à jour la prévisualisation"}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => generatePdfPreview()}
+                      disabled={previewGenerating}
+                    >
+                      {previewGenerating
+                        ? "Mise à jour..."
+                        : "Mettre à jour la prévisualisation"}
                     </Button>
-                    <Button type="submit" className="w-full" disabled={generating}>
-                      {generating ? "Génération en cours..." : "Générer et envoyer pour signature"}
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      disabled={generating}
+                    >
+                      {generating
+                        ? "Génération en cours..."
+                        : "Générer et envoyer pour signature"}
                     </Button>
                   </div>
                 </form>
               ) : (
-                <div className="text-center text-gray-500">No dynamic fields detected in this template.</div>
+                <div className="text-center text-gray-500">
+                  No dynamic fields detected in this template.
+                </div>
               )}
             </div>
           ) : null}
@@ -232,4 +294,12 @@ export default function TemplateViewPage() {
       </div>
     </div>
   );
-} 
+}
+
+export default function TemplateViewPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <TemplateViewContent />
+    </Suspense>
+  );
+}

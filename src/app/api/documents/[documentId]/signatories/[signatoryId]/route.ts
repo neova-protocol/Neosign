@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { NextRequest, NextResponse } from "next/server";
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { documentId: string; signatoryId: string } }
+  { params }: { params: { documentId: string; signatoryId: string } },
 ) {
   try {
     const { signatoryId } = params;
@@ -19,10 +19,15 @@ export async function DELETE(
       },
     });
 
-    return NextResponse.json({ message: 'Signatory deleted successfully' }, { status: 200 });
-
+    return NextResponse.json(
+      { message: "Signatory deleted successfully" },
+      { status: 200 },
+    );
   } catch (error) {
-    console.error('Failed to delete signatory:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    console.error("Failed to delete signatory:", error);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
-} 
+}

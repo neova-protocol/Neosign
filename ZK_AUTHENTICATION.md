@@ -77,7 +77,7 @@ import { zkCredentialsProvider } from "@/lib/zk-credentials-provider";
 export const authOptions: NextAuthOptions = {
   providers: [
     // ... autres providers
-    zkCredentialsProvider
+    zkCredentialsProvider,
   ],
   // ... configuration
 };
@@ -87,20 +87,20 @@ export const authOptions: NextAuthOptions = {
 
 ```typescript
 // Générer un challenge
-const response = await fetch('/api/auth/zk', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ action: 'generate_challenge' })
+const response = await fetch("/api/auth/zk", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ action: "generate_challenge" }),
 });
 
 // Vérifier une preuve
-const verifyResponse = await fetch('/api/auth/zk', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
+const verifyResponse = await fetch("/api/auth/zk", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
-    action: 'verify_proof',
-    data: { commitment, proof, challenge }
-  })
+    action: "verify_proof",
+    data: { commitment, proof, challenge },
+  }),
 });
 ```
 
@@ -159,7 +159,7 @@ sequenceDiagram
     U->>C: Créer identité ZK
     C->>C: Générer commitment + nullifier
     C->>C: Stocker localement
-    
+
     U->>C: S'authentifier
     C->>S: Demander challenge
     S->>C: Challenge unique
@@ -191,11 +191,13 @@ curl -X POST http://localhost:3000/api/auth/zk \
 ## 🚀 Déploiement
 
 1. **Migration de base de données**
+
    ```bash
    npx prisma migrate deploy
    ```
 
 2. **Génération du client Prisma**
+
    ```bash
    npx prisma generate
    ```
@@ -231,4 +233,4 @@ Pour contribuer à l'amélioration de l'authentification ZK :
 
 ---
 
-**⚠️ Note de Sécurité** : Cette implémentation utilise des APIs Web Crypto natives pour la sécurité. Assurez-vous que votre navigateur supporte ces APIs pour une utilisation optimale. 
+**⚠️ Note de Sécurité** : Cette implémentation utilise des APIs Web Crypto natives pour la sécurité. Assurez-vous que votre navigateur supporte ces APIs pour une utilisation optimale.
