@@ -153,10 +153,13 @@ export default function ZKLoginForm({ onSuccess, onError }: ZKLoginFormProps) {
       console.log("Nouveau compte créé avec succès:", user);
       
       // Sauvegarder la session ZK pour le nouvel utilisateur
-      ZKSessionManager.saveSession({
-        commitment: identity.commitment,
-        proof: null, // Pas de preuve pour l'enregistrement initial
-      });
+      // Créer un objet de session minimal pour l'enregistrement
+      const sessionData = {
+        publicInput: identity.commitment,
+        proof: "", // Preuve vide pour l'enregistrement initial
+        timestamp: Date.now(),
+      };
+      ZKSessionManager.saveSession(sessionData);
       
       // Passer les données utilisateur avec le commitment pour NextAuth
       const userWithCommitment = {

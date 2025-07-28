@@ -17,6 +17,7 @@ import ZKInfo from "@/components/dashboard/ZKInfo";
 import ChangePasswordForm from "@/components/settings/ChangePasswordForm";
 import ZKIdentityManager from "@/components/settings/ZKIdentityManager";
 import AddEmailPasswordForm from "@/components/settings/AddEmailPasswordForm";
+import AddZKAuthForm from "@/components/settings/AddZKAuthForm";
 
 export default function ProfilePage() {
   const { data: session } = useSession();
@@ -153,6 +154,13 @@ export default function ProfilePage() {
         <AddEmailPasswordForm
           hasEmailPassword={!!(session.user as { hashedPassword?: string }).hashedPassword}
           currentEmail={session.user.email || undefined}
+        />
+      )}
+
+      {/* Ajout d'authentification ZK pour les utilisateurs email */}
+      {(session.user as { hashedPassword?: string }).hashedPassword && (
+        <AddZKAuthForm
+          hasZKAuth={!!(session.user as { zkCommitment?: string }).zkCommitment}
         />
       )}
 
