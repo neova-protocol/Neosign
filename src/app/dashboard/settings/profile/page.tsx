@@ -22,13 +22,17 @@ import EditAvatarForm from "@/components/settings/EditAvatarForm";
 import { getUserTypeDisplay } from "@/lib/user-utils";
 
 export default function ProfilePage() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
 
-  // Use Suspense to show skeleton loading animation
-  // Next.js will automatically use loading.tsx for this route
+  // Show skeleton loading animation only while loading
+  if (status === "loading") {
+    // Next.js will use loading.tsx for Suspense fallback
+    return null;
+  }
+
   if (!session?.user) {
-    // This will trigger Suspense fallback (loading.tsx)
-    throw new Promise(() => {});
+    // If no user, show a simple message or redirect
+    return <div className="text-center py-10 text-gray-500">Aucun utilisateur connecté.</div>;
   }
 
   return (
