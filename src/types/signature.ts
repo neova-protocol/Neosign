@@ -8,58 +8,95 @@ export interface SignatureCertificate {
   validTo: Date;
   serialNumber: string;
   publicKey: string;
+  signatureAlgorithm: string;
+  keyUsage: string[];
+  isQualified: boolean;
 }
 
 export interface SignatureTimestamp {
   timestamp: Date;
-  hash: string;
-  algorithm: string;
-  authority: string;
+  hashAlgorithm: string;
+  signatureAlgorithm: string;
+  tsaUrl: string;
+  serialNumber: string;
 }
 
 export interface SignatureValidation {
   isValid: boolean;
-  errors: string[];
-  warnings: string[];
-  complianceLevel: 'SES' | 'AES' | 'QES';
+  validationDate: Date;
+  validationMethod: string;
+  certificateStatus: 'valid' | 'expired' | 'revoked' | 'unknown';
+  revocationReason?: string;
 }
 
 export interface SESSignature {
   id: string;
   signatoryId: string;
   documentId: string;
-  signatureData: string; // Base64 encoded signature
-  timestamp: Date;
-  ipAddress: string;
-  userAgent: string;
+  signatureData: string;
   validationMethod: 'email' | 'sms' | 'password';
-  validationCode?: string;
+  validationCode: string;
+  validationCodeExpiry: Date;
   isValidated: boolean;
+  validatedAt?: Date;
+  userAgent: string;
+  ipAddress: string;
+  timestamp: Date;
   certificate?: SignatureCertificate;
   timestampData?: SignatureTimestamp;
+  validation?: SignatureValidation;
+}
+
+export interface AESSignature {
+  id: string;
+  signatoryId: string;
+  documentId: string;
+  signatureData: string;
+  certificate: SignatureCertificate;
+  timestamp: SignatureTimestamp;
   validation: SignatureValidation;
+  twoFactorMethod: 'sms' | 'email' | 'authenticator' | 'hardware';
+  twoFactorCode: string;
+  isTwoFactorValidated: boolean;
+  twoFactorValidatedAt?: Date;
+  userAgent: string;
+  ipAddress: string;
+  createdAt: Date;
+  signedAt?: Date;
+  revocationStatus: 'active' | 'revoked' | 'expired';
+  revocationReason?: string;
+  revocationDate?: Date;
 }
 
 export interface SignatureCompliance {
-  eIDASLevel: 'SES' | 'AES' | 'QES';
-  isCompliant: boolean;
+  eIDASLevel: 'N/A' | 'SES' | 'AES' | 'QES';
+  legalValue: 'Basic' | 'Advanced' | 'Qualified';
   requirements: string[];
   validationSteps: string[];
-  legalValue: 'basic' | 'advanced' | 'qualified';
+  certificateInfo?: {
+    issuer: string;
+    validFrom: Date;
+    validTo: Date;
+    isQualified: boolean;
+  };
+  timestampInfo?: {
+    tsaUrl: string;
+    timestamp: Date;
+  };
 }
 
 export interface SignatureRequest {
   documentId: string;
   signatoryId: string;
-  signatureType: 'SES' | 'AES' | 'QES';
-  validationMethod: 'email' | 'sms' | 'password';
-  expiresAt: Date;
-  redirectUrl?: string;
+  signatureType: 'simple' | 'ses' | 'aes' | 'qes';
+  validationMethod?: 'email' | 'sms' | 'password' | 'authenticator' | 'hardware';
+  certificateId?: string;
+  twoFactorMethod?: 'sms' | 'email' | 'authenticator' | 'hardware';
 }
 
 export interface SignatureValidationRequest {
   signatureId: string;
   validationCode: string;
-  ipAddress: string;
   userAgent: string;
+  ipAddress: string;
 } 
