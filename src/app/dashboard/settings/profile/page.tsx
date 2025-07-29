@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { User, Mail, Calendar, Shield } from "lucide-react";
 import ZKInfo from "@/components/dashboard/ZKInfo";
@@ -18,6 +17,8 @@ import ChangePasswordForm from "@/components/settings/ChangePasswordForm";
 import ZKIdentityManager from "@/components/settings/ZKIdentityManager";
 import AddEmailPasswordForm from "@/components/settings/AddEmailPasswordForm";
 import AddZKAuthForm from "@/components/settings/AddZKAuthForm";
+import EditNameForm from "@/components/settings/EditNameForm";
+import EditAvatarForm from "@/components/settings/EditAvatarForm";
 
 export default function ProfilePage() {
   const { data: session } = useSession();
@@ -40,35 +41,26 @@ export default function ProfilePage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center space-x-4">
-            <Avatar className="h-16 w-16">
-              <AvatarImage src={session.user.image || ""} />
-              <AvatarFallback>
-                {session.user.name?.charAt(0) || "U"}
-              </AvatarFallback>
-            </Avatar>
-            <div className="space-y-1">
-              <h3 className="text-lg font-medium">{session.user.name}</h3>
-              <p className="text-sm text-gray-500">{session.user.email}</p>
-              <div className="flex items-center gap-2">
-                <Badge variant="outline">
-                  {(session.user as { zkCommitment?: string }).zkCommitment
-                    ? "Utilisateur ZK"
-                    : "Utilisateur Standard"}
-                </Badge>
-                <Badge variant="secondary">
-                  Membre depuis{" "}
-                  {new Date(session.user.createdAt).toLocaleDateString()}
-                </Badge>
-              </div>
+          <EditAvatarForm />
+          
+          <div className="space-y-1">
+            <h3 className="text-lg font-medium">{session.user.name}</h3>
+            <p className="text-sm text-gray-500">{session.user.email}</p>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline">
+                {(session.user as { zkCommitment?: string }).zkCommitment
+                  ? "Utilisateur ZK"
+                  : "Utilisateur Standard"}
+              </Badge>
+              <Badge variant="secondary">
+                Membre depuis{" "}
+                {new Date(session.user.createdAt).toLocaleDateString()}
+              </Badge>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Nom complet</Label>
-              <Input id="name" defaultValue={session.user.name || ""} />
-            </div>
+            <EditNameForm />
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
