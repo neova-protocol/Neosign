@@ -45,6 +45,14 @@ model User {
   image         String?
   hashedPassword String?
   zkCommitment  String?   @unique
+  
+  // 2FA Configuration
+  phoneNumber   String?
+  phoneVerified Boolean   @default(false)
+  authenticatorSecret String?
+  authenticatorEnabled Boolean @default(false)
+  twoFactorMethods String @default("[]") // JSON string: ["sms", "email", "authenticator"]
+  
   accounts      Account[]
   sessions      Session[]
   documents     Document[]

@@ -8,8 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Trash2, Send, UserPlus, Users, Shield, PenTool, Info } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { SignatureType } from "./SignatureTypeSelector";
-import { SESSignature } from "@/types/signature";
+import { SESSignature, AESSignature } from "@/types/signature";
 import SESSignatureDialog from "./SESSignatureDialog";
+import AESSignatureDialog from "./AESSignatureDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface SignatoryPanelProps {
@@ -35,6 +36,7 @@ const SignatoryPanel: React.FC<SignatoryPanelProps> = ({
   const [isSending, setIsSending] = useState(false);
   const [selectedSignatureType, setSelectedSignatureType] = useState<SignatureType>('simple');
   const [showSESSignatureDialog, setShowSESSignatureDialog] = useState(false);
+  const [showAESSignatureDialog, setShowAESSignatureDialog] = useState(false);
   const [showInfoDialog, setShowInfoDialog] = useState(false);
 
   const currentUser = session?.user;
@@ -118,6 +120,12 @@ const SignatoryPanel: React.FC<SignatoryPanelProps> = ({
       return;
     }
     
+    if (selectedSignatureType === 'aes') {
+      // Pour AES, ouvrir le dialogue de signature AES
+      setShowAESSignatureDialog(true);
+      return;
+    }
+    
     // Pour les autres types (simple, aes, qes), envoyer directement
     setIsSending(true);
     try {
@@ -163,6 +171,34 @@ const SignatoryPanel: React.FC<SignatoryPanelProps> = ({
         router.push("/dashboard");
       } else {
         alert("Failed to send document with SES signature");
+      }
+    }).catch(error => {
+      console.error("Error sending document:", error);
+      alert("An error occurred while sending the document.");
+    }).finally(() => {
+      setIsSending(false);
+    });
+  };
+
+  const handleAESSignatureComplete = (signature: AESSignature) => {
+    console.log('AES signature completed:', signature);
+    setShowAESSignatureDialog(false);
+    
+    // Maintenant envoyer le document avec la signature AES
+    setIsSending(true);
+    fetch(`/api/send-document`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ 
+        documentId: currentDocument!.id,
+        signatureType: 'aes',
+        aesSignature: signature
+      }),
+    }).then(res => {
+      if (res.ok) {
+        router.push("/dashboard");
+      } else {
+        alert("Failed to send document with AES signature");
       }
     }).catch(error => {
       console.error("Error sending document:", error);
@@ -230,16 +266,15 @@ const SignatoryPanel: React.FC<SignatoryPanelProps> = ({
             <Shield className="mr-2 h-4 w-4" />
             SES - Simple Electronic Signature
           </Button>
-          <Button
-            variant={selectedSignatureType === 'aes' ? 'default' : 'outline'}
-            size="sm"
-            className="w-full justify-start"
-            disabled
-          >
-            <Shield className="mr-2 h-4 w-4" />
-            AES - Advanced Electronic Signature
-            <span className="ml-auto text-xs text-gray-500">(Bientôt)</span>
-          </Button>
+                      <Button
+              variant={selectedSignatureType === 'aes' ? 'default' : 'outline'}
+              size="sm"
+              className="w-full justify-start"
+              onClick={() => setSelectedSignatureType('aes')}
+            >
+              <Shield className="mr-2 h-4 w-4" />
+              AES - Advanced Electronic Signature
+            </Button>
           <Button
             variant={selectedSignatureType === 'qes' ? 'default' : 'outline'}
             size="sm"
@@ -356,23 +391,6 @@ const SignatoryPanel: React.FC<SignatoryPanelProps> = ({
         </div>
       </div>
 
-      {/* Bouton d'envoi de document */}
-      {selectedSignatoryId && (
-        <div className="mt-4 pt-4 border-t">
-          <Button
-            className="w-full"
-            onClick={() => {
-              // Ici on peut ajouter la logique pour envoyer le document
-              console.log("Sending document for signature");
-              alert("Document sent for signature!");
-            }}
-          >
-            <Send className="mr-2 h-4 w-4" />
-            Send Document
-          </Button>
-        </div>
-      )}
-
       {/* Dialogue de signature SES */}
       <SESSignatureDialog
         open={showSESSignatureDialog}
@@ -382,6 +400,19 @@ const SignatoryPanel: React.FC<SignatoryPanelProps> = ({
         signatoryId={currentUser?.id || ""}
         documentId={currentDocument?.id || ""}
         validationMethod="email"
+        userEmail={currentUser?.email || ""}
+        userPhone=""
+      />
+
+      {/* Dialogue de signature AES */}
+      <AESSignatureDialog
+        open={showAESSignatureDialog}
+        onOpenChange={setShowAESSignatureDialog}
+        onConfirm={handleAESSignatureComplete}
+        signatoryName={currentUser?.name || "Current User"}
+        signatoryId={currentUser?.id || ""}
+        documentId={currentDocument?.id || ""}
+        twoFactorMethod="sms"
         userEmail={currentUser?.email || ""}
         userPhone=""
       />
