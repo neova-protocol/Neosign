@@ -19,6 +19,7 @@ import AddEmailPasswordForm from "@/components/settings/AddEmailPasswordForm";
 import AddZKAuthForm from "@/components/settings/AddZKAuthForm";
 import EditNameForm from "@/components/settings/EditNameForm";
 import EditAvatarForm from "@/components/settings/EditAvatarForm";
+import { getUserTypeDisplay } from "@/lib/user-utils";
 
 export default function ProfilePage() {
   const { data: session } = useSession();
@@ -48,9 +49,7 @@ export default function ProfilePage() {
             <p className="text-sm text-gray-500">{session.user.email}</p>
             <div className="flex items-center gap-2">
               <Badge variant="outline">
-                {(session.user as { zkCommitment?: string }).zkCommitment
-                  ? "Utilisateur ZK"
-                  : "Utilisateur Standard"}
+                {getUserTypeDisplay()}
               </Badge>
               <Badge variant="secondary">
                 Membre depuis{" "}
