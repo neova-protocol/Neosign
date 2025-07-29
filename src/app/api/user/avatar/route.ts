@@ -25,14 +25,14 @@ export async function POST(req: Request) {
     const buffer = Buffer.from(bytes);
 
     const filename = `${session.user.id}${path.extname(file.name)}`;
-    const uploadDir = path.join(process.cwd(), "public/avatars");
+    const uploadDir = path.join(process.cwd(), "uploads/avatars");
 
     await fs.mkdir(uploadDir, { recursive: true });
 
     const filePath = path.join(uploadDir, filename);
     await fs.writeFile(filePath, buffer);
 
-    const avatarUrl = `/avatars/${filename}`;
+    const avatarUrl = `/api/files/avatars/${filename}`;
 
     await prisma.user.update({
       where: { id: session.user.id },
@@ -62,7 +62,7 @@ export async function DELETE() {
 
     if (user?.image) {
       // Supprimer le fichier physique
-      const avatarPath = path.join(process.cwd(), "public", user.image);
+      const avatarPath = path.join(process.cwd(), "uploads/avatars", path.basename(user.image));
       try {
         await fs.unlink(avatarPath);
       } catch {

@@ -1,7 +1,7 @@
 [phases.setup]
 commands = [
-  "mkdir -p public/uploads",
-  "chmod 777 public/uploads",
-  "mkdir -p public/avatars",
-  "chmod 777 public/avatars"
+  "mkdir -p uploads/signature",
+  "chmod 777 uploads/signature",
+  "mkdir -p uploads/avatars",
+  "chmod 777 uploads/avatars"
 ]

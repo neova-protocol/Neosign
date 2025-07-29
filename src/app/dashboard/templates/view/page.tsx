@@ -114,7 +114,7 @@ function TemplateViewContent() {
       return;
     }
     const pdfBlob = await pdfRes.blob();
-    // 3. Upload PDF (simulate upload to /public/uploads/)
+    // 3. Upload PDF (now served via /api/files/signature/)
     const pdfFile = new File(
       [pdfBlob],
       `generated_${name.replace(/\s+/g, "_")}.pdf`,
@@ -130,7 +130,7 @@ function TemplateViewContent() {
       setGenerating(false);
       return;
     }
-    const { fileUrl: uploadedPdfUrl } = await uploadRes.json();
+    const { fileUrl: uploadedPdfUrl } = await uploadRes.json(); 
     // 4. Créer le document
     const newDoc = await createDocument(name, uploadedPdfUrl);
     setGenerating(false);

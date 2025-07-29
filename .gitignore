@@ -46,5 +46,5 @@ next-env.d.ts
 prisma/dev.db-journal
 
 
-public/avatars/*
-public/uploads/*
+uploads/avatars/*
+uploads/signature/*
