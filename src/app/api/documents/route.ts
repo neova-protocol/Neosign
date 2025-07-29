@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth-options";
 const prisma = new PrismaClient();
 
 export async function GET(request: NextRequest) {
+  console.log("GET /api/documents called");
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });

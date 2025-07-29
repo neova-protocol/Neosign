@@ -4,6 +4,7 @@ import convert from "libreoffice-convert";
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
+  console.log("POST /api/convert-to-pdf called");
   try {
     const arrayBuffer = await req.arrayBuffer();
     const docxBuf = Buffer.from(arrayBuffer);

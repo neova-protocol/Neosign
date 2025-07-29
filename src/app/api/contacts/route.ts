@@ -6,6 +6,7 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 export async function GET() {
+  console.log("GET /api/contacts called");
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.id) {
@@ -35,6 +36,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  console.log("POST /api/contacts called");
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.id) {

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { ZKAuth } from "@/lib/zk-auth";
 
 export async function POST(req: NextRequest) {
+  console.log("POST /api/auth/zk called");
   try {
     const { action, data } = await req.json();
 

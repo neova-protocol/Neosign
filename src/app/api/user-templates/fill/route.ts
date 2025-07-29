@@ -9,6 +9,7 @@ import Docxtemplater from 'docxtemplater';
 
 // POST /api/user-templates/fill : génère un docx avec les valeurs fournies
 export async function POST(req: NextRequest) {
+  console.log("POST /api/user-templates/fill called");
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     console.log('API DEBUG: Pas de session utilisateur');

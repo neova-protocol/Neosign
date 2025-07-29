@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 
 // GET /api/notifications : liste des notifications de l'utilisateur
 export async function GET() {
+  console.log("GET /api/notifications called");
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
@@ -27,6 +28,7 @@ export async function GET() {
 
 // POST /api/notifications : créer une notification
 export async function POST(req: Request) {
+  console.log("POST /api/notifications called");
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
@@ -60,6 +62,7 @@ export async function POST(req: Request) {
 
 // PATCH /api/notifications : marquer comme lue (body: { id })
 export async function PATCH(req: Request) {
+  console.log("PATCH /api/notifications called");
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });

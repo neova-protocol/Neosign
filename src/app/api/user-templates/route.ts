@@ -8,6 +8,7 @@ import crypto from "crypto";
 
 // GET /api/user-templates : liste des templates de l'utilisateur
 export async function GET() {
+  console.log("GET /api/user-templates called");
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
@@ -26,6 +27,7 @@ export async function GET() {
 
 // POST /api/user-templates : upload d'un template
 export async function POST(req: NextRequest) {
+  console.log("POST /api/user-templates called");
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
@@ -62,6 +64,7 @@ export async function POST(req: NextRequest) {
 
 // DELETE /api/user-templates?id=... : suppression d'un template
 export async function DELETE(req: NextRequest) {
+  console.log("DELETE /api/user-templates called");
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });

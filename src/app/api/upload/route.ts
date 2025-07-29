@@ -3,6 +3,7 @@ import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 
 export async function POST(req: NextRequest) {
+  console.log("POST /api/upload called");
   const data = await req.formData();
   const file: File | null = data.get("file") as unknown as File;
 

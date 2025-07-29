@@ -10,6 +10,7 @@ interface RouteParams {
 }
 
 export async function PUT(req: NextRequest, { params }: RouteParams) {
+  console.log("PUT /api/contacts/[id] called");
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.id) {
@@ -61,6 +62,7 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
 }
 
 export async function DELETE(req: NextRequest, { params }: RouteParams) {
+  console.log("DELETE /api/contacts/[id] called");
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.id) {

@@ -15,6 +15,7 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<Params> },
 ) {
+  console.log("PUT /api/documents/[documentId]/fields/[fieldId] called");
   const { documentId, fieldId } = await params;
   const { value } = await req.json();
 

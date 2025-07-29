@@ -9,6 +9,7 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { documentId: string } },
 ) {
+  console.log("POST /api/documents/[documentId]/fields called");
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });

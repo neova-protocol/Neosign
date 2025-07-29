@@ -7,6 +7,7 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: { documentId: string; signatoryId: string } },
 ) {
+  console.log("DELETE /api/documents/[documentId]/signatories/[signatoryId] called");
   try {
     const { signatoryId } = params;
 

@@ -6,6 +6,7 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 export async function GET(req: NextRequest) {
+    console.log("GET /api/user/me called");
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.id) {

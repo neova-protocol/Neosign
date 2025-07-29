@@ -9,6 +9,7 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: { documentId: string; fieldId: string } },
 ) {
+  console.log("PUT /api/documents/[documentId]/fields/[fieldId] called");
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });

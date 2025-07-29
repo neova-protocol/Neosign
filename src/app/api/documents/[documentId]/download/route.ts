@@ -16,6 +16,7 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<Params> },
 ) {
+  console.log("GET /api/documents/[documentId]/download called");
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });

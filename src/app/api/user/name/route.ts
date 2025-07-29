@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/db";
 
 export async function POST(req: Request) {
+  console.log("POST /api/user/name called");
   try {
     const session = await getServerSession(authOptions);
 

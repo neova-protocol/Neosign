@@ -13,6 +13,7 @@ interface Params {
 }
 
 export async function POST(req: NextRequest, { params }: Params) {
+  console.log("POST /api/documents/[documentId]/signatories called");
   const session = await getServerSession(authOptions);
   if (!session || !session.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

@@ -10,6 +10,7 @@ interface Params {
 }
 
 export async function GET(request: NextRequest, { params }: Params) {
+  console.log("GET /api/public/documents/[documentId] called");
   const { documentId } = await params;
   const token = request.nextUrl.searchParams.get("token");
 

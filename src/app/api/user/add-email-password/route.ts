@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import bcrypt from "bcrypt";
 
 export async function POST(req: NextRequest) {
+  console.log("POST /api/user/add-email-password called");
   try {
     const session = await getServerSession(authOptions);
     

@@ -11,6 +11,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { documentId: string } },
 ) {
+  console.log("GET /api/documents/[documentId] called");
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });

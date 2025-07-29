@@ -6,6 +6,7 @@ import { promises as fs } from "fs";
 import path from "path";
 
 export async function POST(req: Request) {
+  console.log("POST /api/user/avatar called");
   try {
     const session = await getServerSession(authOptions);
 

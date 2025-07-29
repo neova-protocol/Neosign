@@ -6,6 +6,7 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 export async function POST(req: NextRequest) {
+    console.log("POST /api/user/signature called");
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.id) {

@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 
 export async function POST(req: NextRequest) {
+  console.log("POST /api/auth/register called");
   try {
     const { name, email, password } = await req.json();
 

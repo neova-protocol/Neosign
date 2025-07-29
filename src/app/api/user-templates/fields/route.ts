@@ -9,6 +9,7 @@ import Docxtemplater from 'docxtemplater';
 
 // GET /api/user-templates/fields?id=... : retourne la liste des balises dynamiques d'un docx
 export async function GET(req: NextRequest) {
+  console.log("GET /api/user-templates/fields called");
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     console.log('API DEBUG: Pas de session utilisateur');
