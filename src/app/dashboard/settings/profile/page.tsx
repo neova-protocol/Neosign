@@ -24,8 +24,11 @@ import { getUserTypeDisplay } from "@/lib/user-utils";
 export default function ProfilePage() {
   const { data: session } = useSession();
 
+  // Use Suspense to show skeleton loading animation
+  // Next.js will automatically use loading.tsx for this route
   if (!session?.user) {
-    return <div>Loading...</div>;
+    // This will trigger Suspense fallback (loading.tsx)
+    throw new Promise(() => {});
   }
 
   return (

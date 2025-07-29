@@ -23,12 +23,12 @@ export default function SettingsLayout({
   const pathname = usePathname();
 
   return (
-    <div className="flex bg-gray-50 min-h-screen">
-      <div className="flex-1 p-6">
+    <div className="flex min-h-screen">
+      <div className="flex-1 px-6">
         <SettingsHeader />
         {children}
       </div>
-      <div className="w-64 bg-white border-l border-gray-200 p-6">
+      <div className="w-64 bg-white border-l border-gray-200 p-6 rounded-lg">
         <h3 className="font-semibold text-gray-900 mb-4">Settings</h3>
         <nav className="space-y-2">
           {settingsMenuItems.map((item) => {

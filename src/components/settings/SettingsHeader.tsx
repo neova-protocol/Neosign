@@ -29,7 +29,7 @@ const SettingsHeader = () => {
           </Avatar>
           <div>
             <h1 className="text-2xl font-bold text-white mb-2">
-              {session?.user?.name ?? "SLYRACK"}
+              {session?.user?.name ?? "User Name"}
             </h1>
             <p className="text-gray-300 text-sm">Member Since: {memberSince}</p>
           </div>
