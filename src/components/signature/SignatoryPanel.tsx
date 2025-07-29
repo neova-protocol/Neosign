@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import { SignatureType } from "./SignatureTypeSelector";
 import { SESSignature, AESSignature } from "@/types/signature";
 import SESSignatureDialog from "./SESSignatureDialog";
-import AESSignatureDialog from "./AESSignatureDialog";
+import { AESSignatureDialog } from "./AESSignatureDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface SignatoryPanelProps {

@@ -51,12 +51,31 @@ export async function POST() {
 
     const otpauthUrl = `otpauth://totp/Neosign:${user.email}?secret=${secret}&issuer=Neosign&algorithm=SHA1&digits=6&period=30`;
 
-    // Mettre à jour l'utilisateur avec le secret
+    // Récupérer les méthodes 2FA actuelles
+    const currentUser = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { twoFactorMethods: true }
+    });
+
+    let twoFactorMethods = [];
+    try {
+      twoFactorMethods = JSON.parse(currentUser?.twoFactorMethods || '[]');
+    } catch {
+      twoFactorMethods = [];
+    }
+
+    // Ajouter 'authenticator' s'il n'est pas déjà présent
+    if (!twoFactorMethods.includes('authenticator')) {
+      twoFactorMethods.push('authenticator');
+    }
+
+    // Mettre à jour l'utilisateur avec le secret et les méthodes
     await prisma.user.update({
       where: { id: session.user.id },
       data: {
         authenticatorSecret: secret,
         authenticatorEnabled: true,
+        twoFactorMethods: JSON.stringify(twoFactorMethods),
       }
     });
 

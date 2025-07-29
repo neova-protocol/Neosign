@@ -25,7 +25,20 @@ export async function GET() {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    return NextResponse.json(user);
+    // Calculer emailVerified en fonction des méthodes activées
+    let twoFactorMethods = [];
+    try {
+      twoFactorMethods = JSON.parse(user.twoFactorMethods || '[]');
+    } catch {
+      twoFactorMethods = [];
+    }
+
+    const emailVerified = twoFactorMethods.includes('email');
+
+    return NextResponse.json({
+      ...user,
+      emailVerified
+    });
   } catch (error) {
     console.error("Error fetching 2FA config:", error);
     return NextResponse.json(
