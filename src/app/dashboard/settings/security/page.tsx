@@ -20,13 +20,16 @@ import {
   Lock,
   Settings
 } from "lucide-react";
+import QRCodeDialog from "@/components/2fa/QRCodeDialog";
+import TwoFactorVerificationDialog from "@/components/2fa/TwoFactorVerificationDialog";
 
 interface TwoFactorConfig {
   phoneNumber: string;
   phoneVerified: boolean;
   authenticatorSecret: string;
   authenticatorEnabled: boolean;
-  twoFactorMethods: string;
+  twoFactorMethods: string | string[];
+  emailVerified?: boolean;
 }
 
 export default function SecuritySettingsPage() {
@@ -36,10 +39,28 @@ export default function SecuritySettingsPage() {
     phoneVerified: false,
     authenticatorSecret: "",
     authenticatorEnabled: false,
-    twoFactorMethods: []
+    twoFactorMethods: "[]",
+    emailVerified: false
   });
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [showQRDialog, setShowQRDialog] = useState(false);
+  const [qrCodeData, setQrCodeData] = useState("");
+  const [authenticatorSecret, setAuthenticatorSecret] = useState("");
+  const [showEmailVerificationDialog, setShowEmailVerificationDialog] = useState(false);
+  const [isVerifyingEmail, setIsVerifyingEmail] = useState(false);
+
+  // Helper function to parse twoFactorMethods
+  const getTwoFactorMethods = (): string[] => {
+    if (typeof config.twoFactorMethods === 'string') {
+      try {
+        return JSON.parse(config.twoFactorMethods);
+      } catch {
+        return [];
+      }
+    }
+    return Array.isArray(config.twoFactorMethods) ? config.twoFactorMethods : [];
+  };
 
   useEffect(() => {
     if (session?.user) {
@@ -52,7 +73,10 @@ export default function SecuritySettingsPage() {
       const response = await fetch('/api/user/2fa');
       if (response.ok) {
         const data = await response.json();
-        setConfig(data);
+        setConfig({
+          ...data,
+          emailVerified: data.emailVerified || false
+        });
       }
     } catch (error) {
       console.error('Error loading 2FA config:', error);
@@ -114,12 +138,9 @@ export default function SecuritySettingsPage() {
 
       if (response.ok) {
         const data = await response.json();
-        setConfig(prev => ({ 
-          ...prev, 
-          authenticatorSecret: data.secret,
-          authenticatorEnabled: true 
-        }));
-        setMessage({ type: 'success', text: 'Authenticator configuré' });
+        setAuthenticatorSecret(data.secret);
+        setQrCodeData(data.otpauthUrl);
+        setShowQRDialog(true);
       } else {
         setMessage({ type: 'error', text: 'Erreur de configuration' });
       }
@@ -130,10 +151,54 @@ export default function SecuritySettingsPage() {
     }
   };
 
+  const handleQRConfirm = () => {
+    setConfig(prev => ({ 
+      ...prev, 
+      authenticatorSecret: authenticatorSecret,
+      authenticatorEnabled: true 
+    }));
+    setShowQRDialog(false);
+    setMessage({ type: 'success', text: 'Authenticator configuré avec succès' });
+  };
+
+  const handleEmailVerification = async (method: string, code: string) => {
+    setIsVerifyingEmail(true);
+    try {
+      const response = await fetch('/api/user/2fa/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          method: 'email', 
+          code: code 
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setConfig(prev => ({ 
+          ...prev, 
+          twoFactorMethods: JSON.stringify(data.methods),
+          emailVerified: true
+        }));
+        setShowEmailVerificationDialog(false);
+        setMessage({ type: 'success', text: 'Email 2FA activé avec succès' });
+        loadUserConfig(); // Recharger la config
+      } else {
+        const errorData = await response.json();
+        setMessage({ type: 'error', text: errorData.error || 'Code incorrect' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Erreur de connexion' });
+    } finally {
+      setIsVerifyingEmail(false);
+    }
+  };
+
   const toggleTwoFactorMethod = async (method: string) => {
-    const newMethods = config.twoFactorMethods.includes(method)
-      ? config.twoFactorMethods.filter(m => m !== method)
-      : [...config.twoFactorMethods, method];
+    const currentMethods = getTwoFactorMethods();
+    const newMethods = currentMethods.includes(method)
+      ? currentMethods.filter(m => m !== method)
+      : [...currentMethods, method];
 
     setIsLoading(true);
     try {
@@ -144,7 +209,8 @@ export default function SecuritySettingsPage() {
       });
 
       if (response.ok) {
-        setConfig(prev => ({ ...prev, twoFactorMethods: newMethods }));
+        const data = await response.json();
+        setConfig(data);
         setMessage({ type: 'success', text: 'Méthodes 2FA mises à jour' });
       } else {
         setMessage({ type: 'error', text: 'Erreur de mise à jour' });
@@ -184,6 +250,70 @@ export default function SecuritySettingsPage() {
       )}
 
       <div className="grid gap-6">
+        {/* Email Configuration */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5 text-green-600" />
+              Authentification par Email
+            </CardTitle>
+            {config.emailVerified && (
+              <div className="flex items-center gap-2 text-green-600 mt-2">
+                <CheckCircle className="h-4 w-4" />
+                <span className="text-sm">Email vérifié</span>
+              </div>
+            )}
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Adresse email</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="email"
+                  type="email"
+                  value={session?.user?.email || ""}
+                  readOnly
+                  className="bg-gray-50"
+                />
+                <Button 
+                  onClick={async () => {
+                    setIsLoading(true);
+                    try {
+                      const response = await fetch('/api/user/2fa/email', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email: session?.user?.email })
+                      });
+                      if (response.ok) {
+                        setShowEmailVerificationDialog(true);
+                        setMessage({ type: 'success', text: 'Code de vérification envoyé par email' });
+                      } else {
+                        setMessage({ type: 'error', text: 'Erreur lors de l\'envoi du code' });
+                      }
+                    } catch (error) {
+                      setMessage({ type: 'error', text: 'Erreur de connexion' });
+                    } finally {
+                      setIsLoading(false);
+                    }
+                  }}
+                  disabled={isLoading || config.emailVerified}
+                >
+                  {isLoading ? "Envoi..." : config.emailVerified ? "Email déjà vérifié" : "Envoyer le code"}
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span className="text-sm">Activer pour les signatures AES/QES</span>
+              <Switch
+                checked={getTwoFactorMethods().includes('email')}
+                onCheckedChange={() => toggleTwoFactorMethod('email')}
+                disabled={!config.emailVerified}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
         {/* SMS Configuration */}
         <Card>
           <CardHeader>
@@ -222,7 +352,7 @@ export default function SecuritySettingsPage() {
             <div className="flex items-center justify-between">
               <span className="text-sm">Activer pour les signatures AES/QES</span>
               <Switch
-                checked={config.twoFactorMethods.includes('sms')}
+                checked={getTwoFactorMethods().includes('sms')}
                 onCheckedChange={() => toggleTwoFactorMethod('sms')}
                 disabled={!config.phoneVerified}
               />
@@ -230,28 +360,7 @@ export default function SecuritySettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Email Configuration */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Mail className="h-5 w-5 text-green-600" />
-              Authentification par Email
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="text-sm text-gray-600">
-              <p>L'email <strong>{session?.user?.email}</strong> sera utilisé pour l'authentification 2FA.</p>
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <span className="text-sm">Activer pour les signatures AES/QES</span>
-              <Switch
-                checked={config.twoFactorMethods.includes('email')}
-                onCheckedChange={() => toggleTwoFactorMethod('email')}
-              />
-            </div>
-          </CardContent>
-        </Card>
+
 
         {/* Authenticator App */}
         <Card>
@@ -302,7 +411,7 @@ export default function SecuritySettingsPage() {
                 <div className="flex items-center justify-between">
                   <span className="text-sm">Activer pour les signatures AES/QES</span>
                   <Switch
-                    checked={config.twoFactorMethods.includes('authenticator')}
+                    checked={getTwoFactorMethods().includes('authenticator')}
                     onCheckedChange={() => toggleTwoFactorMethod('authenticator')}
                   />
                 </div>
@@ -321,8 +430,8 @@ export default function SecuritySettingsPage() {
           </CardHeader>
           <CardContent>
             <div className="flex gap-2 flex-wrap">
-              {config.twoFactorMethods.length > 0 ? (
-                config.twoFactorMethods.map(method => (
+              {getTwoFactorMethods().length > 0 ? (
+                getTwoFactorMethods().map(method => (
                   <Badge key={method} variant="secondary">
                     {method === 'sms' && <Smartphone className="h-3 w-3 mr-1" />}
                     {method === 'email' && <Mail className="h-3 w-3 mr-1" />}
@@ -353,6 +462,26 @@ export default function SecuritySettingsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* QR Code Dialog */}
+      <QRCodeDialog
+        open={showQRDialog}
+        onOpenChange={setShowQRDialog}
+        qrCodeData={qrCodeData}
+        secret={authenticatorSecret}
+        userEmail={session?.user?.email || ""}
+        onConfirm={handleQRConfirm}
+      />
+
+      {/* Email Verification Dialog */}
+      <TwoFactorVerificationDialog
+        open={showEmailVerificationDialog}
+        onOpenChange={setShowEmailVerificationDialog}
+        onConfirm={handleEmailVerification}
+        method="email"
+        email={session?.user?.email || ""}
+        isLoading={isVerifyingEmail}
+      />
     </div>
   );
 }
