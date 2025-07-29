@@ -1,15 +1,13 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useSignature } from "@/contexts/SignatureContext";
-import { getDocumentById, sendDocumentForSignature } from "@/lib/api";
+import { getDocumentById } from "@/lib/api";
 import dynamic from "next/dynamic";
 
 import SignatoryPanel from "@/components/signature/SignatoryPanel";
-import { Button } from "@/components/ui/button";
-import { Send } from "lucide-react";
 import { useRouter } from "next/navigation";
 import SuccessModal from "@/components/modals/SuccessModal";
 
@@ -25,83 +23,36 @@ const PDFViewer = dynamic(() => import("@/components/pdf/PDFViewer"), {
 export default function EditDocumentPage() {
   const params = useParams();
   const router = useRouter();
-  const documentId = params.documentId as string;
   const { data: session, status } = useSession();
-  const { currentDocument, setCurrentDocument, updateFieldPosition, addField } =
-    useSignature();
-  const [selectedSignatoryId, setSelectedSignatoryId] = useState<string | null>(
-    null,
-  );
+  const {
+    currentDocument,
+    setCurrentDocument,
+    addField,
+    updateFieldPosition,
+  } = useSignature();
+
+  const [selectedSignatoryId, setSelectedSignatoryId] = useState<string | null>(null);
+
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
 
-  console.log("🔐 Session status:", {
-    status,
-    userId: session?.user?.id,
-    sessionExists: !!session,
-  });
+  const documentId = params.documentId as string;
 
   useEffect(() => {
-    console.log("🔍 EditDocumentPage useEffect:", {
-      documentId,
-      currentDocument: currentDocument?.id,
-      sessionStatus: status,
-    });
-
-    // Wait for session to be loaded before fetching document
-    if (status === "loading") {
-      console.log("⏳ Waiting for session to load...");
-      return;
-    }
-
-    if (status === "unauthenticated") {
-      console.error("❌ User not authenticated");
-      return;
-    }
-
     if (documentId && (!currentDocument || currentDocument.id !== documentId)) {
-      console.log("📡 Fetching document with ID:", documentId);
-
-      getDocumentById(documentId)
-        .then((doc) => {
-          console.log("📄 Document received:", doc);
-
-          if (doc) {
-            // Note: The 'file' object is not stored in the DB.
-            // The user journey should ensure the file is handled correctly in the session state
-            // after upload, but if the user lands here directly, 'file' will be null.
-            // PDFViewer is now capable of fetching from fileUrl.
-            setCurrentDocument(doc);
-          } else {
-            console.error("❌ Document not found or error occurred");
-          }
-        })
-        .catch((error) => {
-          console.error("💥 Error fetching document:", error);
-        });
+      getDocumentById(documentId).then((doc) => {
+        if (doc) {
+          setCurrentDocument(doc);
+        }
+      });
     }
   }, [documentId, currentDocument?.id, setCurrentDocument, status]);
-
-  const handleSendForSignature = async () => {
-    if (!currentDocument) return;
-
-    const updatedDocument = await sendDocumentForSignature(currentDocument.id);
-
-    if (updatedDocument) {
-      setCurrentDocument(updatedDocument);
-      setIsSuccessModalOpen(true);
-    } else {
-      alert("Failed to send the document.");
-    }
-  };
 
   const handleCloseModal = () => {
     setIsSuccessModalOpen(false);
     router.push("/dashboard");
   };
 
-  const documentForViewer = useMemo(() => {
-    return currentDocument;
-  }, [currentDocument]);
+
 
   if (status === "loading") {
     return <div>Loading session...</div>;
@@ -180,10 +131,8 @@ export default function EditDocumentPage() {
         <header className="bg-white shadow-sm p-4 flex justify-between items-center">
           <h1 className="text-xl font-semibold">{currentDocument.name}</h1>
           <div className="flex gap-2">
-            <Button onClick={handleSendForSignature}>
-              <Send className="mr-2 h-4 w-4" />
-              Send for Signature
-            </Button>
+            {/* Supprimé le bouton "Send for Signature" du header */}
+            {/* Le bouton est maintenant uniquement dans le SignatoryPanel */}
           </div>
         </header>
         <main className="flex-1 flex overflow-hidden">
@@ -204,12 +153,6 @@ export default function EditDocumentPage() {
           </aside>
         </main>
       </div>
-      <SuccessModal
-        isOpen={isSuccessModalOpen}
-        onClose={handleCloseModal}
-        title="Success!"
-        message="The document has been sent to all signatories."
-      />
     </div>
   );
 }
