@@ -26,7 +26,6 @@ export async function POST(req: NextRequest) {
 
     await writeFile(path, buffer);
     console.log(`File saved to ${path}`);
-
     const fileUrl = `/uploads/${sanitizedFilename}`;
     return NextResponse.json({ success: true, fileUrl });
   } catch (error) {
