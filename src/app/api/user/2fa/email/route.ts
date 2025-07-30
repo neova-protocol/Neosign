@@ -4,6 +4,9 @@ import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/db";
 import { sendEmail } from "@/lib/email";
 
+// Stockage temporaire des codes (en production, utiliser Redis ou une base de données)
+const tempCodes = new Map<string, { code: string; expiresAt: number }>();
+
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user) {
@@ -20,8 +23,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Générer un code de vérification
+    // Générer un code de vérification unique
     const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // Calculer l'expiration (5 minutes)
+    const expiresAt = Date.now() + (5 * 60 * 1000);
+    
+    // Stocker le code temporairement avec l'email comme clé
+    tempCodes.set(email, {
+      code: verificationCode,
+      expiresAt: expiresAt
+    });
+
+    console.log(`Code généré pour ${email}: ${verificationCode} (expire dans 5 minutes)`);
 
     // Envoyer l'email avec le code
     try {
@@ -42,6 +56,8 @@ export async function POST(request: NextRequest) {
       });
     } catch (emailError) {
       console.error("Error sending email:", emailError);
+      // Supprimer le code en cas d'erreur d'envoi
+      tempCodes.delete(email);
       return NextResponse.json(
         { error: "Failed to send verification email" },
         { status: 500 }
@@ -55,9 +71,6 @@ export async function POST(request: NextRequest) {
         data: { email }
       });
     }
-
-    // En production, stocker le code temporairement (Redis, base de données, etc.)
-    // Pour cette démo, on simule juste l'envoi
 
     return NextResponse.json({
       message: "Code de vérification envoyé par email",

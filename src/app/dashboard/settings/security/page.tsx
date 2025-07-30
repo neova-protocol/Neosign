@@ -15,7 +15,6 @@ import {
   Key, 
   CheckCircle, 
   AlertCircle,
-  QrCode,
   Copy,
   Lock,
   Settings
@@ -49,6 +48,7 @@ export default function SecuritySettingsPage() {
   const [authenticatorSecret, setAuthenticatorSecret] = useState("");
   const [showEmailVerificationDialog, setShowEmailVerificationDialog] = useState(false);
   const [isVerifyingEmail, setIsVerifyingEmail] = useState(false);
+  const [userProfile, setUserProfile] = useState<{ email?: string } | null>(null);
 
   // Helper function to parse twoFactorMethods
   const getTwoFactorMethods = (): string[] => {
@@ -65,6 +65,7 @@ export default function SecuritySettingsPage() {
   useEffect(() => {
     if (session?.user) {
       loadUserConfig();
+      loadUserProfile();
     }
   }, [session]);
 
@@ -82,6 +83,21 @@ export default function SecuritySettingsPage() {
       console.error('Error loading 2FA config:', error);
     }
   };
+
+  const loadUserProfile = async () => {
+    try {
+      const response = await fetch('/api/user/me');
+      if (response.ok) {
+        const profile = await response.json();
+        setUserProfile(profile);
+      }
+    } catch (error) {
+      console.error('Error loading user profile:', error);
+    }
+  };
+
+  // Utiliser l'email d'authentification si disponible, sinon l'email de session
+  const displayEmail = userProfile?.email || session?.user?.email;
 
   const updatePhoneNumber = async () => {
     if (!config.phoneNumber) return;
@@ -169,7 +185,8 @@ export default function SecuritySettingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           method: 'email', 
-          code: code 
+          code: code,
+          email: displayEmail
         })
       });
 
@@ -271,7 +288,7 @@ export default function SecuritySettingsPage() {
                 <Input
                   id="email"
                   type="email"
-                  value={session?.user?.email || ""}
+                  value={displayEmail || ""}
                   readOnly
                   className="bg-gray-50"
                 />
@@ -282,13 +299,13 @@ export default function SecuritySettingsPage() {
                       const response = await fetch('/api/user/2fa/email', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email: session?.user?.email })
+                        body: JSON.stringify({ email: displayEmail })
                       });
                       if (response.ok) {
                         setShowEmailVerificationDialog(true);
                         setMessage({ type: 'success', text: 'Code de vérification envoyé par email' });
                       } else {
-                        setMessage({ type: 'error', text: 'Erreur lors de l\'envoi du code' });
+                        setMessage({ type: 'error', text: 'Erreur lors de l&apos;envoi du code' });
                       }
                     } catch (error) {
                       setMessage({ type: 'error', text: 'Erreur de connexion' });
@@ -296,11 +313,32 @@ export default function SecuritySettingsPage() {
                       setIsLoading(false);
                     }
                   }}
-                  disabled={isLoading || config.emailVerified}
+                  disabled={isLoading || config.emailVerified || !displayEmail || displayEmail === session?.user?.email}
                 >
-                  {isLoading ? "Envoi..." : config.emailVerified ? "Email déjà vérifié" : "Envoyer le code"}
+                  {isLoading ? "Envoi..." : 
+                   config.emailVerified ? "Email déjà vérifié" : 
+                   !displayEmail ? "Aucun email configuré" :
+                   displayEmail === session?.user?.email ? "Email ZK non autorisé" :
+                   "Envoyer le code"}
                 </Button>
               </div>
+              
+              {/* Message d'aide pour les utilisateurs ZK sans email d'authentification */}
+              {displayEmail === session?.user?.email && session?.user?.email?.includes('zk-') && (
+                <div className="flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                  <AlertCircle className="h-4 w-4 text-yellow-600" />
+                  <div className="text-sm text-yellow-800">
+                    <p className="font-medium">Email d&apos;authentification requis</p>
+                    <p>Vous devez d&apos;abord ajouter un email et mot de passe à votre compte pour configurer le 2FA email.</p>
+                    <a 
+                      href="/dashboard/settings/profile" 
+                      className="text-yellow-700 underline hover:text-yellow-800 mt-1 inline-block"
+                    >
+                      Aller aux paramètres du profil →
+                    </a>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex items-center justify-between">
@@ -308,7 +346,7 @@ export default function SecuritySettingsPage() {
               <Switch
                 checked={getTwoFactorMethods().includes('email')}
                 onCheckedChange={() => toggleTwoFactorMethod('email')}
-                disabled={!config.emailVerified}
+                disabled={!config.emailVerified || displayEmail === session?.user?.email}
               />
             </div>
           </CardContent>
@@ -360,54 +398,54 @@ export default function SecuritySettingsPage() {
           </CardContent>
         </Card>
 
-
-
-        {/* Authenticator App */}
+        {/* Authenticator Configuration */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Key className="h-5 w-5 text-purple-600" />
-              Application Authenticator
+              Authentification par Authenticator
             </CardTitle>
+            {config.authenticatorEnabled && (
+              <div className="flex items-center gap-2 text-green-600 mt-2">
+                <CheckCircle className="h-4 w-4" />
+                <span className="text-sm">Authenticator configuré</span>
+              </div>
+            )}
           </CardHeader>
           <CardContent className="space-y-4">
             {!config.authenticatorEnabled ? (
               <div className="space-y-4">
                 <p className="text-sm text-gray-600">
-                  Configurez une application comme Google Authenticator ou Authy.
+                  Configurez un authenticator TOTP pour une sécurité renforcée.
                 </p>
                 <Button 
                   onClick={enableAuthenticator}
                   disabled={isLoading}
+                  className="w-full"
                 >
-                  {isLoading ? "Configuration..." : "Configurer Authenticator"}
+                  {isLoading ? "Configuration..." : "Configurer l&apos;authenticator"}
                 </Button>
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="flex items-center gap-2 text-green-600">
-                  <CheckCircle className="h-4 w-4" />
-                  <span className="text-sm">Authenticator configuré</span>
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Lock className="h-4 w-4 text-gray-600" />
+                    <span className="text-sm font-medium">Secret TOTP</span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      navigator.clipboard.writeText(authenticatorSecret);
+                      setMessage({ type: 'success', text: 'Secret copié dans le presse-papiers' });
+                    }}
+                  >
+                    <Copy className="h-4 w-4 mr-1" />
+                    Copier
+                  </Button>
                 </div>
                 
-                <div className="space-y-2">
-                  <Label>Code secret (pour sauvegarde)</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      value={config.authenticatorSecret}
-                      readOnly
-                      className="font-mono text-sm"
-                    />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => navigator.clipboard.writeText(config.authenticatorSecret)}
-                    >
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-
                 <div className="flex items-center justify-between">
                   <span className="text-sm">Activer pour les signatures AES/QES</span>
                   <Switch
@@ -477,11 +515,27 @@ export default function SecuritySettingsPage() {
       <TwoFactorVerificationDialog
         open={showEmailVerificationDialog}
         onOpenChange={setShowEmailVerificationDialog}
-        onConfirm={handleEmailVerification}
         method="email"
-        email={session?.user?.email || ""}
+        email={displayEmail || undefined}
+        onConfirm={handleEmailVerification}
         isLoading={isVerifyingEmail}
       />
+
+      {/* Success/Error Messages */}
+      {message && (
+        <div className={`fixed bottom-4 right-4 p-4 rounded-lg shadow-lg ${
+          message.type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+        }`}>
+          <div className="flex items-center gap-2">
+            {message.type === 'success' ? (
+              <CheckCircle className="h-4 w-4" />
+            ) : (
+              <AlertCircle className="h-4 w-4" />
+            )}
+            <span>{message.text}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

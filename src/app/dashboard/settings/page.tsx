@@ -1,76 +1,163 @@
 "use client";
 
-import React from "react";
 import { useSession } from "next-auth/react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
-  Settings, 
-  Shield, 
   User, 
+  Shield, 
   Bell, 
-  Palette,
-  Database,
-  Key
+  Palette, 
+  Database, 
+  Settings as SettingsIcon,
+  CheckCircle,
+  XCircle
 } from "lucide-react";
-import Link from "next/link";
+import { useState, useEffect } from "react";
+
+interface TwoFactorConfig {
+  emailVerified: boolean;
+  phoneVerified: boolean;
+  authenticatorEnabled: boolean;
+  twoFactorMethods: string;
+}
+
+interface UserProfile {
+  id: string;
+  name: string | null;
+  email: string;
+  hashedPassword: string | null;
+  zkCommitment: string | null;
+}
+
+interface UserStats {
+  toSign: number;
+  completed: number;
+  inProgress: number;
+  total: number;
+}
 
 export default function SettingsPage() {
   const { data: session } = useSession();
+  const [twoFactorConfig, setTwoFactorConfig] = useState<TwoFactorConfig | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [userStats, setUserStats] = useState<UserStats | null>(null);
+  const [loading2FA, setLoading2FA] = useState(true);
+  const [loadingStats, setLoadingStats] = useState(true);
 
-  if (!session?.user) {
-    return (
-      <div className="container mx-auto py-8">
-        <div className="text-center">
-          <p>Veuillez vous connecter pour accéder aux paramètres.</p>
-        </div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    const loadUserData = async () => {
+      if (session?.user) {
+        try {
+          // Charger la config 2FA
+          const configResponse = await fetch('/api/user/2fa');
+          if (configResponse.ok) {
+            const config = await configResponse.json();
+            setTwoFactorConfig(config);
+          }
+
+          // Charger le profil utilisateur
+          const profileResponse = await fetch('/api/user/me');
+          if (profileResponse.ok) {
+            const profile = await profileResponse.json();
+            setUserProfile(profile);
+          }
+
+          // Charger les statistiques
+          const statsResponse = await fetch('/api/user/stats');
+          if (statsResponse.ok) {
+            const stats = await statsResponse.json();
+            setUserStats(stats);
+          }
+        } catch (error) {
+          console.error('Error loading user data:', error);
+        } finally {
+          setLoading2FA(false);
+          setLoadingStats(false);
+        }
+      }
+    };
+
+    loadUserData();
+  }, [session?.user]);
+
+  const hasZKAuth = session?.user?.email?.includes('zk-') || false;
+  const displayEmail = userProfile?.email || session?.user?.email;
+
+  const getTwoFactorStatus = (method: string) => {
+    if (!twoFactorConfig) return { status: 'Non configuré', icon: <XCircle className="h-4 w-4 text-gray-400" /> };
+    
+    switch (method) {
+      case 'email':
+        return {
+          status: twoFactorConfig.emailVerified ? 'Vérifié' : 'Non vérifié',
+          icon: twoFactorConfig.emailVerified ? <CheckCircle className="h-4 w-4 text-green-600" /> : <XCircle className="h-4 w-4 text-gray-400" />
+        };
+      case 'sms':
+        return {
+          status: twoFactorConfig.phoneVerified ? 'Configuré' : 'Non configuré',
+          icon: twoFactorConfig.phoneVerified ? <CheckCircle className="h-4 w-4 text-green-600" /> : <XCircle className="h-4 w-4 text-gray-400" />
+        };
+      case 'authenticator':
+        return {
+          status: twoFactorConfig.authenticatorEnabled ? 'Configuré' : 'Non configuré',
+          icon: twoFactorConfig.authenticatorEnabled ? <CheckCircle className="h-4 w-4 text-green-600" /> : <XCircle className="h-4 w-4 text-gray-400" />
+        };
+      default:
+        return { status: 'Non configuré', icon: <XCircle className="h-4 w-4 text-gray-400" /> };
+    }
+  };
 
   return (
     <div className="container mx-auto py-8 max-w-4xl">
       <div className="mb-8">
-        <div className="flex items-center gap-2 mb-2">
-          <Settings className="h-6 w-6 text-gray-600" />
-          <h1 className="text-3xl font-bold">Paramètres</h1>
-        </div>
-        <p className="text-gray-600">
-          Gérez vos préférences et configurations personnelles.
+        <h1 className="text-3xl font-bold">Paramètres</h1>
+        <p className="text-gray-600 mt-2">
+          Gérez vos préférences et la sécurité de votre compte
         </p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        {/* Profil */}
+        {/* Profil Utilisateur */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <User className="h-5 w-5 text-blue-600" />
               Profil Utilisateur
             </CardTitle>
+            <CardDescription>
+              Informations personnelles et statut d&apos;authentification
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="text-sm text-gray-600">
-              <p>Gérez vos informations personnelles et votre compte.</p>
-            </div>
-            
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Nom</span>
-                <Badge variant="outline">{session.user.name || "Non renseigné"}</Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Email</span>
-                <Badge variant="outline">{session.user.email}</Badge>
+              <p className="text-sm font-medium">Nom</p>
+              <p className="text-gray-600">{session?.user?.name}</p>
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Email</p>
+              <p className="text-gray-600">{displayEmail}</p>
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm font-medium">ZK Auth</p>
+              <div className="flex items-center gap-2">
+                {hasZKAuth ? (
+                  <>
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span className="text-green-600">Actif</span>
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="h-4 w-4 text-gray-400" />
+                    <span className="text-gray-500">Inactif</span>
+                  </>
+                )}
               </div>
             </div>
-
-            <Link href="/profile">
-              <Button variant="outline" className="w-full">
-                Modifier le profil
-              </Button>
-            </Link>
+            <Button asChild className="w-full">
+              <a href="/dashboard/settings/profile">Modifier le profil</a>
+            </Button>
           </CardContent>
         </Card>
 
@@ -78,96 +165,48 @@ export default function SettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-yellow-600" />
+              <Shield className="h-5 w-5 text-green-600" />
               Sécurité
             </CardTitle>
+            <CardDescription>
+              Authentification à deux facteurs et sécurité du compte
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="text-sm text-gray-600">
-              <p>Configurez vos méthodes d'authentification forte pour les signatures AES et QES.</p>
-            </div>
-            
-            <div className="flex gap-2">
-              <Badge variant="outline" className="flex items-center gap-1">
-                <Key className="h-3 w-3" />
-                SMS
-              </Badge>
-              <Badge variant="outline" className="flex items-center gap-1">
-                <Key className="h-3 w-3" />
-                Email
-              </Badge>
-              <Badge variant="outline" className="flex items-center gap-1">
-                <Key className="h-3 w-3" />
-                Authenticator
-              </Badge>
-            </div>
-
-            <Link href="/dashboard/settings/security">
-              <Button className="w-full">
-                <Shield className="mr-2 h-4 w-4" />
-                Configurer 2FA
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-
-        {/* Notifications */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Bell className="h-5 w-5 text-green-600" />
-              Notifications
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="text-sm text-gray-600">
-              <p>Gérez vos préférences de notifications et alertes.</p>
-            </div>
-            
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Emails</span>
-                <Badge variant="secondary">Activé</Badge>
+            {loading2FA ? (
+              <div className="text-center py-4">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900 mx-auto"></div>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">SMS</span>
-                <Badge variant="outline">Désactivé</Badge>
-              </div>
-            </div>
-
-            <Button variant="outline" className="w-full" disabled>
-              Configurer (bientôt)
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Apparence */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Palette className="h-5 w-5 text-purple-600" />
-              Apparence
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="text-sm text-gray-600">
-              <p>Personnalisez l'apparence de votre interface.</p>
-            </div>
-            
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Thème</span>
-                <Badge variant="secondary">Système</Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Langue</span>
-                <Badge variant="secondary">Français</Badge>
-              </div>
-            </div>
-
-            <Button variant="outline" className="w-full" disabled>
-              Configurer (bientôt)
-            </Button>
+            ) : (
+              <>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Email</span>
+                    <div className="flex items-center gap-2">
+                      {getTwoFactorStatus('email').icon}
+                      <span className="text-sm">{getTwoFactorStatus('email').status}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">SMS</span>
+                    <div className="flex items-center gap-2">
+                      {getTwoFactorStatus('sms').icon}
+                      <span className="text-sm">{getTwoFactorStatus('sms').status}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Authenticator</span>
+                    <div className="flex items-center gap-2">
+                      {getTwoFactorStatus('authenticator').icon}
+                      <span className="text-sm">{getTwoFactorStatus('authenticator').status}</span>
+                    </div>
+                  </div>
+                </div>
+                <Button asChild className="w-full">
+                  <a href="/dashboard/settings/security">Configurer la sécurité</a>
+                </Button>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -178,25 +217,75 @@ export default function SettingsPage() {
               <Database className="h-5 w-5 text-orange-600" />
               Données
             </CardTitle>
+            <CardDescription>
+              Gérez vos données et exportez vos informations
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="text-sm text-gray-600">
-              <p>Gérez vos données et exportez vos informations.</p>
-            </div>
-            
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Documents</span>
-                <Badge variant="secondary">0</Badge>
+            {loadingStats ? (
+              <div className="text-center py-4">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900 mx-auto"></div>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Signatures</span>
-                <Badge variant="secondary">0</Badge>
-              </div>
-            </div>
+            ) : (
+              <>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">À signer</span>
+                    <Badge variant="secondary">{userStats?.toSign || 0}</Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Complétés</span>
+                    <Badge variant="secondary">{userStats?.completed || 0}</Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">En cours</span>
+                    <Badge variant="secondary">{userStats?.inProgress || 0}</Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Total</span>
+                    <Badge variant="outline">{userStats?.total || 0}</Badge>
+                  </div>
+                </div>
+                <Button variant="outline" className="w-full" disabled>
+                  Exporter (bientôt)
+                </Button>
+              </>
+            )}
+          </CardContent>
+        </Card>
 
+        {/* Notifications */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Bell className="h-5 w-5 text-purple-600" />
+              Notifications
+            </CardTitle>
+            <CardDescription>
+              Préférences de notifications et alertes
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
             <Button variant="outline" className="w-full" disabled>
-              Exporter (bientôt)
+              Configurer (bientôt)
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Apparence */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Palette className="h-5 w-5 text-pink-600" />
+              Apparence
+            </CardTitle>
+            <CardDescription>
+              Personnalisez l&apos;apparence de l&apos;application
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button variant="outline" className="w-full" disabled>
+              Configurer (bientôt)
             </Button>
           </CardContent>
         </Card>
@@ -205,23 +294,17 @@ export default function SettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Key className="h-5 w-5 text-red-600" />
+              <SettingsIcon className="h-5 w-5 text-gray-600" />
               Compte
             </CardTitle>
+            <CardDescription>
+              Gestion du compte et déconnexion
+            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="text-sm text-gray-600">
-              <p>Actions avancées sur votre compte.</p>
-            </div>
-            
-            <div className="space-y-2">
-              <Button variant="outline" className="w-full" disabled>
-                Changer le mot de passe
-              </Button>
-              <Button variant="outline" className="w-full" disabled>
-                Supprimer le compte
-              </Button>
-            </div>
+          <CardContent>
+            <Button variant="outline" className="w-full" disabled>
+              Gérer le compte (bientôt)
+            </Button>
           </CardContent>
         </Card>
       </div>
