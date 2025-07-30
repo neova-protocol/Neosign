@@ -330,3 +330,45 @@ export async function updateFieldPosition(
     return null;
   }
 }
+
+export class ReminderError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ReminderError";
+  }
+}
+
+export async function sendReminder(documentId: string): Promise<{ message: string }> {
+  const response = await fetch(`/api/documents/${documentId}/remind`, {
+    method: "POST",
+  });
+
+  if (!response.ok) {
+    const errorData = await response
+      .json()
+      .catch(() => ({ message: "Failed to send reminders" }));
+    
+    if (response.status === 429) {
+      throw new ReminderError(errorData.error);
+    }
+    
+    throw new Error(errorData.message);
+  }
+
+  return response.json();
+}
+
+export async function cancelDocument(documentId: string): Promise<{ message: string }> {
+  const response = await fetch(`/api/documents/${documentId}/cancel`, {
+    method: "POST",
+  });
+
+  if (!response.ok) {
+    const errorData = await response
+      .json()
+      .catch(() => ({ message: "Failed to cancel document" }));
+    throw new Error(errorData.message);
+  }
+
+  return response.json();
+}
