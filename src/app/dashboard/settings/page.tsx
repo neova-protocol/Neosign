@@ -12,9 +12,15 @@ import {
   Database, 
   Settings as SettingsIcon,
   CheckCircle,
-  XCircle
+  XCircle,
+  Crown,
+  Trash2,
+  AlertTriangle
 } from "lucide-react";
 import { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface TwoFactorConfig {
   emailVerified: boolean;
@@ -45,6 +51,15 @@ export default function SettingsPage() {
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [loading2FA, setLoading2FA] = useState(true);
   const [loadingStats, setLoadingStats] = useState(true);
+
+  // États pour la suppression de compte
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showDeleteVerification, setShowDeleteVerification] = useState(false);
+  const [emailCode, setEmailCode] = useState("");
+  const [authenticatorCode, setAuthenticatorCode] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+  const [deletionReason, setDeletionReason] = useState("");
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -108,6 +123,76 @@ export default function SettingsPage() {
         return { status: 'Non configuré', icon: <XCircle className="h-4 w-4 text-gray-400" /> };
     }
   };
+
+  const handleDeleteAccount = () => {
+    // Vérifier que 2FA email et authenticator sont activés
+    if (!twoFactorConfig?.emailVerified || !twoFactorConfig?.authenticatorEnabled) {
+      setDeleteError("Vous devez avoir l'authentification par email ET l'authenticator activés pour supprimer votre compte.");
+      return;
+    }
+    setShowDeleteConfirm(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    setShowDeleteConfirm(false);
+    setShowDeleteVerification(true);
+    setDeleteError("");
+
+    // Envoyer un code de vérification par email
+    try {
+      const response = await fetch('/api/user/2fa/email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: displayEmail })
+      });
+
+      if (!response.ok) {
+        setDeleteError("Erreur lors de l'envoi du code de vérification.");
+        setShowDeleteVerification(false);
+      }
+    } catch {
+      setDeleteError("Erreur de connexion lors de l'envoi du code.");
+      setShowDeleteVerification(false);
+    }
+  };
+
+  const handleVerifyAndDelete = async () => {
+    if (!emailCode || !authenticatorCode) {
+      setDeleteError("Veuillez saisir les deux codes de vérification.");
+      return;
+    }
+
+    setIsDeleting(true);
+    setDeleteError("");
+
+    try {
+      const response = await fetch('/api/user/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          emailCode: emailCode,
+          authenticatorCode: authenticatorCode,
+          reason: deletionReason || "Demande de suppression par l'utilisateur"
+        })
+      });
+
+      if (response.ok) {
+        setShowDeleteVerification(false);
+        
+        // Rediriger vers la page de déconnexion
+        window.location.href = "/api/auth/signout";
+      } else {
+        const errorData = await response.json();
+        setDeleteError(errorData.error || "Erreur lors de la suppression du compte.");
+      }
+    } catch {
+      setDeleteError("Erreur de connexion lors de la suppression du compte.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const canDeleteAccount = twoFactorConfig?.emailVerified && twoFactorConfig?.authenticatorEnabled;
 
   return (
     <div className="container mx-auto py-8 max-w-4xl">
@@ -349,13 +434,146 @@ export default function SettingsPage() {
               Gestion du compte et déconnexion
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <Button variant="outline" className="w-full" disabled>
-              Gérer le compte (bientôt)
-            </Button>
+          <CardContent className="space-y-4">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Plan actuel</span>
+                <div className="flex items-center gap-2">
+                  <Crown className="h-4 w-4 text-yellow-600" />
+                  <Badge variant="secondary">Gratuit</Badge>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Statut</span>
+                <Badge variant="outline">Actif</Badge>
+              </div>
+            </div>
+            
+            <div className="pt-4 border-t">
+              <Button 
+                variant="destructive" 
+                className="w-full"
+                onClick={handleDeleteAccount}
+                disabled={!canDeleteAccount}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Supprimer le compte
+              </Button>
+              {!canDeleteAccount && (
+                <p className="text-xs text-gray-500 mt-2 text-center">
+                  L&apos;authentification par email ET l&apos;authenticator doivent être activés
+                </p>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Dialog de confirmation de suppression */}
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-600" />
+              Supprimer le compte
+            </DialogTitle>
+            <DialogDescription>
+              Cette action est <strong>définitive</strong> et ne peut pas être annulée.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="bg-red-50 border border-red-200 rounded-md p-4">
+              <h4 className="font-medium text-red-800 mb-2">⚠️ Attention</h4>
+              <ul className="text-sm text-red-700 space-y-1">
+                <li>• Tous vos documents seront définitivement supprimés</li>
+                <li>• Vos données personnelles seront effacées de Neosign</li>
+                <li>• Votre compte sera désactivé pendant 15 jours puis supprimé</li>
+                <li>• Cette action ne peut pas être annulée</li>
+              </ul>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="deletion-reason">Raison de la suppression (optionnel)</Label>
+              <Input
+                id="deletion-reason"
+                placeholder="Pourquoi souhaitez-vous supprimer votre compte ?"
+                value={deletionReason}
+                onChange={(e) => setDeletionReason(e.target.value)}
+              />
+            </div>
+            {deleteError && (
+              <div className="bg-red-50 border border-red-200 rounded-md p-3">
+                <p className="text-sm text-red-700">{deleteError}</p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>
+              Annuler
+            </Button>
+            <Button variant="destructive" onClick={handleConfirmDelete}>
+              Continuer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de vérification 2FA */}
+      <Dialog open={showDeleteVerification} onOpenChange={setShowDeleteVerification}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-red-600" />
+              Vérification finale
+            </DialogTitle>
+            <DialogDescription>
+              Saisissez les codes de vérification pour confirmer la suppression
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email-code">Code reçu par email</Label>
+              <Input
+                id="email-code"
+                type="text"
+                placeholder="000000"
+                value={emailCode}
+                onChange={(e) => setEmailCode(e.target.value)}
+                maxLength={6}
+                className="text-center font-mono text-lg"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="authenticator-code">Code Authenticator</Label>
+              <Input
+                id="authenticator-code"
+                type="text"
+                placeholder="000000"
+                value={authenticatorCode}
+                onChange={(e) => setAuthenticatorCode(e.target.value)}
+                maxLength={6}
+                className="text-center font-mono text-lg"
+              />
+            </div>
+            {deleteError && (
+              <div className="bg-red-50 border border-red-200 rounded-md p-3">
+                <p className="text-sm text-red-700">{deleteError}</p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteVerification(false)}>
+              Annuler
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleVerifyAndDelete}
+              disabled={isDeleting || !emailCode || !authenticatorCode}
+            >
+              {isDeleting ? "Suppression..." : "Supprimer définitivement"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

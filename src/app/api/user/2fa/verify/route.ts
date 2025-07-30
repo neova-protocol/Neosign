@@ -3,29 +3,20 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/db";
 import { authenticator } from "otplib";
-
-// Stockage temporaire des codes (même Map que dans l'API email)
-const tempCodes = new Map<string, { code: string; expiresAt: number }>();
-
-// Fonction pour nettoyer les codes expirés
-function cleanupExpiredCodes() {
-  const now = Date.now();
-  for (const [email, data] of tempCodes.entries()) {
-    if (data.expiresAt < now) {
-      tempCodes.delete(email);
-    }
-  }
-}
+import { getCode, deleteCode, cleanupExpiredCodes, getAllCodes } from "@/lib/temp-codes-db";
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401 }
+    );
   }
 
   try {
     const { method, code, phoneNumber, email } = await request.json();
-
+    
     if (!method || !code) {
       return NextResponse.json(
         { error: "Method and code are required" },
@@ -33,28 +24,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Nettoyer les codes expirés
-    cleanupExpiredCodes();
-
     let isValid = false;
     let updatedMethods: string[] = [];
 
-    switch (method) {
-      case 'sms':
-        // En production, vérifier le code stocké temporairement
-        // Pour cette démo, on accepte n'importe quel code à 6 chiffres
-        isValid = /^\d{6}$/.test(code);
-        if (isValid && phoneNumber) {
-          await prisma.user.update({
-            where: { id: session.user.id },
-            data: {
-              phoneNumber,
-              phoneVerified: true,
-            }
-          });
-        }
-        break;
+    await cleanupExpiredCodes();
 
+    switch (method) {
       case 'email':
         // Vérifier que l'email est fourni
         if (!email) {
@@ -64,8 +39,16 @@ export async function POST(request: NextRequest) {
           );
         }
 
+        // Pour la vérification 2FA, on accepte l'email d'authentification
+        // qui peut être différent de l'email de session (cas ZK)
+        console.log(`Vérification 2FA email: ${email} (session email: ${session.user.email})`);
+        
         // Récupérer le code stocké pour cet email
-        const storedData = tempCodes.get(email);
+        const storedData = await getCode(email, "2fa");
+        
+        console.log(`Vérification email: ${email}`);
+        console.log(`Codes stockés:`, await getAllCodes());
+        console.log(`Code stocké pour ${email}:`, storedData);
         
         if (!storedData) {
           console.log(`Aucun code trouvé pour l'email: ${email}`);
@@ -78,7 +61,7 @@ export async function POST(request: NextRequest) {
         // Vérifier l'expiration
         if (storedData.expiresAt < Date.now()) {
           console.log(`Code expiré pour l'email: ${email}`);
-          tempCodes.delete(email);
+          await deleteCode(email, "2fa");
           return NextResponse.json(
             { error: "Code de vérification expiré. Veuillez demander un nouveau code." },
             { status: 400 }
@@ -90,13 +73,28 @@ export async function POST(request: NextRequest) {
           console.log(`Code vérifié avec succès pour l'email: ${email}`);
           isValid = true;
           // Supprimer le code après utilisation
-          tempCodes.delete(email);
+          await deleteCode(email, "2fa");
         } else {
           console.log(`Code incorrect pour l'email: ${email}. Attendu: ${storedData.code}, Reçu: ${code}`);
           return NextResponse.json(
             { error: "Code de vérification incorrect" },
             { status: 400 }
           );
+        }
+        break;
+
+      case 'sms':
+        // En production, vérifier le code stocké temporairement
+        // Pour cette démo, on accepte n'importe quel code à 6 chiffres
+        isValid = /^\d{6}$/.test(code);
+        if (isValid && phoneNumber) {
+          await prisma.user.update({
+            where: { id: session.user.id },
+            data: {
+              phoneNumber,
+              phoneVerified: true,
+            }
+          });
         }
         break;
 
