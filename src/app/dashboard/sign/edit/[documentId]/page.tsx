@@ -122,6 +122,7 @@ export default function EditDocumentPage() {
       height: 75, // Standard height in pixels
       signatoryId: selectedSignatoryId,
       value: null,
+      signatureType: "simple", // Ajout de la valeur par défaut
     });
   };
 

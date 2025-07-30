@@ -1,20 +1,14 @@
 "use client";
-import React, { useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import SignaturePad from "./SignaturePad";
-import { SESSignatureService } from "@/services/signature/SESSignatureService";
-import { SESSignature, SignatureCompliance } from "@/types/signature";
-import { CheckCircle, AlertCircle, Clock, Shield } from "lucide-react";
+import React, { useState, useRef } from 'react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { SESSignature, SignatureCompliance } from '@/types/signature';
+import { SESSignatureService } from '@/services/signature/SESSignatureService';
+import SignatureCanvas from "react-signature-canvas";
+import { ShieldCheck, Mail, Smartphone, Lock, CheckCircle, AlertCircle } from 'lucide-react';
+import SESComplianceBadge from './SESComplianceBadge';
 
 interface SESSignatureDialogProps {
   open: boolean;
@@ -39,44 +33,40 @@ const SESSignatureDialog: React.FC<SESSignatureDialogProps> = ({
   userEmail,
   userPhone,
 }) => {
-  const [signatureData, setSignatureData] = useState<string | null>(null);
   const [validationCode, setValidationCode] = useState("");
   const [isValidating, setIsValidating] = useState(false);
   const [validationStep, setValidationStep] = useState<'signature' | 'validation' | 'completed'>('signature');
   const [compliance, setCompliance] = useState<SignatureCompliance | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  const sesService = SESSignatureService.getInstance();
+  const [currentSignature, setCurrentSignature] = useState<SESSignature | null>(null);
+  const sigCanvas = useRef<SignatureCanvas>(null);
 
   const handleSignatureComplete = async () => {
-    if (!signatureData) return;
+    if (!sigCanvas.current) return;
 
     try {
       setIsValidating(true);
       setError(null);
 
-      // Créer la signature SES
-      const signature = await sesService.createSESSignature(
-        signatoryId,
+      // Get signature as base64 data URL
+      const signatureDataUrl = sigCanvas.current.toDataURL("image/png");
+
+      // Créer la signature SES avec les nouvelles méthodes statiques
+      const signature = SESSignatureService.createSignature(
         documentId,
-        signatureData,
+        signatoryId,
+        signatureDataUrl,
         validationMethod,
-        navigator.userAgent,
-        '127.0.0.1' // En production, récupérer l'IP réelle
+        '127.0.0.1', // En production, récupérer l'IP réelle
+        navigator.userAgent
       );
 
-      // Envoyer le code de validation
-      const codeSent = await sesService.sendValidationCode(
-        signature.id,
-        userEmail,
-        userPhone
-      );
-
-      if (codeSent) {
-        setValidationStep('validation');
-      } else {
-        setError('Failed to send validation code');
-      }
+      setCurrentSignature(signature);
+      setValidationStep('validation');
+      
+      // Simuler l'envoi du code de validation
+      console.log(`Code de validation envoyé: ${signature.validationCode}`);
+      
     } catch (error) {
       setError('Failed to create signature');
       console.error('Error creating SES signature:', error);
@@ -86,38 +76,30 @@ const SESSignatureDialog: React.FC<SESSignatureDialogProps> = ({
   };
 
   const handleValidationSubmit = async () => {
-    if (!validationCode) return;
+    if (!validationCode || !currentSignature) return;
 
     try {
       setIsValidating(true);
       setError(null);
 
-      // Récupérer la signature créée
-      const signature = await sesService.getSignature(signatoryId);
-      
-      if (!signature) {
-        setError('Signature not found');
-        return;
-      }
-
-      // Valider la signature
-      const isValid = await sesService.validateSignature(
-        signature.id,
+      // Valider la signature avec les nouvelles méthodes statiques
+      const result = SESSignatureService.validateSignature(
+        currentSignature,
         validationCode,
-        navigator.userAgent,
-        '127.0.0.1'
+        '127.0.0.1',
+        navigator.userAgent
       );
 
-      if (isValid) {
+      if (result.isValid) {
         // Vérifier la conformité
-        const complianceData = sesService.getSESCompliance(signature);
+        const complianceData = SESSignatureService.getCompliance(currentSignature);
         setCompliance(complianceData);
         setValidationStep('completed');
         
         // Confirmer la signature
-        onConfirm(signature);
+        onConfirm(currentSignature);
       } else {
-        setError('Invalid validation code');
+        setError(result.message || 'Invalid validation code');
       }
     } catch (error) {
       setError('Validation failed');
@@ -125,11 +107,6 @@ const SESSignatureDialog: React.FC<SESSignatureDialogProps> = ({
     } finally {
       setIsValidating(false);
     }
-  };
-
-  const handleClear = () => {
-    setSignatureData(null);
-    setError(null);
   };
 
   const getValidationMethodLabel = () => {
@@ -148,153 +125,149 @@ const SESSignatureDialog: React.FC<SESSignatureDialogProps> = ({
   const getValidationMethodIcon = () => {
     switch (validationMethod) {
       case 'email':
-        return '📧';
+        return <Mail className="h-5 w-5" />;
       case 'sms':
-        return '📱';
+        return <Smartphone className="h-5 w-5" />;
       case 'password':
-        return '🔐';
+        return <Lock className="h-5 w-5" />;
       default:
-        return '✓';
+        return <ShieldCheck className="h-5 w-5" />;
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5 text-blue-600" />
-            SES Signature - {signatoryName}
+            <ShieldCheck className="h-6 w-6 text-blue-600" />
+            Signature Électronique Simple (SES)
           </DialogTitle>
+          <DialogDescription>
+            Signature électronique avec validation par {getValidationMethodLabel().toLowerCase()}.
+            Ce niveau offre une sécurité de base conforme aux standards eIDAS.
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          {/* Étape 1: Signature */}
-          {validationStep === 'signature' && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary" className="flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  Step 1: Create Signature
-                </Badge>
-              </div>
-              
-              <SignaturePad
-                onEnd={(data) => setSignatureData(data)}
-                onClear={handleClear}
-              />
-
-              {error && (
-                <div className="flex items-center gap-2 text-red-600 text-sm">
-                  <AlertCircle className="h-4 w-4" />
-                  {error}
-                </div>
-              )}
-
-              <div className="text-sm text-gray-600">
-                <p>This is a Simple Electronic Signature (SES) compliant with eIDAS standards.</p>
-                <p className="mt-1">Validation method: {getValidationMethodLabel()}</p>
-              </div>
-            </div>
-          )}
-
-          {/* Étape 2: Validation */}
-          {validationStep === 'validation' && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary" className="flex items-center gap-1">
-                  {getValidationMethodIcon()}
-                  Step 2: Validate Signature
-                </Badge>
-              </div>
-
-              <div className="text-sm text-gray-600">
-                <p>A validation code has been sent to your {validationMethod}.</p>
-                <p className="mt-1">Please enter the code below to complete the signature.</p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="validationCode">Validation Code</Label>
-                <Input
-                  id="validationCode"
-                  type="text"
-                  placeholder="Enter 6-digit code"
-                  value={validationCode}
-                  onChange={(e) => setValidationCode(e.target.value)}
-                  maxLength={6}
-                  className="text-center text-lg tracking-widest"
+        {validationStep === 'signature' && (
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="signature">Signature de {signatoryName}</Label>
+              <div className="border rounded-md mt-1">
+                <SignatureCanvas
+                  ref={sigCanvas}
+                  penColor="black"
+                  canvasProps={{
+                    className: "w-full h-[200px]",
+                    // @ts-expect-error - willreadfrequently is a valid canvas property
+                    willreadfrequently: "true",
+                  }}
                 />
               </div>
-
-              {error && (
-                <div className="flex items-center gap-2 text-red-600 text-sm">
-                  <AlertCircle className="h-4 w-4" />
-                  {error}
-                </div>
-              )}
             </div>
-          )}
 
-          {/* Étape 3: Complété */}
-          {validationStep === 'completed' && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Badge variant="default" className="flex items-center gap-1 bg-green-600">
-                  <CheckCircle className="h-3 w-3" />
-                  Signature Completed
-                </Badge>
+            {error && (
+              <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-md">
+                <AlertCircle className="h-4 w-4 text-red-600" />
+                <span className="text-sm text-red-700">{error}</span>
               </div>
+            )}
 
-              {compliance && (
-                <div className="space-y-2 p-3 bg-green-50 rounded-md">
-                  <div className="flex items-center gap-2 text-green-800">
-                    <CheckCircle className="h-4 w-4" />
-                    <span className="font-medium">eIDAS Compliant</span>
-                  </div>
-                  <div className="text-sm text-green-700">
-                    <p>Level: {compliance.eIDASLevel}</p>
-                    <p>Legal Value: {compliance.legalValue}</p>
-                  </div>
-                </div>
-              )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
+                Annuler
+              </Button>
+              <Button 
+                onClick={handleSignatureComplete}
+                disabled={!sigCanvas.current || isValidating}
+              >
+                {isValidating ? 'Création...' : 'Continuer'}
+              </Button>
+            </DialogFooter>
+          </div>
+        )}
 
-              <div className="text-sm text-gray-600">
-                <p>Your signature has been successfully created and validated.</p>
-                <p className="mt-1">This signature is compliant with eIDAS SES standards.</p>
+        {validationStep === 'validation' && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+              {getValidationMethodIcon()}
+              <div>
+                <p className="text-sm font-medium text-blue-800">
+                  Code de validation envoyé
+                </p>
+                <p className="text-xs text-blue-600">
+                  {validationMethod === 'email' && userEmail && `Envoyé à ${userEmail}`}
+                  {validationMethod === 'sms' && userPhone && `Envoyé au ${userPhone}`}
+                  {validationMethod === 'password' && 'Vérifiez votre mot de passe'}
+                </p>
               </div>
             </div>
-          )}
-        </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          
-          {validationStep === 'signature' && (
-            <Button 
-              onClick={handleSignatureComplete} 
-              disabled={!signatureData || isValidating}
-            >
-              {isValidating ? 'Creating...' : 'Create Signature'}
-            </Button>
-          )}
-          
-          {validationStep === 'validation' && (
-            <Button 
-              onClick={handleValidationSubmit} 
-              disabled={!validationCode || isValidating}
-            >
-              {isValidating ? 'Validating...' : 'Validate Signature'}
-            </Button>
-          )}
-          
-          {validationStep === 'completed' && (
-            <Button onClick={() => onOpenChange(false)}>
-              Close
-            </Button>
-          )}
-        </DialogFooter>
+            <div>
+              <Label htmlFor="validationCode">Code de validation</Label>
+              <Input
+                id="validationCode"
+                type="text"
+                placeholder="Entrez le code reçu"
+                value={validationCode}
+                onChange={(e) => setValidationCode(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+
+            {error && (
+              <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-md">
+                <AlertCircle className="h-4 w-4 text-red-600" />
+                <span className="text-sm text-red-700">{error}</span>
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setValidationStep('signature')}>
+                Retour
+              </Button>
+              <Button 
+                onClick={handleValidationSubmit}
+                disabled={!validationCode || isValidating}
+              >
+                {isValidating ? 'Validation...' : 'Valider'}
+              </Button>
+            </DialogFooter>
+          </div>
+        )}
+
+        {validationStep === 'completed' && compliance && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-md">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              <div>
+                <p className="text-sm font-medium text-green-800">
+                  Signature validée avec succès
+                </p>
+                <p className="text-xs text-green-600">
+                  La signature SES a été créée et validée
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <h4 className="text-sm font-semibold">Conformité eIDAS</h4>
+              <SESComplianceBadge compliance={compliance} />
+              
+              <div className="text-xs text-gray-600 space-y-1">
+                <p><strong>Niveau:</strong> {compliance.eIDASLevel}</p>
+                <p><strong>Valeur légale:</strong> {compliance.legalValue}</p>
+                <p><strong>Méthode de validation:</strong> {validationMethod}</p>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button onClick={() => onOpenChange(false)}>
+                Terminer
+              </Button>
+            </DialogFooter>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
