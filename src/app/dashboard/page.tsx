@@ -5,13 +5,11 @@ import { MoreHorizontal, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from "next/link";
-import { NeovaLogo } from "@/components/NeovaLogo";
 import { DecorativeDashboard } from "@/components/DecorativeDashboard";
 import { getDocuments } from "@/lib/api";
 import { Document } from "@/types";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { BackgroundPattern } from "@/components/BackgroundPattern";
 
 export default function HomePage() {
   const [documents, setDocuments] = useState<Document[]>([]);
