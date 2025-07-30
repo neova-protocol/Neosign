@@ -153,7 +153,7 @@ export default function Header() {
                 <p className="font-semibold text-sm text-gray-800">{day}</p>
                 <p className="text-xs text-gray-500">{date}</p>
               </div>
-              <Link href="/dashboard/settings">
+              <Link href="/dashboard/settings/general">
                 <Avatar className="h-10 w-10 cursor-pointer">
                   <AvatarImage
                     src={session.user?.image ?? "https://github.com/shadcn.png"}
