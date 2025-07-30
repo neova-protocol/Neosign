@@ -144,6 +144,7 @@ model SignatureField {
   width  Float
   height Float
   value  String?
+  signatureType String @default("simple") // simple, ses, aes, qes
 
   documentId  String
   document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)

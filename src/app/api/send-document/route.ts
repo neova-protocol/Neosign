@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
 import { Resend } from "resend";
@@ -24,7 +23,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { documentId } = await req.json();
+  const { documentId, signatureType } = await req.json();
 
   if (!documentId) {
     return NextResponse.json(
@@ -104,6 +103,26 @@ export async function POST(req: NextRequest) {
         where: { id: documentId },
         data: { status: "sent", updatedAt: new Date() },
       });
+
+      // Mettre à jour le type de signature pour tous les champs de signature
+      if (signatureType) {
+        console.log(`🔧 Updating signature fields for document ${documentId} with type: ${signatureType}`);
+        
+        // Vérifier les champs avant mise à jour
+        const fieldsBefore = await tx.$queryRaw`SELECT id, signatureType FROM SignatureField WHERE documentId = ${documentId}`;
+        console.log(`📋 Fields before update:`, fieldsBefore);
+        
+        // Utiliser une requête SQL brute pour éviter les problèmes de types
+        await tx.$executeRaw`UPDATE SignatureField SET signatureType = ${signatureType} WHERE documentId = ${documentId}`;
+        
+        // Vérifier les champs après mise à jour
+        const fieldsAfter = await tx.$queryRaw`SELECT id, signatureType FROM SignatureField WHERE documentId = ${documentId}`;
+        console.log(`📋 Fields after update:`, fieldsAfter);
+        
+        console.log(`✅ Updated signature fields for document ${documentId}`);
+      } else {
+        console.log(`⚠️ No signatureType provided for document ${documentId}`);
+      }
 
       await tx.signatory.updateMany({
         where: { documentId: documentId, status: "preparing" },

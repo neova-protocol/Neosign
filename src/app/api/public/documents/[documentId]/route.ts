@@ -48,6 +48,10 @@ export async function GET(request: NextRequest, { params }: Params) {
       );
     }
 
+    console.log(`📄 Public document requested: ${documentId}`);
+    console.log(`📋 Document fields:`, document.fields);
+    console.log(`🔍 Fields count:`, document.fields.length);
+    console.log(`🔍 First field:`, document.fields[0]);
     return NextResponse.json(document);
   } catch (error) {
     console.error(`Failed to fetch public document ${documentId}:`, error);

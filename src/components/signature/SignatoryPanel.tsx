@@ -8,9 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Trash2, Send, UserPlus, Users, Shield, PenTool, Info } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { SignatureType } from "./SignatureTypeSelector";
-import { SESSignature, AESSignature } from "@/types/signature";
-import SESSignatureDialog from "./SESSignatureDialog";
-import { AESSignatureDialog } from "./AESSignatureDialog";
+
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface SignatoryPanelProps {
@@ -35,8 +34,7 @@ const SignatoryPanel: React.FC<SignatoryPanelProps> = ({
   const [isAdding, setIsAdding] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [selectedSignatureType, setSelectedSignatureType] = useState<SignatureType>('simple');
-  const [showSESSignatureDialog, setShowSESSignatureDialog] = useState(false);
-  const [showAESSignatureDialog, setShowAESSignatureDialog] = useState(false);
+
   const [showInfoDialog, setShowInfoDialog] = useState(false);
 
   const currentUser = session?.user;
@@ -114,19 +112,7 @@ const SignatoryPanel: React.FC<SignatoryPanelProps> = ({
     
     console.log("Sending document with signature type:", selectedSignatureType);
     
-    if (selectedSignatureType === 'ses') {
-      // Pour SES, ouvrir le dialogue de signature au lieu d'envoyer directement
-      setShowSESSignatureDialog(true);
-      return;
-    }
-    
-    if (selectedSignatureType === 'aes') {
-      // Pour AES, ouvrir le dialogue de signature AES
-      setShowAESSignatureDialog(true);
-      return;
-    }
-    
-    // Pour les autres types (simple, aes, qes), envoyer directement
+    // Toujours envoyer le document, les signatures se feront plus tard
     setIsSending(true);
     try {
       const res = await fetch(`/api/send-document`, {
@@ -152,61 +138,7 @@ const SignatoryPanel: React.FC<SignatoryPanelProps> = ({
     }
   };
 
-  const handleSESSignatureComplete = (signature: SESSignature) => {
-    console.log('SES signature completed:', signature);
-    setShowSESSignatureDialog(false);
-    
-    // Maintenant envoyer le document avec la signature SES
-    setIsSending(true);
-    fetch(`/api/send-document`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ 
-        documentId: currentDocument!.id,
-        signatureType: 'ses',
-        sesSignature: signature
-      }),
-    }).then(res => {
-      if (res.ok) {
-        router.push("/dashboard");
-      } else {
-        alert("Failed to send document with SES signature");
-      }
-    }).catch(error => {
-      console.error("Error sending document:", error);
-      alert("An error occurred while sending the document.");
-    }).finally(() => {
-      setIsSending(false);
-    });
-  };
 
-  const handleAESSignatureComplete = (signature: AESSignature) => {
-    console.log('AES signature completed:', signature);
-    setShowAESSignatureDialog(false);
-    
-    // Maintenant envoyer le document avec la signature AES
-    setIsSending(true);
-    fetch(`/api/send-document`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ 
-        documentId: currentDocument!.id,
-        signatureType: 'aes',
-        aesSignature: signature
-      }),
-    }).then(res => {
-      if (res.ok) {
-        router.push("/dashboard");
-      } else {
-        alert("Failed to send document with AES signature");
-      }
-    }).catch(error => {
-      console.error("Error sending document:", error);
-      alert("An error occurred while sending the document.");
-    }).finally(() => {
-      setIsSending(false);
-    });
-  };
 
 
 
@@ -391,31 +323,7 @@ const SignatoryPanel: React.FC<SignatoryPanelProps> = ({
         </div>
       </div>
 
-      {/* Dialogue de signature SES */}
-      <SESSignatureDialog
-        open={showSESSignatureDialog}
-        onOpenChange={setShowSESSignatureDialog}
-        onConfirm={handleSESSignatureComplete}
-        signatoryName={currentUser?.name || "Current User"}
-        signatoryId={currentUser?.id || ""}
-        documentId={currentDocument?.id || ""}
-        validationMethod="email"
-        userEmail={currentUser?.email || ""}
-        userPhone=""
-      />
 
-      {/* Dialogue de signature AES */}
-      <AESSignatureDialog
-        open={showAESSignatureDialog}
-        onOpenChange={setShowAESSignatureDialog}
-        onConfirm={handleAESSignatureComplete}
-        signatoryName={currentUser?.name || "Current User"}
-        signatoryId={currentUser?.id || ""}
-        documentId={currentDocument?.id || ""}
-        twoFactorMethod="sms"
-        userEmail={currentUser?.email || ""}
-        userPhone=""
-      />
 
       {/* Modale d'information sur les types de signature */}
       <Dialog open={showInfoDialog} onOpenChange={setShowInfoDialog}>

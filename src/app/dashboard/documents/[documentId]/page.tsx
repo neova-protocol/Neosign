@@ -46,7 +46,7 @@ export default function DocumentDetailPage() {
   const router = useRouter();
   const { data: session } = useSession();
   const documentId = params.documentId as string;
-  const { currentDocument, setCurrentDocument } = useSignature();
+  const { } = useSignature();
   const [localDocument, setLocalDocument] = useState<AppDocument | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -173,17 +173,58 @@ export default function DocumentDetailPage() {
             <div>
               <h3 className="text-lg font-semibold mb-4">Signatories</h3>
               <div className="space-y-4">
-                {signatories.map((s: Signatory) => (
-                  <div key={s.id} className="p-4 border rounded-md">
-                    <p className="font-bold">{s.name}</p>
-                    <p className="text-sm text-gray-600">{s.email}</p>
-                    <p
-                      className={`text-sm font-semibold capitalize mt-1 ${s.status === "signed" ? "text-green-500" : "text-yellow-500"}`}
-                    >
-                      {s.status}
-                    </p>
-                  </div>
-                ))}
+                {signatories.map((s: Signatory) => {
+                  // Trouver les champs de signature pour ce signataire
+                  const signatoryFields = localDocument.fields.filter(f => f.signatoryId === s.id);
+                  const signatureType = signatoryFields.length > 0 ? signatoryFields[0].signatureType : 'simple';
+                  
+                  const getSignatureTypeLabel = (type: string) => {
+                    switch (type) {
+                      case 'simple':
+                        return 'Signature Simple';
+                      case 'ses':
+                        return 'SES - Simple Electronic Signature';
+                      case 'aes':
+                        return 'AES - Advanced Electronic Signature';
+                      case 'qes':
+                        return 'QES - Qualified Electronic Signature';
+                      default:
+                        return 'Signature Simple';
+                    }
+                  };
+
+                  const getSignatureTypeColor = (type: string) => {
+                    switch (type) {
+                      case 'simple':
+                        return 'bg-gray-100 text-gray-800';
+                      case 'ses':
+                        return 'bg-blue-100 text-blue-800';
+                      case 'aes':
+                        return 'bg-yellow-100 text-yellow-800';
+                      case 'qes':
+                        return 'bg-green-100 text-green-800';
+                      default:
+                        return 'bg-gray-100 text-gray-800';
+                    }
+                  };
+
+                  return (
+                    <div key={s.id} className="p-4 border rounded-md">
+                      <p className="font-bold">{s.name}</p>
+                      <p className="text-sm text-gray-600">{s.email}</p>
+                      <p
+                        className={`text-sm font-semibold capitalize mt-1 ${s.status === "signed" ? "text-green-500" : "text-yellow-500"}`}
+                      >
+                        {s.status}
+                      </p>
+                      <div className="mt-2">
+                        <span className={`inline-block px-2 py-1 text-xs rounded-full ${getSignatureTypeColor(signatureType)}`}>
+                          {getSignatureTypeLabel(signatureType)}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>

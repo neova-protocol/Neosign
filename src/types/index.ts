@@ -23,6 +23,7 @@ export type SignatureField = {
   height: number;
   value: string | null | undefined;
   signatoryId: string | null;
+  signatureType: string; // simple, ses, aes, qes
 };
 
 export type DocumentEvent = {

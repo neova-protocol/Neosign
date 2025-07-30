@@ -80,7 +80,17 @@ export async function POST(
       );
     }
 
-    const data: any = {
+    const data: {
+      documentId: string;
+      type: string;
+      page: number;
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+      signatureType: string;
+      signatoryId?: string;
+    } = {
       documentId,
       type,
       page: parseInt(page.toString()),
@@ -88,6 +98,7 @@ export async function POST(
       y: parseFloat(y.toString()),
       width: parseFloat(width.toString()),
       height: parseFloat(height.toString()),
+      signatureType: 'simple', // Par défaut, sera mis à jour lors de l'envoi
     };
 
     if (signatoryId) {

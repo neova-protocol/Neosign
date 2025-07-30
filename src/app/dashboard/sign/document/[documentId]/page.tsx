@@ -6,8 +6,10 @@ import { useSession } from "next-auth/react";
 import { useSignature } from "@/contexts/SignatureContext";
 import { getDocumentById } from "@/lib/api";
 import dynamic from "next/dynamic";
-import { Document as AppDocument, SignatureField } from "@/types";
+import { SignatureField } from "@/types";
 import { Button } from "@/components/ui/button";
+import SESSignatureDialog from "@/components/signature/SESSignatureDialog";
+import { AESSignatureDialog } from "@/components/signature/AESSignatureDialog";
 
 // Dynamically import heavy components
 const PDFViewer = dynamic(() => import("@/components/pdf/PDFViewer"), {
@@ -28,19 +30,56 @@ export default function SignDocumentPage() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [fieldToSign, setFieldToSign] = useState<SignatureField | null>(null);
-  const [viewVersion, setViewVersion] = useState(0);
+  const [showSESSignature, setShowSESSignature] = useState(false);
+  const [showAESSignature, setShowAESSignature] = useState(false);
 
   useEffect(() => {
-    if (documentId && (!currentDocument || currentDocument.id !== documentId)) {
+    if (documentId) {
       getDocumentById(documentId).then((doc) => {
-        if (doc) setCurrentDocument(doc);
+        if (doc) {
+          console.log(`📄 Dashboard document loaded:`, doc);
+          console.log(`📋 Document fields:`, doc.fields);
+          if (doc.fields && doc.fields.length > 0) {
+            console.log(`🔍 First field signatureType:`, doc.fields[0].signatureType);
+          }
+          setCurrentDocument(doc);
+        }
       });
     }
-  }, [documentId, currentDocument, setCurrentDocument]);
+  }, [documentId, setCurrentDocument]);
 
-  const handleSignClick = (field: SignatureField) => {
-    setFieldToSign(field);
-    setIsModalOpen(true);
+  const handleSignClick = async (field: SignatureField) => {
+    // Log pour debug
+    console.log(`🔍 === DÉBUT handleSignClick ===`);
+    console.log(`📋 Field reçu:`, field);
+    console.log(`📋 Field.signatureType:`, field.signatureType);
+    
+    const signatureType = field.signatureType || 'simple';
+    console.log(`🎯 Field clicked - Signature type detected: ${signatureType}`);
+    console.log(`🔍 === FIN handleSignClick ===`);
+    
+    switch (signatureType) {
+      case 'simple':
+        console.log(`📝 Opening simple signature dialog`);
+        setFieldToSign(field);
+        setIsModalOpen(true);
+        break;
+      case 'ses':
+        console.log(`🛡️ Opening SES signature dialog`);
+        setFieldToSign(field);
+        setShowSESSignature(true);
+        break;
+      case 'aes':
+        console.log(`🔒 Opening AES signature dialog`);
+        setFieldToSign(field);
+        setShowAESSignature(true);
+        break;
+      default:
+        console.log(`❓ Unknown signature type: ${signatureType}, using simple`);
+        setFieldToSign(field);
+        setIsModalOpen(true);
+        break;
+    }
   };
 
   const handleSaveSignature = async (signatureDataUrl: string) => {
@@ -51,6 +90,30 @@ export default function SignDocumentPage() {
     await refreshDocument(documentId);
 
     setIsModalOpen(false);
+    setShowSESSignature(false);
+    setShowAESSignature(false);
+    setFieldToSign(null);
+  };
+
+  const handleSESSignatureComplete = async (signature: { signatureData: string }) => {
+    console.log("Saving SES signature for field:", fieldToSign);
+    if (!fieldToSign) return;
+
+    await updateField(fieldToSign.id, { value: signature.signatureData });
+    await refreshDocument(documentId);
+
+    setShowSESSignature(false);
+    setFieldToSign(null);
+  };
+
+  const handleAESSignatureComplete = async (signatureData: { signatureData: string }) => {
+    console.log("Saving AES signature for field:", fieldToSign);
+    if (!fieldToSign) return;
+
+    await updateField(fieldToSign.id, { value: signatureData.signatureData });
+    await refreshDocument(documentId);
+
+    setShowAESSignature(false);
     setFieldToSign(null);
   };
 
@@ -118,17 +181,44 @@ export default function SignDocumentPage() {
         </div>
       </header>
       <main className="flex-1 overflow-y-auto">
-        {isModalOpen && fieldToSign && (
+        {isModalOpen && fieldToSign && !showSESSignature && !showAESSignature && (
           <SignatureModal
             isOpen={isModalOpen}
             onClose={() => setIsModalOpen(false)}
             onSave={handleSaveSignature}
           />
         )}
+        
+        {fieldToSign && showSESSignature && (
+          <SESSignatureDialog
+            open={showSESSignature}
+            onOpenChange={setShowSESSignature}
+            onConfirm={handleSESSignatureComplete}
+            signatoryName={selfAsSignatory?.name || ''}
+            signatoryId={selfAsSignatory?.id || ''}
+            documentId={currentDocument.id}
+            validationMethod="email"
+            userEmail={selfAsSignatory?.email || ''}
+          />
+        )}
+        
+        {fieldToSign && showAESSignature && (
+          <AESSignatureDialog
+            open={showAESSignature}
+            onOpenChange={setShowAESSignature}
+            onConfirm={handleAESSignatureComplete}
+            signatoryName={selfAsSignatory?.name || ''}
+            signatoryId={selfAsSignatory?.id || ''}
+            documentId={currentDocument.id}
+            twoFactorMethod="email"
+            userEmail={selfAsSignatory?.email || ''}
+            userPhone=""
+          />
+        )}
+        
         <PDFViewer
-          key={viewVersion}
+          key={currentDocument.id} // Add key to force re-render
           fileUrl={currentDocument.fileUrl}
-          document={currentDocument}
           activeSignatoryId={selfAsSignatory?.id}
           onSignClick={handleSignClick}
         />
