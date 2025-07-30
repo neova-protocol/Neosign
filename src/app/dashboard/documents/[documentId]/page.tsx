@@ -172,6 +172,49 @@ export default function DocumentDetailPage() {
             </div>
             <div>
               <h3 className="text-lg font-semibold mb-4">Signatories</h3>
+              
+              {/* Statistiques de signature */}
+              {localDocument.status === 'completed' && (
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-3">Statistiques de signature</h4>
+                  <div className="space-y-2 text-xs">
+                    {(() => {
+                      const signatureTypes = signatories.map(s => {
+                        const signatoryFields = localDocument.fields.filter(f => f.signatoryId === s.id);
+                        return signatoryFields.length > 0 ? signatoryFields[0].signatureType : 'simple';
+                      });
+                      
+                      const aesCount = signatureTypes.filter(type => type === 'aes').length;
+                      const sesCount = signatureTypes.filter(type => type === 'ses').length;
+                      const simpleCount = signatureTypes.filter(type => type === 'simple').length;
+                      
+                      return (
+                        <>
+                          {aesCount > 0 && (
+                            <div className="flex justify-between items-center">
+                              <span className="text-yellow-700">Signatures AES:</span>
+                              <span className="font-medium">{aesCount}</span>
+                            </div>
+                          )}
+                          {sesCount > 0 && (
+                            <div className="flex justify-between items-center">
+                              <span className="text-blue-700">Signatures SES:</span>
+                              <span className="font-medium">{sesCount}</span>
+                            </div>
+                          )}
+                          {simpleCount > 0 && (
+                            <div className="flex justify-between items-center">
+                              <span className="text-gray-700">Signatures simples:</span>
+                              <span className="font-medium">{simpleCount}</span>
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
+              
               <div className="space-y-4">
                 {signatories.map((s: Signatory) => {
                   // Trouver les champs de signature pour ce signataire
@@ -222,6 +265,60 @@ export default function DocumentDetailPage() {
                           {getSignatureTypeLabel(signatureType)}
                         </span>
                       </div>
+                      
+                      {/* Détails spécifiques pour les signatures AES */}
+                      {signatureType === 'aes' && s.status === 'signed' && (
+                        <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                          <h4 className="text-sm font-semibold text-yellow-800 mb-2">Détails de la signature AES</h4>
+                          <div className="space-y-1 text-xs text-yellow-700">
+                            <div className="flex justify-between">
+                              <span>Méthode de validation:</span>
+                              <span className="font-medium">Email + 2FA</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Horodatage:</span>
+                              <span className="font-medium">
+                                {events.find(e => e.type === 'signed' && e.userName === s.name)?.date 
+                                  ? new Date(events.find(e => e.type === 'signed' && e.userName === s.name)!.date).toLocaleString('fr-FR')
+                                  : 'N/A'}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Niveau de sécurité:</span>
+                              <span className="font-medium">Élevé</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Conformité:</span>
+                              <span className="font-medium">eIDAS</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Détails spécifiques pour les signatures SES */}
+                      {signatureType === 'ses' && s.status === 'signed' && (
+                        <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                          <h4 className="text-sm font-semibold text-blue-800 mb-2">Détails de la signature SES</h4>
+                          <div className="space-y-1 text-xs text-blue-700">
+                            <div className="flex justify-between">
+                              <span>Méthode de validation:</span>
+                              <span className="font-medium">Email</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Horodatage:</span>
+                              <span className="font-medium">
+                                {events.find(e => e.type === 'signed' && e.userName === s.name)?.date 
+                                  ? new Date(events.find(e => e.type === 'signed' && e.userName === s.name)!.date).toLocaleString('fr-FR')
+                                  : 'N/A'}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Niveau de sécurité:</span>
+                              <span className="font-medium">Standard</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
