@@ -5,9 +5,10 @@ import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Trash2, Send, UserPlus, Users, Shield, PenTool, Info } from "lucide-react";
+import { Trash2, Send, UserPlus, Users, Shield, PenTool, Info, ShieldCheck, ShieldEllipsis } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { SignatureType } from "./SignatureTypeSelector";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -179,45 +180,45 @@ const SignatoryPanel: React.FC<SignatoryPanelProps> = ({
             <Info className="h-3 w-3" />
           </Button>
         </div>
-        <div className="space-y-2">
-          <Button
-            variant={selectedSignatureType === 'simple' ? 'default' : 'outline'}
-            size="sm"
-            className="w-full justify-start"
-            onClick={() => setSelectedSignatureType('simple')}
-          >
-            <PenTool className="mr-2 h-4 w-4" />
-            Signature Simple
-          </Button>
-          <Button
-            variant={selectedSignatureType === 'ses' ? 'default' : 'outline'}
-            size="sm"
-            className="w-full justify-start"
-            onClick={() => setSelectedSignatureType('ses')}
-          >
-            <Shield className="mr-2 h-4 w-4" />
-            SES - Simple Electronic Signature
-          </Button>
-                      <Button
-              variant={selectedSignatureType === 'aes' ? 'default' : 'outline'}
-              size="sm"
-              className="w-full justify-start"
-              onClick={() => setSelectedSignatureType('aes')}
-            >
-              <Shield className="mr-2 h-4 w-4" />
+        <p className="text-sm font-semibold mb-2">Niveau de signature</p>
+        <RadioGroup 
+          value={selectedSignatureType} 
+          onValueChange={(value) => setSelectedSignatureType(value as SignatureType)} 
+          className="space-y-4"
+        >
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="simple" id="simple" />
+            <Label htmlFor="simple" className="flex items-center gap-2">
+              <PenTool className="h-5 w-5" />
+              Signature Simple
+            </Label>
+          </div>
+ 
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="ses" id="ses" />
+            <Label htmlFor="ses" className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-blue-600" />
+              SES - Simple Electronic Signature
+            </Label>
+          </div>
+ 
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="aes" id="aes" />
+            <Label htmlFor="aes" className="flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5 text-yellow-500" />
               AES - Advanced Electronic Signature
-            </Button>
-          <Button
-            variant={selectedSignatureType === 'qes' ? 'default' : 'outline'}
-            size="sm"
-            className="w-full justify-start"
-            disabled
-          >
-            <Shield className="mr-2 h-4 w-4" />
-            QES - Qualified Electronic Signature
-            <span className="ml-auto text-xs text-gray-500">(Bientôt)</span>
-          </Button>
-        </div>
+            </Label>
+          </div>
+ 
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="qes" id="qes" />
+            <Label htmlFor="qes" className="flex items-center gap-2">
+              <ShieldEllipsis className="h-5 w-5 text-green-600" />
+              QES - Qualified Electronic Signature
+            </Label>
+          </div>
+ 
+        </RadioGroup>
       </div>
 
       <div className="flex items-center gap-2 mb-4">

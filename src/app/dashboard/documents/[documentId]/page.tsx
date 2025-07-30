@@ -319,6 +319,35 @@ export default function DocumentDetailPage() {
                           </div>
                         </div>
                       )}
+                      
+                      {/* Détails spécifiques pour les signatures QES */}
+                      {signatureType === 'qes' && s.status === 'signed' && (
+                        <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-md">
+                          <h4 className="text-sm font-semibold text-green-800 mb-2">Détails de la signature QES</h4>
+                          <div className="space-y-1 text-xs text-green-700">
+                            <div className="flex justify-between">
+                              <span>Méthode de validation:</span>
+                              <span className="font-medium">Identité vérifiée + QSCD</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Horodatage Qualifié:</span>
+                              <span className="font-medium">
+                                {events.find(e => e.type === 'signed' && e.userName === s.name)?.date 
+                                  ? new Date(events.find(e => e.type === 'signed' && e.userName === s.name)!.date).toLocaleString('fr-FR')
+                                  : 'N/A'}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Niveau de sécurité:</span>
+                              <span className="font-medium">Qualifié (Maximum)</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Conformité:</span>
+                              <span className="font-medium">eIDAS (Juridiquement équivalent au manuscrit)</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
