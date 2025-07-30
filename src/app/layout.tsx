@@ -3,6 +3,7 @@ import { Inter, Corinthia } from "next/font/google";
 import "./globals.css";
 import { SignatureProvider } from "@/contexts/SignatureContext";
 import NextAuthProvider from "@/components/providers/NextAuthProvider";
+import SessionTimeoutProvider from "@/components/providers/SessionTimeoutProvider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -31,7 +32,11 @@ export default function RootLayout({
         className={`${inter.variable} ${corinthia.variable} font-sans bg-neutral-100`}
       >
         <NextAuthProvider>
-          <SignatureProvider>{children}</SignatureProvider>
+          <SignatureProvider>
+            <SessionTimeoutProvider>
+              {children}
+            </SessionTimeoutProvider>
+          </SignatureProvider>
         </NextAuthProvider>
       </body>
     </html>

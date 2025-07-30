@@ -45,7 +45,7 @@ export const authOptions: NextAuthOptions = {
           createdAt: user.createdAt,
           image: user.image,
           hashedPassword: user.hashedPassword,
-          zkCommitment: (user as any).zkCommitment,
+          zkCommitment: (user as { zkCommitment?: string }).zkCommitment,
         };
       },
     }),
@@ -53,6 +53,11 @@ export const authOptions: NextAuthOptions = {
   ],
   session: {
     strategy: "jwt",
+    maxAge: 30 * 60, // 30 minutes
+    updateAge: 5 * 60, // 5 minutes - refresh token every 5 minutes
+  },
+  jwt: {
+    maxAge: 30 * 60, // 30 minutes
   },
   callbacks: {
     async jwt({ token, user }) {
@@ -65,6 +70,8 @@ export const authOptions: NextAuthOptions = {
           user as { hashedPassword?: string }
         ).hashedPassword;
         token.zkCommitment = (user as { zkCommitment?: string }).zkCommitment;
+        // Ajouter le timestamp de création du token
+        token.iat = Math.floor(Date.now() / 1000);
       }
 
       const dbUser = await prisma.user.findUnique({
