@@ -42,6 +42,14 @@ export async function GET(
       },
     });
 
+    // Debug: Log the fields to check if signatureType is present
+    console.log(`📄 Dashboard document requested: ${documentId}`);
+    console.log(`📋 Document fields:`, document?.fields);
+    console.log(`🔍 Fields count:`, document?.fields?.length);
+    if (document?.fields && document.fields.length > 0) {
+      console.log(`🔍 First field:`, document.fields[0]);
+    }
+
     if (!document) {
       return NextResponse.json(
         { message: "Document not found" },

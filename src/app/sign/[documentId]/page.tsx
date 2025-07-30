@@ -6,6 +6,8 @@ import dynamic from "next/dynamic";
 import { Document as AppDocument, SignatureField } from "@/types";
 import SignatureModal from "@/components/signature/SignatureModal";
 import PostSignatureModal from "@/components/signature/PostSignatureModal";
+import SESSignatureDialog from "@/components/signature/SESSignatureDialog";
+import { AESSignatureDialog } from "@/components/signature/AESSignatureDialog";
 import { updateSignatureField } from "@/lib/api";
 
 const PDFViewer = dynamic(() => import("@/components/pdf/PDFViewer"), {
@@ -38,6 +40,8 @@ export default function PublicSignPage() {
   const [error, setError] = useState<string | null>(null);
   const [fieldToSign, setFieldToSign] = useState<SignatureField | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [showSESSignature, setShowSESSignature] = useState(false);
+  const [showAESSignature, setShowAESSignature] = useState(false);
 
   useEffect(() => {
     if (documentId && token) {
@@ -66,7 +70,30 @@ export default function PublicSignPage() {
 
   const handleSignClick = (field: SignatureField) => {
     if (signatory && field.signatoryId === signatory.id) {
-      setFieldToSign(field);
+      const signatureType = field.signatureType || 'simple';
+      console.log(`🎯 Field clicked - Signature type detected: ${signatureType}`);
+      console.log(`📋 Field data:`, field);
+      
+      switch (signatureType) {
+        case 'simple':
+          console.log(`📝 Opening simple signature dialog`);
+          setFieldToSign(field);
+          break;
+        case 'ses':
+          console.log(`🛡️ Opening SES signature dialog`);
+          setFieldToSign(field);
+          setShowSESSignature(true);
+          break;
+        case 'aes':
+          console.log(`🔒 Opening AES signature dialog`);
+          setFieldToSign(field);
+          setShowAESSignature(true);
+          break;
+        default:
+          console.log(`❓ Unknown signature type: ${signatureType}, using simple`);
+          setFieldToSign(field);
+          break;
+      }
     } else {
       alert("You are not authorized to sign this field.");
     }
@@ -94,6 +121,78 @@ export default function PublicSignPage() {
           };
         });
         setFieldToSign(null);
+        setShowSESSignature(false);
+        setShowAESSignature(false);
+        setShowConfirmation(true);
+      } else {
+        alert("Failed to save signature.");
+        setFieldToSign(null);
+      }
+    } catch (error) {
+      console.error("Error saving signature:", error);
+      alert("An error occurred while saving the signature. Please try again.");
+      setFieldToSign(null);
+    }
+  };
+
+  const handleSESSignatureComplete = async (signature: { signatureData: string }) => {
+    if (!document || !fieldToSign || !token) return;
+
+    try {
+      const updatedField = await updateSignatureField(
+        document.id,
+        fieldToSign.id,
+        { value: signature.signatureData },
+        token,
+      );
+
+      if (updatedField) {
+        setDocument((prevDoc) => {
+          if (!prevDoc) return null;
+          return {
+            ...prevDoc,
+            fields: prevDoc.fields.map((f) =>
+              f.id === updatedField.id ? updatedField : f,
+            ),
+          };
+        });
+        setFieldToSign(null);
+        setShowSESSignature(false);
+        setShowConfirmation(true);
+      } else {
+        alert("Failed to save signature.");
+        setFieldToSign(null);
+      }
+    } catch (error) {
+      console.error("Error saving signature:", error);
+      alert("An error occurred while saving the signature. Please try again.");
+      setFieldToSign(null);
+    }
+  };
+
+  const handleAESSignatureComplete = async (signatureData: { signatureData: string }) => {
+    if (!document || !fieldToSign || !token) return;
+
+    try {
+      const updatedField = await updateSignatureField(
+        document.id,
+        fieldToSign.id,
+        { value: signatureData.signatureData },
+        token,
+      );
+
+      if (updatedField) {
+        setDocument((prevDoc) => {
+          if (!prevDoc) return null;
+          return {
+            ...prevDoc,
+            fields: prevDoc.fields.map((f) =>
+              f.id === updatedField.id ? updatedField : f,
+            ),
+          };
+        });
+        setFieldToSign(null);
+        setShowAESSignature(false);
         setShowConfirmation(true);
       } else {
         alert("Failed to save signature.");
@@ -126,13 +225,41 @@ export default function PublicSignPage() {
         onSignClick={handleSignClick}
         activeSignatoryId={signatory?.id}
       />
-      {fieldToSign && signatory && (
+      {fieldToSign && signatory && !showSESSignature && !showAESSignature && (
         <SignatureModal
           isOpen={!!fieldToSign}
           onClose={() => setFieldToSign(null)}
           onSave={handleConfirmSignature}
         />
       )}
+      
+      {fieldToSign && signatory && showSESSignature && (
+        <SESSignatureDialog
+          open={showSESSignature}
+          onOpenChange={setShowSESSignature}
+          onConfirm={handleSESSignatureComplete}
+          signatoryName={signatory.name}
+          signatoryId={signatory.id}
+          documentId={document.id}
+          validationMethod="email"
+          userEmail={signatory.email}
+        />
+      )}
+      
+      {fieldToSign && signatory && showAESSignature && (
+        <AESSignatureDialog
+          open={showAESSignature}
+          onOpenChange={setShowAESSignature}
+          onConfirm={handleAESSignatureComplete}
+          signatoryName={signatory.name}
+          signatoryId={signatory.id}
+          documentId={document.id}
+          twoFactorMethod="email"
+          userEmail={signatory.email}
+          userPhone=""
+        />
+      )}
+      
       <PostSignatureModal
         open={showConfirmation}
         onOpenChange={setShowConfirmation}

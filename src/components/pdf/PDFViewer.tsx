@@ -303,7 +303,9 @@ export default function PDFViewer({
                   className="bg-yellow-400 hover:bg-yellow-500 text-black font-bold py-2 px-4 rounded text-sm"
                   style={{ maxWidth: "100%", maxHeight: "100%" }}
                 >
-                  Sign Here
+                  {field.signatureType === 'aes' ? 'Sign AES' : 
+                   field.signatureType === 'ses' ? 'Sign SES' : 
+                   'Sign Here'}
                 </button>
               </div>
             );
