@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
+import { randomUUID } from "crypto";
 
 export async function POST(req: NextRequest) {
   console.log("POST /api/upload called");
@@ -18,7 +19,14 @@ export async function POST(req: NextRequest) {
 
   // Sanitize the filename to prevent directory traversal attacks
   const sanitizedFilename = file.name.replace(/[^a-zA-Z0-9.\-_]/g, "");
-  const path = join(uploadsDir, sanitizedFilename);
+  
+  // Generate a unique filename to prevent conflicts
+  const fileExtension = sanitizedFilename.split('.').pop() || '';
+  const fileNameWithoutExtension = sanitizedFilename.replace(`.${fileExtension}`, '');
+  const uniqueId = randomUUID();
+  const uniqueFilename = `${fileNameWithoutExtension}_${uniqueId}.${fileExtension}`;
+  
+  const path = join(uploadsDir, uniqueFilename);
 
   try {
     // Ensure the upload directory exists
@@ -26,7 +34,7 @@ export async function POST(req: NextRequest) {
 
     await writeFile(path, buffer);
     console.log(`File saved to ${path}`);
-    const fileUrl = `/api/files/signature/${sanitizedFilename}`;
+    const fileUrl = `/api/files/signature/${uniqueFilename}`;
     return NextResponse.json({ success: true, fileUrl });
   } catch (error) {
     console.error("Failed to save file:", error);
