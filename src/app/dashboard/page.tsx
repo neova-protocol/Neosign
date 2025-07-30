@@ -34,21 +34,47 @@ export default function HomePage() {
         const docs = await getDocuments();
         setDocuments(docs);
 
-        const completed = docs.filter(
-          (doc: Document) => doc.status === "completed",
+        // Calcul des statistiques selon la logique spécifiée
+        const userId = session.user.id;
+        const userEmail = session.user.email;
+
+        // 1. Completed signatures = Documents signés par tout le monde
+        const completed = docs.filter((doc: Document) => 
+          doc.status === "completed"
         ).length;
-        const inProgress = docs.filter(
-          (doc: Document) => doc.status === "sent",
-        ).length;
-        const drafts = docs.filter(
-          (doc: Document) => doc.status === "draft",
+
+        // 2. In progress = Je n'ai pas à signer et j'attends la signature de quelqu'un
+        const inProgress = docs.filter((doc: Document) => {
+          // Je suis le créateur du document
+          const isCreator = doc.creatorId === userId;
+          // Je n'ai pas à signer (pas dans les signataires ou déjà signé)
+          const hasNoSignatureRequired = !doc.signatories.some(s => 
+            s.email === userEmail && s.status === "pending"
+          );
+          // Le document est envoyé (pas draft, pas cancelled)
+          const isSent = doc.status === "sent";
+          
+          return isCreator && hasNoSignatureRequired && isSent;
+        }).length;
+
+        // 3. Signing invitation = J'ai à signer un document
+        const signingInvitations = docs.filter((doc: Document) => {
+          // Je suis dans les signataires et j'ai encore à signer
+          return doc.signatories.some(s => 
+            s.email === userEmail && s.status === "pending"
+          );
+        }).length;
+
+        // 4. Drafts = Mes brouillons
+        const drafts = docs.filter((doc: Document) => 
+          doc.status === "draft" && doc.creatorId === userId
         ).length;
 
         setStats({
           completed,
           inProgress,
           drafts,
-          signingInvitations: inProgress,
+          signingInvitations,
         });
       } catch (error) {
         console.error("Failed to fetch documents:", error);
