@@ -17,10 +17,21 @@ import {
   AlertCircle,
   Copy,
   Lock,
-  Settings
+  Settings,
+  RotateCcw
 } from "lucide-react";
 import QRCodeDialog from "@/components/2fa/QRCodeDialog";
 import TwoFactorVerificationDialog from "@/components/2fa/TwoFactorVerificationDialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface TwoFactorConfig {
   phoneNumber: string;
@@ -48,7 +59,9 @@ export default function SecuritySettingsPage() {
   const [authenticatorSecret, setAuthenticatorSecret] = useState("");
   const [showEmailVerificationDialog, setShowEmailVerificationDialog] = useState(false);
   const [isVerifyingEmail, setIsVerifyingEmail] = useState(false);
+  const [showResetDialog, setShowResetDialog] = useState(false);
   const [userProfile, setUserProfile] = useState<{ email?: string } | null>(null);
+  const [showEmailResetDialog, setShowEmailResetDialog] = useState(false);
 
   // Helper function to parse twoFactorMethods
   const getTwoFactorMethods = (): string[] => {
@@ -321,6 +334,17 @@ export default function SecuritySettingsPage() {
                    displayEmail === session?.user?.email ? "Email ZK non autorisé" :
                    "Envoyer le code"}
                 </Button>
+                {config.emailVerified && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => setShowEmailResetDialog(true)}
+                    disabled={isLoading}
+                  >
+                    <RotateCcw className="h-4 w-4 mr-1" />
+                    Réinitialiser
+                  </Button>
+                )}
               </div>
               
               {/* Message d'aide pour les utilisateurs ZK sans email d'authentification */}
@@ -433,17 +457,28 @@ export default function SecuritySettingsPage() {
                     <Lock className="h-4 w-4 text-gray-600" />
                     <span className="text-sm font-medium">Secret TOTP</span>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      navigator.clipboard.writeText(authenticatorSecret);
-                      setMessage({ type: 'success', text: 'Secret copié dans le presse-papiers' });
-                    }}
-                  >
-                    <Copy className="h-4 w-4 mr-1" />
-                    Copier
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        navigator.clipboard.writeText(authenticatorSecret);
+                        setMessage({ type: 'success', text: 'Secret copié dans le presse-papiers' });
+                      }}
+                    >
+                      <Copy className="h-4 w-4 mr-1" />
+                      Copier
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => setShowResetDialog(true)}
+                      disabled={isLoading}
+                    >
+                      <RotateCcw className="h-4 w-4 mr-1" />
+                      Réinitialiser
+                    </Button>
+                  </div>
                 </div>
                 
                 <div className="flex items-center justify-between">
@@ -520,6 +555,84 @@ export default function SecuritySettingsPage() {
         onConfirm={handleEmailVerification}
         isLoading={isVerifyingEmail}
       />
+
+      {/* Reset Authenticator Dialog */}
+      <AlertDialog open={showResetDialog} onOpenChange={setShowResetDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Réinitialiser l&apos;authenticator</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir réinitialiser l&apos;authenticator ? Cette action ne peut pas être annulée.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowResetDialog(false)}>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                setIsLoading(true);
+                try {
+                  const response = await fetch('/api/user/2fa/authenticator/reset', {
+                    method: 'POST'
+                  });
+                  if (response.ok) {
+                    setMessage({ type: 'success', text: 'Authenticator réinitialisé avec succès' });
+                    loadUserConfig();
+                  } else {
+                    setMessage({ type: 'error', text: 'Erreur lors de la réinitialisation' });
+                  }
+                } catch (error) {
+                  setMessage({ type: 'error', text: 'Erreur de connexion' });
+                } finally {
+                  setIsLoading(false);
+                }
+                setShowResetDialog(false);
+              }}
+              disabled={isLoading}
+            >
+              {isLoading ? "Réinitialisation..." : "Réinitialiser"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Email Reset Dialog */}
+      <AlertDialog open={showEmailResetDialog} onOpenChange={setShowEmailResetDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Réinitialiser l&apos;authentification par email</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir réinitialiser l&apos;authentification par email ? Cette action ne peut pas être annulée.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowEmailResetDialog(false)}>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                setIsLoading(true);
+                try {
+                  const response = await fetch('/api/user/2fa/email/reset', {
+                    method: 'POST'
+                  });
+                  if (response.ok) {
+                    setMessage({ type: 'success', text: 'Authentification par email réinitialisée avec succès' });
+                    loadUserConfig();
+                  } else {
+                    setMessage({ type: 'error', text: 'Erreur lors de la réinitialisation' });
+                  }
+                } catch (error) {
+                  setMessage({ type: 'error', text: 'Erreur de connexion' });
+                } finally {
+                  setIsLoading(false);
+                }
+                setShowEmailResetDialog(false);
+              }}
+              disabled={isLoading}
+            >
+              {isLoading ? "Réinitialisation..." : "Réinitialiser"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Success/Error Messages */}
       {message && (
