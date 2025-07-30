@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/db";
+import { TwilioService } from "@/lib/twilio";
+import { storeSMSCode, getSMSCodeAttempts, cleanupExpiredSMSCodes } from "@/lib/sms-codes-db";
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -19,37 +21,58 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Générer un code de vérification (en production, utiliser un service SMS)
+    // Nettoyer les codes expirés
+    await cleanupExpiredSMSCodes();
+
+    // Vérifier le nombre de tentatives (limite à 5 par heure)
+    const attempts = await getSMSCodeAttempts(phoneNumber);
+    if (attempts >= 5) {
+      return NextResponse.json(
+        { error: "Too many SMS attempts. Please wait before requesting another code." },
+        { status: 429 }
+      );
+    }
+
+    // Formater le numéro de téléphone
+    const formattedPhoneNumber = TwilioService.formatFrenchPhoneNumber(phoneNumber);
+
+    // Générer un code de vérification à 6 chiffres
     const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // Simuler l'envoi du SMS
-    console.log(`SMS envoyé à ${phoneNumber}: Code de vérification: ${verificationCode}`);
+    // Stocker le code temporairement
+    await storeSMSCode(formattedPhoneNumber, verificationCode, "2fa", 5);
 
-    // En production, intégrer avec un service SMS comme Twilio
-    // await twilio.messages.create({
-    //   body: `Votre code de vérification Neosign: ${verificationCode}`,
-    //   from: process.env.TWILIO_PHONE_NUMBER,
-    //   to: phoneNumber
-    // });
+    // Envoyer le SMS via Twilio
+    const message = TwilioService.generateVerificationMessage(verificationCode);
+    const smsResult = await TwilioService.sendSMS(formattedPhoneNumber, message);
+
+    if (!smsResult.success) {
+      console.error("Failed to send SMS:", smsResult.error);
+      return NextResponse.json(
+        { error: smsResult.error || "Failed to send SMS" },
+        { status: 500 }
+      );
+    }
 
     // Mettre à jour le numéro de téléphone de l'utilisateur
     await prisma.user.update({
       where: { id: session.user.id },
       data: {
-        phoneNumber,
+        phoneNumber: formattedPhoneNumber,
         phoneVerified: false, // Sera mis à true après vérification
       }
     });
 
-    // En production, stocker le code temporairement (Redis, base de données, etc.)
-    // Pour cette démo, on simule juste l'envoi
+    console.log(`SMS verification code sent to ${formattedPhoneNumber} (Message ID: ${smsResult.messageId})`);
 
     return NextResponse.json({
-      message: "Code de vérification envoyé",
-      phoneNumber
+      success: true,
+      message: "Code de vérification envoyé par SMS",
+      phoneNumber: formattedPhoneNumber,
+      messageId: smsResult.messageId
     });
   } catch (error) {
-    console.error("Error sending verification code:", error);
+    console.error("Error sending SMS verification code:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
