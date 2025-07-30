@@ -265,7 +265,30 @@ export default function SettingsPage() {
               Préférences de notifications et alertes
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Email</span>
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <span className="text-sm">Activé</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">SMS</span>
+                <div className="flex items-center gap-2">
+                  <XCircle className="h-4 w-4 text-gray-400" />
+                  <span className="text-sm">Désactivé</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Bell dans l&apos;app</span>
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <span className="text-sm">Activé</span>
+                </div>
+              </div>
+            </div>
             <Button variant="outline" className="w-full" disabled>
               Configurer (bientôt)
             </Button>
