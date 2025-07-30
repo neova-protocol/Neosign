@@ -1,6 +1,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -21,8 +22,35 @@ import EditNameForm from "@/components/settings/EditNameForm";
 import EditAvatarForm from "@/components/settings/EditAvatarForm";
 import { getUserTypeDisplay } from "@/lib/user-utils";
 
+interface UserProfile {
+  email?: string;
+  name?: string;
+  hashedPassword?: string;
+  zkCommitment?: string;
+}
+
 export default function ProfilePage() {
   const { data: session, status } = useSession();
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+
+  // Charger le profil utilisateur complet
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      if (!session?.user) return;
+      
+      try {
+        const response = await fetch('/api/user/me');
+        if (response.ok) {
+          const profile = await response.json();
+          setUserProfile(profile);
+        }
+      } catch (error) {
+        console.error('Error loading user profile:', error);
+      }
+    };
+
+    loadUserProfile();
+  }, [session?.user]);
 
   // Show skeleton loading animation only while loading
   if (status === "loading") {
@@ -34,6 +62,9 @@ export default function ProfilePage() {
     // If no user, show a simple message or redirect
     return <div className="text-center py-10 text-gray-500">Aucun utilisateur connecté.</div>;
   }
+
+  // Utiliser l'email d'authentification si disponible, sinon l'email de session
+  const displayEmail = userProfile?.email || session.user.email;
 
   return (
     <div className="space-y-6">
@@ -53,7 +84,7 @@ export default function ProfilePage() {
           
           <div className="space-y-1">
             <h3 className="text-lg font-medium">{session.user.name}</h3>
-            <p className="text-sm text-gray-500">{session.user.email}</p>
+            <p className="text-sm text-gray-500">{displayEmail}</p>
             <div className="flex items-center gap-2">
               <Badge variant="outline">
                 {getUserTypeDisplay()}
@@ -72,7 +103,7 @@ export default function ProfilePage() {
               <Input
                 id="email"
                 type="email"
-                defaultValue={session.user.email || ""}
+                value={displayEmail || ""}
                 disabled
               />
             </div>
@@ -96,7 +127,7 @@ export default function ProfilePage() {
             Sécurité du Compte
           </CardTitle>
           <CardDescription>
-            Méthodes d'authentification et paramètres de sécurité
+            Méthodes d&apos;authentification et paramètres de sécurité
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -151,7 +182,7 @@ export default function ProfilePage() {
       {(session.user as { zkCommitment?: string }).zkCommitment && (
         <AddEmailPasswordForm
           hasEmailPassword={!!(session.user as { hashedPassword?: string }).hashedPassword}
-          currentEmail={session.user.email || undefined}
+          currentEmail={displayEmail || undefined}
         />
       )}
 

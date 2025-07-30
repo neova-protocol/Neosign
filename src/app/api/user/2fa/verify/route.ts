@@ -4,6 +4,19 @@ import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/db";
 import { authenticator } from "otplib";
 
+// Stockage temporaire des codes (même Map que dans l'API email)
+const tempCodes = new Map<string, { code: string; expiresAt: number }>();
+
+// Fonction pour nettoyer les codes expirés
+function cleanupExpiredCodes() {
+  const now = Date.now();
+  for (const [email, data] of tempCodes.entries()) {
+    if (data.expiresAt < now) {
+      tempCodes.delete(email);
+    }
+  }
+}
+
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user) {
@@ -11,7 +24,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { method, code, phoneNumber } = await request.json();
+    const { method, code, phoneNumber, email } = await request.json();
 
     if (!method || !code) {
       return NextResponse.json(
@@ -19,6 +32,9 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Nettoyer les codes expirés
+    cleanupExpiredCodes();
 
     let isValid = false;
     let updatedMethods: string[] = [];
@@ -40,9 +56,48 @@ export async function POST(request: NextRequest) {
         break;
 
       case 'email':
-        // En production, vérifier le code stocké temporairement
-        // Pour cette démo, on accepte n'importe quel code à 6 chiffres
-        isValid = /^\d{6}$/.test(code);
+        // Vérifier que l'email est fourni
+        if (!email) {
+          return NextResponse.json(
+            { error: "Email is required for email verification" },
+            { status: 400 }
+          );
+        }
+
+        // Récupérer le code stocké pour cet email
+        const storedData = tempCodes.get(email);
+        
+        if (!storedData) {
+          console.log(`Aucun code trouvé pour l'email: ${email}`);
+          return NextResponse.json(
+            { error: "Aucun code de vérification trouvé. Veuillez demander un nouveau code." },
+            { status: 400 }
+          );
+        }
+
+        // Vérifier l'expiration
+        if (storedData.expiresAt < Date.now()) {
+          console.log(`Code expiré pour l'email: ${email}`);
+          tempCodes.delete(email);
+          return NextResponse.json(
+            { error: "Code de vérification expiré. Veuillez demander un nouveau code." },
+            { status: 400 }
+          );
+        }
+
+        // Vérifier le code
+        if (storedData.code === code) {
+          console.log(`Code vérifié avec succès pour l'email: ${email}`);
+          isValid = true;
+          // Supprimer le code après utilisation
+          tempCodes.delete(email);
+        } else {
+          console.log(`Code incorrect pour l'email: ${email}. Attendu: ${storedData.code}, Reçu: ${code}`);
+          return NextResponse.json(
+            { error: "Code de vérification incorrect" },
+            { status: 400 }
+          );
+        }
         break;
 
       case 'authenticator':
