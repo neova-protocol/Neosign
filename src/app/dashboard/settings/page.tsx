@@ -97,7 +97,7 @@ export default function SettingsPage() {
     loadUserData();
   }, [session?.user]);
 
-  const hasZKAuth = session?.user?.email?.includes('zk-') || false;
+  const hasZKAuth = userProfile?.zkCommitment !== null && userProfile?.zkCommitment !== undefined;
   const displayEmail = userProfile?.email || session?.user?.email;
 
   const getTwoFactorStatus = (method: string) => {
