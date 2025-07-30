@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Search, LayoutGrid, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { useSession, signIn, signOut } from "next-auth/react";
+import { useSession, signIn } from "next-auth/react";
 import { useEffect, useState } from "react";
 
 type Notification = {
@@ -21,7 +21,6 @@ function NotificationBell() {
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
     const fetchNotifications = () => {
       console.log("NotificationBell polling...");
       fetch("/api/notifications")
@@ -32,7 +31,7 @@ function NotificationBell() {
         });
     };
     fetchNotifications();
-    interval = setInterval(fetchNotifications, 1000000); // toutes les 1000s
+    const interval = setInterval(fetchNotifications, 1000000); // toutes les 1000s
     return () => clearInterval(interval);
   }, []);
 
