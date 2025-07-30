@@ -7,13 +7,13 @@ import { usePathname } from "next/navigation";
 
 const settingsMenuItems = [
   { name: "General", href: "/dashboard/settings/general" },
-  { name: "Profile", href: "/dashboard/settings/profile" },
+  { name: "Account", href: "/dashboard/settings/account" },
   { name: "Signatures", href: "/dashboard/settings/sign" },
-  { name: "Notifications", href: "/dashboard/settings/notifications" },
   { name: "Security", href: "/dashboard/settings/security" },
-  { name: "Billing", href: "/dashboard/settings/billing" },
+  { name: "Notifications", href: "/dashboard/settings/notifications" },
+  { name: "Data", href: "/dashboard/settings/data" },
   { name: "Contact", href: "/dashboard/settings/contact" },
-  { name: "Advanced", href: "/dashboard/settings/advanced" },
+  { name: "Billing", href: "/dashboard/settings/billing" },
 ];
 
 export default function SettingsLayout({
