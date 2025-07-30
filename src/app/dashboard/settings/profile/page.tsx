@@ -9,8 +9,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { User, Mail, Calendar, Shield } from "lucide-react";
 import ZKInfo from "@/components/dashboard/ZKInfo";
@@ -20,6 +18,7 @@ import AddEmailPasswordForm from "@/components/settings/AddEmailPasswordForm";
 import AddZKAuthForm from "@/components/settings/AddZKAuthForm";
 import EditNameForm from "@/components/settings/EditNameForm";
 import EditAvatarForm from "@/components/settings/EditAvatarForm";
+import EditEmailForm from "@/components/settings/EditEmailForm";
 import { getUserTypeDisplay } from "@/lib/user-utils";
 
 interface UserProfile {
@@ -98,15 +97,13 @@ export default function ProfilePage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <EditNameForm />
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={displayEmail || ""}
-                disabled
-              />
-            </div>
+            <EditEmailForm 
+              currentEmail={displayEmail || ""}
+              onEmailChanged={(newEmail) => {
+                // Mettre à jour l'état local si nécessaire
+                console.log('Email changed to:', newEmail);
+              }}
+            />
           </div>
 
           <div className="flex items-center gap-2 text-sm text-gray-500">

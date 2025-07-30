@@ -53,6 +53,12 @@ model User {
   authenticatorEnabled Boolean @default(false)
   twoFactorMethods String @default("[]") // JSON string: ["sms", "email", "authenticator"]
   
+  // Account deletion/suspension
+  accountStatus String @default("active") // active, suspended, pending_deletion
+  deletionRequestedAt DateTime?
+  deletionScheduledAt DateTime?
+  deletionReason String?
+  
   accounts      Account[]
   sessions      Session[]
   documents     Document[]
@@ -75,6 +81,19 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+// ---- Temporary Codes Model ----
+model TempCode {
+  id        String   @id @default(cuid())
+  email     String
+  code      String
+  type      String   // "2fa", "email_change", etc.
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email, type])
+  @@index([expiresAt])
 }
 
 // ---- Contact Model ----
