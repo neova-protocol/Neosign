@@ -306,9 +306,34 @@ export default function SettingsPage() {
               Personnalisez l&apos;apparence de l&apos;application
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Langue</span>
+                <select 
+                  className="text-sm border border-gray-300 rounded-md px-2 py-1 bg-white"
+                  defaultValue="fr"
+                >
+                  <option value="fr">Français</option>
+                  <option value="en">English</option>
+                  <option value="es">Español</option>
+                  <option value="de">Deutsch</option>
+                </select>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Thème</span>
+                <select 
+                  className="text-sm border border-gray-300 rounded-md px-2 py-1 bg-white"
+                  defaultValue="system"
+                >
+                  <option value="light">Clair</option>
+                  <option value="dark">Sombre</option>
+                  <option value="system">Système</option>
+                </select>
+              </div>
+            </div>
             <Button variant="outline" className="w-full" disabled>
-              Configurer (bientôt)
+              Sauvegarder (bientôt)
             </Button>
           </CardContent>
         </Card>
