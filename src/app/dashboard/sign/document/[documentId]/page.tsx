@@ -10,6 +10,7 @@ import { SignatureField } from "@/types";
 import { Button } from "@/components/ui/button";
 import SESSignatureDialog from "@/components/signature/SESSignatureDialog";
 import { AESSignatureDialog } from "@/components/signature/AESSignatureDialog";
+import { QESSignatureDialog } from "@/components/signature/QESSignatureDialog";
 
 // Dynamically import heavy components
 const PDFViewer = dynamic(() => import("@/components/pdf/PDFViewer"), {
@@ -32,6 +33,7 @@ export default function SignDocumentPage() {
   const [fieldToSign, setFieldToSign] = useState<SignatureField | null>(null);
   const [showSESSignature, setShowSESSignature] = useState(false);
   const [showAESSignature, setShowAESSignature] = useState(false);
+  const [showQESSignature, setShowQESSignature] = useState(false);
 
   useEffect(() => {
     if (documentId) {
@@ -74,6 +76,11 @@ export default function SignDocumentPage() {
         setFieldToSign(field);
         setShowAESSignature(true);
         break;
+      case 'qes':
+        console.log(`🏆 Opening QES signature dialog`);
+        setFieldToSign(field);
+        setShowQESSignature(true);
+        break;
       default:
         console.log(`❓ Unknown signature type: ${signatureType}, using simple`);
         setFieldToSign(field);
@@ -114,6 +121,17 @@ export default function SignDocumentPage() {
     await refreshDocument(documentId);
 
     setShowAESSignature(false);
+    setFieldToSign(null);
+  };
+
+  const handleQESSignatureComplete = async (signatureData: { signatureData: string }) => {
+    console.log("Saving QES signature for field:", fieldToSign);
+    if (!fieldToSign) return;
+
+    await updateField(fieldToSign.id, { value: signatureData.signatureData });
+    await refreshDocument(documentId);
+
+    setShowQESSignature(false);
     setFieldToSign(null);
   };
 
@@ -181,7 +199,7 @@ export default function SignDocumentPage() {
         </div>
       </header>
       <main className="flex-1 overflow-y-auto">
-        {isModalOpen && fieldToSign && !showSESSignature && !showAESSignature && (
+        {isModalOpen && fieldToSign && !showSESSignature && !showAESSignature && !showQESSignature && (
           <SignatureModal
             isOpen={isModalOpen}
             onClose={() => setIsModalOpen(false)}
@@ -213,6 +231,16 @@ export default function SignDocumentPage() {
             twoFactorMethod="email"
             userEmail={selfAsSignatory?.email || ''}
             userPhone=""
+          />
+        )}
+        
+        {fieldToSign && showQESSignature && (
+          <QESSignatureDialog
+            open={showQESSignature}
+            onOpenChange={setShowQESSignature}
+            onConfirm={handleQESSignatureComplete}
+            signatoryName={selfAsSignatory?.name || ''}
+            documentId={currentDocument.id}
           />
         )}
         

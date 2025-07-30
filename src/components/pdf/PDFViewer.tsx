@@ -304,7 +304,8 @@ export default function PDFViewer({
                   style={{ maxWidth: "100%", maxHeight: "100%" }}
                 >
                   {field.signatureType === 'aes' ? 'Sign AES' : 
-                   field.signatureType === 'ses' ? 'Sign SES' : 
+                   field.signatureType === 'ses' ? 'Sign SES' :
+                   field.signatureType === 'qes' ? 'Sign QES' :
                    'Sign Here'}
                 </button>
               </div>
