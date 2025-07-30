@@ -4,16 +4,21 @@ interface SignatureRequestEmailProps {
   documentName: string;
   senderName: string;
   actionUrl: string;
+  isReminder?: boolean;
 }
 
 export const SignatureRequestEmail: React.FC<
   Readonly<SignatureRequestEmailProps>
-> = ({ documentName, senderName, actionUrl }) => (
+> = ({ documentName, senderName, actionUrl, isReminder }) => (
   <div>
-    <h1>Signature Request for {documentName}</h1>
-    <p>Hello,</p>
+    <h1>
+      {isReminder
+        ? "Rappel de demande de signature"
+        : "Demande de signature"}
+    </h1>
+    <p>Bonjour,</p>
     <p>
-      {senderName} has requested your signature on the document:{" "}
+      {senderName} vous a {isReminder ? "renvoyé" : "envoyé"} une demande pour signer le document :{" "}
       <strong>{documentName}</strong>.
     </p>
     <p>Please click the button below to review and sign the document.</p>

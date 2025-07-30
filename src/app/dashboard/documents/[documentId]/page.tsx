@@ -1,10 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useSignature } from "@/contexts/SignatureContext";
-import { getDocumentById, deleteDocument } from "@/lib/api";
+import {
+  getDocumentById,
+  deleteDocument,
+  sendReminder,
+  cancelDocument,
+  ReminderError,
+} from "@/lib/api";
 import { Document as AppDocument, Signatory, DocumentEvent } from "@/types";
 import {
   FileText,
@@ -16,6 +22,9 @@ import {
   Trash2,
   ArrowLeft,
   AlertTriangle,
+  Info,
+  RefreshCw,
+  XCircle,
 } from "lucide-react";
 import Link from "next/link";
 import SuccessModal from "@/components/modals/SuccessModal";
@@ -64,22 +73,33 @@ export default function DocumentDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [isSendingReminder, setIsSendingReminder] = useState(false);
+  const [actionToConfirm, setActionToConfirm] = useState<(() => void) | null>(null);
+  const [confirmTitle, setConfirmTitle] = useState("");
+  const [confirmDescription, setConfirmDescription] = useState("");
+  const [confirmButtonText, setConfirmButtonText] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
+  const [infoModalMessage, setInfoModalMessage] = useState("");
 
-  useEffect(() => {
+
+  const fetchDocument = useCallback(async () => {
     if (documentId) {
-      getDocumentById(documentId)
-        .then((doc) => {
-          if (doc) {
-            setLocalDocument(doc);
-          }
-          setIsLoading(false);
-        })
-        .catch((err) => {
-          console.error(err);
-          setIsLoading(false);
-        });
+      setIsLoading(true);
+      try {
+        const doc = await getDocumentById(documentId);
+        setLocalDocument(doc);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
     }
   }, [documentId]);
+
+  useEffect(() => {
+    fetchDocument();
+  }, [fetchDocument]);
 
   const handleDeleteConfirm = async () => {
     if (!localDocument) return;
@@ -94,9 +114,49 @@ export default function DocumentDetailPage() {
     }
   };
 
+  const handleSendReminder = async () => {
+    if (!localDocument) return;
+    setIsSendingReminder(true);
+    try {
+      const result = await sendReminder(localDocument.id);
+      setSuccessMessage(result.message);
+      setIsSuccessModalOpen(true);
+      fetchDocument(); // Refresh activity
+    } catch (error) {
+      if (error instanceof ReminderError) {
+        setInfoModalMessage(error.message);
+        setIsInfoModalOpen(true);
+      } else {
+        alert((error as Error).message);
+      }
+    } finally {
+      setIsSendingReminder(false);
+    }
+  };
+  
+  const handleCancelRequest = () => {
+    setConfirmTitle("Êtes-vous sûr de vouloir annuler ce processus de signature ?");
+    setConfirmDescription("Cette action mettra fin au processus de signature pour tous les signataires. Le document sera marqué comme annulé.");
+    setConfirmButtonText("Annuler le document");
+    setActionToConfirm(() => handleCancelConfirm);
+    setIsConfirmOpen(true);
+  };
+
+  const handleCancelConfirm = async () => {
+    if (!localDocument) return;
+    try {
+      const result = await cancelDocument(localDocument.id);
+      setSuccessMessage(result.message);
+      setIsSuccessModalOpen(true);
+      fetchDocument(); // Refresh status
+    } catch (error) {
+      alert((error as Error).message);
+    }
+  };
+
   const handleCloseModal = () => {
     setIsSuccessModalOpen(false);
-    router.push("/dashboard/sign");
+    // No redirection needed here, just close
   };
 
   if (isLoading) {
@@ -114,6 +174,7 @@ export default function DocumentDetailPage() {
     : null;
   const canSign = selfAsSignatory && selfAsSignatory.status === "pending";
   const isCreator = session?.user?.id === localDocument.creatorId;
+  const isActionable = status.toLowerCase() === 'sent';
 
   const getStatusIcon = (docStatus: string) => {
     switch (docStatus.toLowerCase()) {
@@ -131,33 +192,54 @@ export default function DocumentDetailPage() {
       <SuccessModal
         isOpen={isSuccessModalOpen}
         onClose={handleCloseModal}
-        title="Document Supprimé"
-        message="Le document a été supprimé avec succès."
+        title="Succès"
+        message={successMessage}
       />
+      <AlertDialog open={isInfoModalOpen} onOpenChange={setIsInfoModalOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Info className="text-blue-500" />
+              Information
+            </AlertDialogTitle>
+            <AlertDialogDescription>{infoModalMessage}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setIsInfoModalOpen(false)}>
+              Fermer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <AlertTriangle className="text-red-500" />
-              Êtes-vous sûr de vouloir supprimer ce document ?
+              {confirmTitle}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Cette action est irréversible. Le document et toutes ses données associées seront définitivement supprimés.
+              {confirmDescription}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setActionToConfirm(null)}>Annuler</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleDeleteConfirm}
+              onClick={() => {
+                if (actionToConfirm) {
+                  actionToConfirm();
+                }
+                setIsConfirmOpen(false);
+              }}
               className="bg-red-600 hover:bg-red-700"
             >
-              Supprimer
+              {confirmButtonText}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
+      
       <div className="max-w-5xl mx-auto">
         <div className="mb-4">
           <button
@@ -182,13 +264,45 @@ export default function DocumentDetailPage() {
               </div>
             </div>
             <div className="flex gap-2">
-              {isCreator && localDocument.status.toLowerCase() === 'draft' && (
-                <Link
-                  href={`/dashboard/sign/edit/${documentId}`}
-                  className="bg-orange-500 text-white px-4 py-2 rounded-md hover:bg-orange-600 flex items-center gap-2"
-                >
-                  <Edit size={18} /> Resume Editing
-                </Link>
+              {isCreator && isActionable && (
+                <>
+                  <button
+                    onClick={handleSendReminder}
+                    className="bg-purple-500 text-white px-4 py-2 rounded-md hover:bg-purple-600 flex items-center gap-2 disabled:opacity-50"
+                    disabled={isSendingReminder}
+                  >
+                    <RefreshCw size={18} className={isSendingReminder ? "animate-spin" : ""} />
+                    {isSendingReminder ? "Relance..." : "Relancer"}
+                  </button>
+                  <button
+                    onClick={handleCancelRequest}
+                    className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 flex items-center gap-2"
+                  >
+                    <XCircle size={18} /> Annuler
+                  </button>
+                </>
+              )}
+              {isCreator && localDocument.status.toLowerCase() === "draft" && (
+                <>
+                  <Link
+                    href={`/dashboard/sign/edit/${documentId}`}
+                    className="bg-orange-500 text-white px-4 py-2 rounded-md hover:bg-orange-600 flex items-center gap-2"
+                  >
+                    <Edit size={18} /> Resume Editing
+                  </Link>
+                  <button
+                    onClick={() => {
+                      setConfirmTitle("Êtes-vous sûr de vouloir supprimer ce brouillon ?");
+                      setConfirmDescription("Cette action est irréversible. Le document et toutes ses données associées seront définitivement supprimés.");
+                      setConfirmButtonText("Supprimer le brouillon");
+                      setActionToConfirm(() => handleDeleteConfirm);
+                      setIsConfirmOpen(true);
+                    }}
+                    className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 flex items-center gap-2"
+                  >
+                    <Trash2 size={18} /> Delete
+                  </button>
+                </>
               )}
               {canSign && (
                 <Link
@@ -206,14 +320,6 @@ export default function DocumentDetailPage() {
               >
                 <FileText size={18} /> View
               </a>
-              {localDocument.status.toLowerCase() === "draft" && (
-                <button
-                  onClick={() => setIsConfirmOpen(true)}
-                  className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 flex items-center gap-2"
-                >
-                  <Trash2 size={18} /> Delete
-                </button>
-              )}
               <a
                 href={`/api/documents/${documentId}/download`}
                 className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 flex items-center gap-2"
