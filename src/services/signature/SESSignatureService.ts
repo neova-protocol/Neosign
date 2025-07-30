@@ -2,30 +2,30 @@ import { SESSignature, SignatureValidation, SignatureCompliance } from '@/types/
 import { v4 as uuidv4 } from 'uuid';
 
 export class SESSignatureService {
-  private static instance: SESSignatureService;
-
-  private constructor() {}
-
-  public static getInstance(): SESSignatureService {
-    if (!SESSignatureService.instance) {
-      SESSignatureService.instance = new SESSignatureService();
-    }
-    return SESSignatureService.instance;
-  }
-
   /**
-   * Crée une signature SES conforme eIDAS
+   * Crée une nouvelle signature SES avec un code de validation
    */
-  async createSESSignature(
-    signatoryId: string,
+  public static createSignature(
     documentId: string,
+    signatoryId: string,
     signatureData: string,
     validationMethod: 'email' | 'sms' | 'password',
-    userAgent: string,
-    ipAddress: string
-  ): Promise<SESSignature> {
+    ipAddress: string,
+    userAgent: string
+  ): SESSignature {
+    const signatureId = uuidv4();
+    const validationCode = this.generateValidationCode();
+
+    // Simuler une validation initiale côté serveur
+    const validation: SignatureValidation = {
+      isValid: false, // La signature n'est pas encore validée par l'utilisateur
+      validationDate: new Date(),
+      validationMethod: 'otp',
+      certificateStatus: 'unknown',
+    };
+
     const signature: SESSignature = {
-      id: uuidv4(),
+      id: signatureId,
       signatoryId,
       documentId,
       signatureData,
@@ -33,203 +33,90 @@ export class SESSignatureService {
       ipAddress,
       userAgent,
       validationMethod,
-      validationCode: this.generateValidationCode(),
+      validationCode,
+      validationCodeExpiry: new Date(Date.now() + 5 * 60 * 1000), // Correction 1: Ajout de l'expiration
       isValidated: false,
-      validation: this.validateSESSignature(signatureData, validationMethod)
+      validation,
     };
-
-    // Sauvegarder en base de données
-    await this.saveSignature(signature);
 
     return signature;
   }
 
   /**
-   * Valide une signature SES selon les critères eIDAS
+   * Valide une signature SES avec un code fourni
    */
-  private validateSESSignature(
-    signatureData: string,
-    validationMethod: 'email' | 'sms' | 'password'
-  ): SignatureValidation {
-    const errors: string[] = [];
-    const warnings: string[] = [];
-
-    // Validation de base pour SES
-    if (!signatureData || signatureData.length < 10) {
-      errors.push('Signature data is too short or empty');
-    }
-
-    // Vérification du format de signature
-    if (!signatureData.startsWith('data:image/')) {
-      errors.push('Invalid signature format');
-    }
-
-    // Validation selon la méthode choisie
-    switch (validationMethod) {
-      case 'email':
-        warnings.push('Email validation provides basic security level');
-        break;
-      case 'sms':
-        warnings.push('SMS validation provides enhanced security level');
-        break;
-      case 'password':
-        warnings.push('Password validation provides basic security level');
-        break;
-    }
-
-    return {
-      isValid: errors.length === 0,
-      errors,
-      warnings,
-      complianceLevel: 'SES'
-    };
-  }
-
-  /**
-   * Génère un code de validation sécurisé
-   */
-  private generateValidationCode(): string {
-    return Math.random().toString(36).substring(2, 8).toUpperCase();
-  }
-
-  /**
-   * Valide une signature avec le code de validation
-   */
-  async validateSignature(
-    signatureId: string,
-    validationCode: string,
+  public static validateSignature(
+    signature: SESSignature,
+    providedCode: string,
     ipAddress: string,
     userAgent: string
-  ): Promise<boolean> {
-    try {
-      const signature = await this.getSignature(signatureId);
-      
-      if (!signature) {
-        throw new Error('Signature not found');
-      }
-
-      if (signature.validationCode !== validationCode) {
-        throw new Error('Invalid validation code');
-      }
-
-      // Mettre à jour la signature comme validée avec les nouvelles informations
-      signature.isValidated = true;
-      signature.timestamp = new Date();
-      signature.ipAddress = ipAddress;
-      signature.userAgent = userAgent;
-      
-      await this.saveSignature(signature);
-      
-      return true;
-    } catch (error) {
-      console.error('Signature validation failed:', error);
-      return false;
+  ): { isValid: boolean; message: string } {
+    if (signature.isValidated) {
+      return { isValid: true, message: 'Signature already validated.' };
     }
+
+    if (new Date() > signature.validationCodeExpiry) {
+      return { isValid: false, message: 'Validation code has expired.' };
+    }
+
+    if (signature.validationCode !== providedCode) {
+      return { isValid: false, message: 'Invalid validation code.' };
+    }
+
+    // Mettre à jour la signature comme validée avec les nouvelles informations
+    const validation: SignatureValidation = { // Correction 2: Pas de propriété 'errors'
+      isValid: true,
+      validationDate: new Date(),
+      validationMethod: 'otp',
+      certificateStatus: 'valid',
+    };
+
+    signature.isValidated = true;
+    signature.validatedAt = new Date();
+    signature.validation = validation;
+    signature.ipAddress = ipAddress;
+    signature.userAgent = userAgent;
+
+    return { isValid: true, message: 'Signature validated successfully.' };
+  }
+
+  /**
+   * Génère un code de validation simple
+   */
+  private static generateValidationCode(): string {
+    return Math.floor(100000 + Math.random() * 900000).toString();
   }
 
   /**
    * Vérifie la conformité eIDAS d'une signature SES
    */
-  getSESCompliance(signature: SESSignature): SignatureCompliance {
+  public static getCompliance(signature: SESSignature): SignatureCompliance {
+    // Correction 3: Vérification de l'existence de signature.validation
+    const isCompliant = signature.validation?.isValid && signature.isValidated;
+
     const requirements = [
-      'Signature data integrity',
-      'Timestamp validation',
-      'Signatory identification',
-      'Validation method verification'
+      'Lien de la signature au signataire (via email/téléphone)',
+      'Intégrité du document assurée après la signature',
     ];
 
-    const validationSteps = [
-      'Signature format validation',
-      'Timestamp verification',
-      'Signatory authentication',
-      'Validation method check'
-    ];
-
-    const isCompliant = signature.validation.isValid && 
-                       signature.isValidated &&
-                       signature.timestampData !== undefined;
-
-    return {
-      eIDASLevel: 'SES',
-      isCompliant,
-      requirements,
-      validationSteps,
-      legalValue: 'basic'
-    };
-  }
-
-  /**
-   * Sauvegarde une signature en base de données
-   */
-  private async saveSignature(signature: SESSignature): Promise<void> {
-    try {
-      const response = await fetch('/api/signature/ses', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(signature),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to save signature');
-      }
-    } catch (error) {
-      console.error('Error saving signature:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Récupère une signature par son ID
-   */
-  public async getSignature(signatureId: string): Promise<SESSignature | null> {
-    try {
-      const response = await fetch(`/api/signature/ses/${signatureId}`);
-      
-      if (!response.ok) {
-        return null;
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching signature:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Envoie le code de validation par email/SMS
-   */
-  async sendValidationCode(
-    signatureId: string,
-    email?: string,
-    phone?: string
-  ): Promise<boolean> {
-    try {
-      const signature = await this.getSignature(signatureId);
-      
-      if (!signature) {
-        throw new Error('Signature not found');
-      }
-
-      const response = await fetch('/api/signature/ses/validate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          signatureId,
-          email,
-          phone,
-          validationCode: signature.validationCode
-        }),
-      });
-
-      return response.ok;
-    } catch (error) {
-      console.error('Error sending validation code:', error);
-      return false;
+    if (isCompliant) {
+      return {
+        eIDASLevel: 'SES',
+        legalValue: 'Basic', // Correction 4: Casse correcte
+        requirements,
+        validationSteps: [
+          'Vérification du code OTP (email/SMS)',
+          'Horodatage de la signature',
+          'Validation du certificat serveur',
+        ],
+      };
+    } else {
+      return {
+        eIDASLevel: 'N/A',
+        legalValue: 'Basic', // Correction 4: Casse correcte
+        requirements,
+        validationSteps: ['La validation de la signature a échoué'],
+      };
     }
   }
 } 

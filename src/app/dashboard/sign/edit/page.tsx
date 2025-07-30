@@ -48,11 +48,8 @@ export default function EditSignaturePage() {
       height: 56.25,
       signatoryId: selectedSignatoryId,
       value: undefined,
+      signatureType: "simple", // Ajout de la valeur par défaut
     });
-  };
-
-  const handleSign = (fieldId: string) => {
-    setFieldToSign(fieldId);
   };
 
   const handleConfirmSignature = (signatureDataUrl: string) => {

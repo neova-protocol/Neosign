@@ -139,10 +139,9 @@ const SignatureExample: React.FC<SignatureExampleProps> = ({
                       <SESComplianceBadge
                         compliance={{
                           eIDASLevel: 'SES',
-                          isCompliant: true,
                           requirements: ['Signature data integrity', 'Timestamp validation'],
                           validationSteps: ['Signature format validation', 'Signatory authentication'],
-                          legalValue: 'basic'
+                          legalValue: 'Basic'
                         }}
                         showDetails={false}
                       />

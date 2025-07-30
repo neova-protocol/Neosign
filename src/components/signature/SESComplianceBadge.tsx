@@ -14,15 +14,17 @@ const SESComplianceBadge: React.FC<SESComplianceBadgeProps> = ({
   compliance,
   showDetails = false,
 }) => {
+  const isCompliant = compliance.eIDASLevel !== 'N/A';
+
   const getComplianceColor = () => {
-    if (compliance.isCompliant) {
+    if (isCompliant) {
       return "bg-green-100 text-green-800 border-green-200";
     }
     return "bg-yellow-100 text-yellow-800 border-yellow-200";
   };
 
   const getComplianceIcon = () => {
-    if (compliance.isCompliant) {
+    if (isCompliant) {
       return <CheckCircle className="h-4 w-4" />;
     }
     return <AlertCircle className="h-4 w-4" />;
@@ -36,7 +38,7 @@ const SESComplianceBadge: React.FC<SESComplianceBadgeProps> = ({
           {getComplianceIcon()}
           {compliance.eIDASLevel} - {compliance.legalValue}
         </Badge>
-        {compliance.isCompliant && (
+        {isCompliant && (
           <Badge variant="outline" className="text-green-700 border-green-300">
             <Shield className="h-3 w-3 mr-1" />
             eIDAS Compliant
