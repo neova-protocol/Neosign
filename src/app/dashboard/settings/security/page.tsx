@@ -59,6 +59,8 @@ export default function SecuritySettingsPage() {
   const [authenticatorSecret, setAuthenticatorSecret] = useState("");
   const [showEmailVerificationDialog, setShowEmailVerificationDialog] = useState(false);
   const [isVerifyingEmail, setIsVerifyingEmail] = useState(false);
+  const [showSMSVerificationDialog, setShowSMSVerificationDialog] = useState(false);
+  const [isVerifyingSMS, setIsVerifyingSMS] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [userProfile, setUserProfile] = useState<{ email?: string } | null>(null);
   const [showEmailResetDialog, setShowEmailResetDialog] = useState(false);
@@ -125,9 +127,10 @@ export default function SecuritySettingsPage() {
 
       if (response.ok) {
         setMessage({ type: 'success', text: 'Code de vérification envoyé par SMS' });
-        // En production, ouvrir un dialogue pour entrer le code
+        // L'utilisateur peut maintenant cliquer sur "Vérifier le code" pour ouvrir le dialogue
       } else {
-        setMessage({ type: 'error', text: 'Erreur lors de l\'envoi du code' });
+        const errorData = await response.json();
+        setMessage({ type: 'error', text: errorData.error || 'Erreur lors de l\'envoi du code' });
       }
     } catch (error) {
       setMessage({ type: 'error', text: 'Erreur de connexion' });
@@ -136,25 +139,37 @@ export default function SecuritySettingsPage() {
     }
   };
 
-  const verifyPhoneCode = async (code: string) => {
-    setIsLoading(true);
+  const handleSMSVerification = async (method: string, code: string) => {
+    setIsVerifyingSMS(true);
     try {
-      const response = await fetch('/api/user/2fa/phone/verify', {
+      const response = await fetch('/api/user/2fa/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code })
+        body: JSON.stringify({ 
+          method: 'sms', 
+          code: code,
+          phoneNumber: config.phoneNumber
+        })
       });
 
       if (response.ok) {
-        setConfig(prev => ({ ...prev, phoneVerified: true }));
-        setMessage({ type: 'success', text: 'Numéro de téléphone vérifié' });
+        const data = await response.json();
+        setConfig(prev => ({ 
+          ...prev, 
+          phoneVerified: true,
+          twoFactorMethods: JSON.stringify(data.methods)
+        }));
+        setShowSMSVerificationDialog(false);
+        setMessage({ type: 'success', text: 'SMS 2FA activé avec succès' });
+        loadUserConfig(); // Recharger la config
       } else {
-        setMessage({ type: 'error', text: 'Code incorrect' });
+        const errorData = await response.json();
+        setMessage({ type: 'error', text: errorData.error || 'Code incorrect' });
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Erreur de vérification' });
+      setMessage({ type: 'error', text: 'Erreur de connexion' });
     } finally {
-      setIsLoading(false);
+      setIsVerifyingSMS(false);
     }
   };
 
@@ -397,9 +412,44 @@ export default function SecuritySettingsPage() {
                 />
                 <Button 
                   onClick={updatePhoneNumber}
-                  disabled={!config.phoneNumber || isLoading}
+                  disabled={!config.phoneNumber || isLoading || config.phoneVerified}
                 >
-                  {isLoading ? "Envoi..." : "Vérifier"}
+                  {isLoading ? "Envoi..." : config.phoneVerified ? "SMS déjà validé" : "Envoyer le code"}
+                </Button>
+                <Button 
+                  onClick={async () => {
+                    if (config.phoneVerified) {
+                      // Réinitialiser le numéro de téléphone côté serveur
+                      setIsLoading(true);
+                      try {
+                        const response = await fetch('/api/user/2fa/phone/reset', {
+                          method: 'POST'
+                        });
+                        if (response.ok) {
+                          setConfig(prev => ({ 
+                            ...prev, 
+                            phoneNumber: "",
+                            phoneVerified: false 
+                          }));
+                          setMessage({ type: 'success', text: 'Numéro de téléphone réinitialisé' });
+                        } else {
+                          setMessage({ type: 'error', text: 'Erreur lors de la réinitialisation' });
+                        }
+                      } catch (error) {
+                        setMessage({ type: 'error', text: 'Erreur de connexion' });
+                      } finally {
+                        setIsLoading(false);
+                      }
+                    } else {
+                      // Ouvrir le dialogue de vérification
+                      console.log('Ouverture du dialogue de vérification SMS');
+                      setShowSMSVerificationDialog(true);
+                    }
+                  }}
+                  variant={config.phoneVerified ? "destructive" : "outline"}
+                  disabled={!config.phoneNumber}
+                >
+                  {config.phoneVerified ? "Réinitialiser" : "Vérifier le code"}
                 </Button>
               </div>
             </div>
@@ -633,6 +683,16 @@ export default function SecuritySettingsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* SMS Verification Dialog */}
+      <TwoFactorVerificationDialog
+        open={showSMSVerificationDialog}
+        onOpenChange={setShowSMSVerificationDialog}
+        onConfirm={handleSMSVerification}
+        method="sms"
+        phoneNumber={config.phoneNumber}
+        isLoading={isVerifyingSMS}
+      />
 
       {/* Success/Error Messages */}
       {message && (

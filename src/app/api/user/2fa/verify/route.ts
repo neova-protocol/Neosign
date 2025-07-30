@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/db";
 import { authenticator } from "otplib";
 import { getCode, deleteCode, cleanupExpiredCodes, getAllCodes } from "@/lib/temp-codes-db";
+import { getSMSCode, deleteSMSCode, cleanupExpiredSMSCodes } from "@/lib/sms-codes-db";
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -91,17 +92,64 @@ export async function POST(request: NextRequest) {
         break;
 
       case 'sms':
-        // En production, vérifier le code stocké temporairement
-        // Pour cette démo, on accepte n'importe quel code à 6 chiffres
-        isValid = /^\d{6}$/.test(code);
-        if (isValid && phoneNumber) {
+        // Nettoyer les codes expirés
+        await cleanupExpiredSMSCodes();
+        
+        // Vérifier que le numéro de téléphone est fourni
+        if (!phoneNumber) {
+          return NextResponse.json(
+            { error: "Phone number is required for SMS verification" },
+            { status: 400 }
+          );
+        }
+
+        // Formater le numéro de téléphone
+        const formattedPhoneNumber = phoneNumber.startsWith('+') ? phoneNumber : `+33${phoneNumber.replace(/^0/, '')}`;
+        
+        // Récupérer le code stocké pour ce numéro
+        const storedSMSData = await getSMSCode(formattedPhoneNumber, "2fa");
+        
+        console.log(`Vérification SMS: ${formattedPhoneNumber}`);
+        console.log(`Code stocké pour ${formattedPhoneNumber}:`, storedSMSData);
+        
+        if (!storedSMSData) {
+          console.log(`Aucun code SMS trouvé pour le numéro: ${formattedPhoneNumber}`);
+          return NextResponse.json(
+            { error: "Aucun code de vérification SMS trouvé. Veuillez demander un nouveau code." },
+            { status: 400 }
+          );
+        }
+
+        // Vérifier l'expiration
+        if (storedSMSData.expiresAt < Date.now()) {
+          console.log(`Code SMS expiré pour le numéro: ${formattedPhoneNumber}`);
+          await deleteSMSCode(formattedPhoneNumber, "2fa");
+          return NextResponse.json(
+            { error: "Code de vérification SMS expiré. Veuillez demander un nouveau code." },
+            { status: 400 }
+          );
+        }
+
+        // Vérifier le code
+        if (storedSMSData.code === code) {
+          console.log(`Code SMS vérifié avec succès pour le numéro: ${formattedPhoneNumber}`);
+          isValid = true;
+          await deleteSMSCode(formattedPhoneNumber, "2fa");
+          
+          // Mettre à jour phoneVerified quand le SMS 2FA est vérifié
           await prisma.user.update({
             where: { id: session.user.id },
             data: {
-              phoneNumber,
+              phoneNumber: formattedPhoneNumber,
               phoneVerified: true,
             }
           });
+        } else {
+          console.log(`Code SMS incorrect pour le numéro: ${formattedPhoneNumber}. Attendu: ${storedSMSData.code}, Reçu: ${code}`);
+          return NextResponse.json(
+            { error: "Code de vérification SMS incorrect" },
+            { status: 400 }
+          );
         }
         break;
 
