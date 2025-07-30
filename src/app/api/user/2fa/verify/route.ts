@@ -72,8 +72,15 @@ export async function POST(request: NextRequest) {
         if (storedData.code === code) {
           console.log(`Code vérifié avec succès pour l'email: ${email}`);
           isValid = true;
-          // Supprimer le code après utilisation
           await deleteCode(email, "2fa");
+          
+          // Mettre à jour emailVerified quand l'email 2FA est vérifié
+          await prisma.user.update({
+            where: { id: session.user.id },
+            data: {
+              emailVerified: new Date()
+            }
+          });
         } else {
           console.log(`Code incorrect pour l'email: ${email}. Attendu: ${storedData.code}, Reçu: ${code}`);
           return NextResponse.json(
@@ -109,6 +116,16 @@ export async function POST(request: NextRequest) {
             token: code,
             secret: user.authenticatorSecret
           });
+          
+          // Activer l'authenticator si le code est valide
+          if (isValid) {
+            await prisma.user.update({
+              where: { id: session.user.id },
+              data: {
+                authenticatorEnabled: true
+              }
+            });
+          }
         }
         break;
 
