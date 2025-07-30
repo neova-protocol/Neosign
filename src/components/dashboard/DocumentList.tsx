@@ -14,6 +14,18 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
+import SuccessModal from "../modals/SuccessModal";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 
 type DocumentWithSignatories = Document & {
   signatories: { id: string; userId: string | null; status: string }[];
@@ -47,12 +59,14 @@ const DocumentStatus: React.FC<{
   userId: string;
 }> = ({ doc, userId }) => {
   const status = getStatus(doc, userId);
+
   const colorVariants: { [key: string]: string } = {
     gray: "text-gray-500 bg-gray-100",
     green: "text-green-600 bg-green-100",
     orange: "text-orange-600 bg-orange-100",
     blue: "text-blue-600 bg-blue-100",
     red: "text-red-600 bg-red-100",
+    purple: "text-purple-600 bg-purple-100",
   };
   return (
     <span
@@ -69,6 +83,9 @@ const DocumentList: React.FC = () => {
   const [documents, setDocuments] = useState<DocumentWithSignatories[]>([]);
   const [loading, setLoading] = useState(true);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [docToDelete, setDocToDelete] = useState<string | null>(null);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
 
   const fetchDocuments = useCallback(async () => {
     if (status === "authenticated") {
@@ -106,16 +123,22 @@ const DocumentList: React.FC = () => {
     return () => document.removeEventListener("click", handleOutsideClick);
   }, [openMenuId]);
 
-  const handleDelete = async (docId: string) => {
-    if (window.confirm("Are you sure you want to delete this draft?")) {
-      try {
-        await deleteDocument(docId);
-        setDocuments((prevDocs) => prevDocs.filter((d) => d.id !== docId));
-        setOpenMenuId(null);
-      } catch (error) {
-        console.error("Failed to delete document:", error);
-        alert("Failed to delete document. See console for details.");
-      }
+  const handleDeleteRequest = (docId: string) => {
+    setDocToDelete(docId);
+    setIsConfirmOpen(true);
+    setOpenMenuId(null);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!docToDelete) return;
+    try {
+      await deleteDocument(docToDelete);
+      setDocuments((prevDocs) => prevDocs.filter((d) => d.id !== docToDelete));
+      setIsConfirmOpen(false);
+      setIsSuccessModalOpen(true);
+    } catch (error) {
+      console.error("Failed to delete document:", error);
+      alert("Failed to delete document. See console for details.");
     }
   };
 
@@ -137,6 +160,36 @@ const DocumentList: React.FC = () => {
 
   return (
     <div className="bg-white rounded-lg shadow">
+      <SuccessModal
+        isOpen={isSuccessModalOpen}
+        onClose={() => setIsSuccessModalOpen(false)}
+        title="Document Supprimé"
+        message="Le document a été supprimé avec succès."
+      />
+
+      <AlertDialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="text-red-500" />
+              Êtes-vous sûr de vouloir supprimer ce document ?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. Le document et toutes ses données associées seront définitivement supprimés.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <div className="p-4 border-b">
         <h2 className="text-lg font-semibold">My Documents</h2>
       </div>
@@ -151,17 +204,20 @@ const DocumentList: React.FC = () => {
               <div className="flex items-center justify-between p-4 border-b hover:bg-gray-50">
                 <div className="flex items-center">
                   <FileText className="w-6 h-6 mr-3 text-blue-500" />
-                  <div>
-                    <p className="font-semibold">{doc.name}</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold truncate">{doc.name}</p>
                     <p className="text-sm text-gray-500">
                       Last updated: {format(new Date(doc.updatedAt), "PPpp")}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center">
+                <div className="flex items-center gap-4">
                   <div className="group-hover:hidden">
-                    <DocumentStatus doc={doc} userId={session?.user.id!} />
+                    <DocumentStatus
+                      doc={doc}
+                      userId={session?.user?.id || ""}
+                    />
                   </div>
                   <div className="hidden group-hover:block relative menu-container">
                     <button
@@ -200,8 +256,9 @@ const DocumentList: React.FC = () => {
                                 <button
                                   className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
                                   onClick={(e) => {
+                                    e.preventDefault();
                                     e.stopPropagation();
-                                    handleDelete(doc.id);
+                                    handleDeleteRequest(doc.id);
                                   }}
                                 >
                                   Supprimer

@@ -15,8 +15,21 @@ import {
   Edit,
   Trash2,
   ArrowLeft,
+  AlertTriangle,
 } from "lucide-react";
 import Link from "next/link";
+import SuccessModal from "@/components/modals/SuccessModal";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 
 // This will be a new component we create
 const DocumentTimeline = ({ events }: { events: DocumentEvent[] }) => (
@@ -49,6 +62,8 @@ export default function DocumentDetailPage() {
   const { } = useSignature();
   const [localDocument, setLocalDocument] = useState<AppDocument | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
   useEffect(() => {
     if (documentId) {
@@ -66,19 +81,22 @@ export default function DocumentDetailPage() {
     }
   }, [documentId]);
 
-  const handleDelete = async () => {
-    if (
-      localDocument &&
-      window.confirm("Are you sure you want to delete this draft?")
-    ) {
-      try {
-        await deleteDocument(localDocument.id);
-        router.push("/dashboard/sign");
-      } catch (error) {
-        console.error("Failed to delete document:", error);
-        alert("Failed to delete document.");
-      }
+  const handleDeleteConfirm = async () => {
+    if (!localDocument) return;
+
+    try {
+      await deleteDocument(localDocument.id);
+      setIsConfirmOpen(false); // Close confirmation dialog
+      setIsSuccessModalOpen(true); // Open success modal
+    } catch (error) {
+      console.error("Failed to delete document:", error);
+      alert("Failed to delete document.");
     }
+  };
+
+  const handleCloseModal = () => {
+    setIsSuccessModalOpen(false);
+    router.push("/dashboard/sign");
   };
 
   if (isLoading) {
@@ -95,6 +113,7 @@ export default function DocumentDetailPage() {
     ? signatories.find((s: Signatory) => s.userId === session.user!.id)
     : null;
   const canSign = selfAsSignatory && selfAsSignatory.status === "pending";
+  const isCreator = session?.user?.id === localDocument.creatorId;
 
   const getStatusIcon = (docStatus: string) => {
     switch (docStatus.toLowerCase()) {
@@ -109,6 +128,36 @@ export default function DocumentDetailPage() {
 
   return (
     <div className="p-8 bg-gray-50 min-h-screen">
+      <SuccessModal
+        isOpen={isSuccessModalOpen}
+        onClose={handleCloseModal}
+        title="Document Supprimé"
+        message="Le document a été supprimé avec succès."
+      />
+
+      <AlertDialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="text-red-500" />
+              Êtes-vous sûr de vouloir supprimer ce document ?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. Le document et toutes ses données associées seront définitivement supprimés.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <div className="max-w-5xl mx-auto">
         <div className="mb-4">
           <button
@@ -133,6 +182,14 @@ export default function DocumentDetailPage() {
               </div>
             </div>
             <div className="flex gap-2">
+              {isCreator && localDocument.status.toLowerCase() === 'draft' && (
+                <Link
+                  href={`/dashboard/sign/edit/${documentId}`}
+                  className="bg-orange-500 text-white px-4 py-2 rounded-md hover:bg-orange-600 flex items-center gap-2"
+                >
+                  <Edit size={18} /> Resume Editing
+                </Link>
+              )}
               {canSign && (
                 <Link
                   href={`/dashboard/sign/document/${documentId}`}
@@ -151,7 +208,7 @@ export default function DocumentDetailPage() {
               </a>
               {localDocument.status.toLowerCase() === "draft" && (
                 <button
-                  onClick={handleDelete}
+                  onClick={() => setIsConfirmOpen(true)}
                   className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 flex items-center gap-2"
                 >
                   <Trash2 size={18} /> Delete
