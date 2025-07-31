@@ -15,7 +15,7 @@ export type Signatory = {
 
 export type SignatureField = {
   id: string;
-  type: string;
+  type: "signature" | "paraphe";
   page: number;
   x: number;
   y: number;

@@ -73,6 +73,7 @@ model User {
   updatedAt     DateTime  @updatedAt
   notifications Notification[]
   userTemplates UserTemplate[]
+  paraphes Paraphe[] // Nouvelle relation pour les paraphes
 }
 
 model VerificationToken {
@@ -215,4 +216,23 @@ model UserTemplate {
   fileUrl   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ---- Paraphe Model ----
+model Paraphe {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  type      String   // 'text', 'drawing', 'upload'
+  content   String   // Base64 pour drawing/upload, texte pour text
+  font      String?  // Pour les paraphes textuels
+  color     String?  // Couleur du paraphe
+  size      Int?     // Taille du paraphe
+  isDefault Boolean  @default(false) // Paraphe par défaut
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([userId, isDefault])
 }

@@ -9,6 +9,7 @@ const settingsMenuItems = [
   { name: "General", href: "/dashboard/settings/general" },
   { name: "Account", href: "/dashboard/settings/account" },
   { name: "Signatures", href: "/dashboard/settings/sign" },
+  { name: "Paraphes", href: "/dashboard/settings/paraphes" },
   { name: "Security", href: "/dashboard/settings/security" },
   { name: "Notifications", href: "/dashboard/settings/notifications" },
   { name: "Data", href: "/dashboard/settings/data" },

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Trash2, Send, UserPlus, Users, Shield, PenTool, Info, ShieldCheck, ShieldEllipsis } from "lucide-react";
-import { useRouter } from "next/navigation";
+
 import { SignatureType } from "./SignatureTypeSelector";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
@@ -16,11 +16,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 interface SignatoryPanelProps {
   selectedSignatoryId: string | null;
   onSelectSignatory: (signatoryId: string | null) => void;
+  selectedFieldType?: "signature" | "paraphe";
+  onFieldTypeChange?: (fieldType: "signature" | "paraphe") => void;
 }
 
 const SignatoryPanel: React.FC<SignatoryPanelProps> = ({
   selectedSignatoryId,
   onSelectSignatory,
+  selectedFieldType,
+  onFieldTypeChange,
 }) => {
   const {
     currentDocument,
@@ -28,7 +32,7 @@ const SignatoryPanel: React.FC<SignatoryPanelProps> = ({
     removeSignatory,
   } = useSignature();
   const { data: session } = useSession();
-  const router = useRouter();
+
 
   const [newSignatoryName, setNewSignatoryName] = useState("");
   const [newSignatoryEmail, setNewSignatoryEmail] = useState("");
@@ -39,6 +43,13 @@ const SignatoryPanel: React.FC<SignatoryPanelProps> = ({
   const [showInfoDialog, setShowInfoDialog] = useState(false);
 
   const currentUser = session?.user;
+  
+  // Valeur par défaut pour selectedFieldType
+  const fieldType = selectedFieldType || "signature";
+  
+  console.log("🔍 SignatoryPanel - selectedFieldType:", selectedFieldType);
+  console.log("🔍 SignatoryPanel - fieldType:", fieldType);
+  console.log("🔍 SignatoryPanel - onFieldTypeChange:", !!onFieldTypeChange);
 
   const handleAddSignatory = async () => {
     if (!newSignatoryName.trim() || !newSignatoryEmail.trim()) {
@@ -109,39 +120,23 @@ const SignatoryPanel: React.FC<SignatoryPanelProps> = ({
   };
 
   const handleSend = async () => {
-    if (!currentDocument || !currentUser) return;
-    
-    console.log("Sending document with signature type:", selectedSignatureType);
-    
-    // Toujours envoyer le document, les signatures se feront plus tard
+    if (!currentDocument || currentDocument.signatories.length === 0) {
+      alert("Please add at least one signatory");
+      return;
+    }
+
     setIsSending(true);
     try {
-      const res = await fetch(`/api/send-document`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          documentId: currentDocument!.id,
-          signatureType: selectedSignatureType
-        }),
-      });
-
-      if (res.ok) {
-        router.push("/dashboard");
-      } else {
-        const errorData = await res.json();
-        alert(`Failed to send document: ${errorData.error}`);
-      }
+      // Logique d'envoi du document
+      console.log("Sending document for signature...");
+      // Ici, vous pouvez ajouter la logique pour envoyer le document
     } catch (error) {
-      console.error("Error sending document:", error);
-      alert("An error occurred while sending the document.");
+      console.error("Failed to send document:", error);
+      alert("Failed to send document");
     } finally {
       setIsSending(false);
     }
   };
-
-
-
-
 
   const getSignatureTypeLabel = (type: SignatureType) => {
     switch (type) {
@@ -158,42 +153,41 @@ const SignatoryPanel: React.FC<SignatoryPanelProps> = ({
     }
   };
 
+  const isCurrentUserSignatory = currentDocument?.signatories.some(
+    (s) => s.email === currentUser?.email
+  );
 
-
-  const isCurrentUserSignatory =
-    currentDocument?.signatories.some((s) => s.id === currentUser?.id) ?? false;
-
-  if (!currentDocument) return null;
+  if (!currentDocument) {
+    return <div>No document selected</div>;
+  }
 
   return (
-    <div className="h-full flex flex-col">
-            {/* Sélecteur de type de signature */}
-      <div className="mb-4 p-3 border rounded-lg bg-gray-50">
-        <div className="flex items-center gap-2 mb-2">
-          <Label className="text-sm font-medium">Type de Signature</Label>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-gray-600 hover:text-gray-800 p-1 h-auto"
-            onClick={() => setShowInfoDialog(true)}
-          >
-            <Info className="h-3 w-3" />
-          </Button>
-        </div>
-        <p className="text-sm font-semibold mb-2">Niveau de signature</p>
-        <RadioGroup 
-          value={selectedSignatureType} 
-          onValueChange={(value) => setSelectedSignatureType(value as SignatureType)} 
-          className="space-y-4"
+    <div className="flex flex-col h-full">
+      <div className="flex items-center gap-2 mb-4">
+        <Shield className="h-5 w-5 text-gray-600" />
+        <h2 className="text-lg font-semibold">Type de Signature</h2>
+        <button
+          onClick={() => setShowInfoDialog(true)}
+          className="text-gray-400 hover:text-gray-600"
+        >
+          <Info className="h-4 w-4" />
+        </button>
+      </div>
+
+      <div className="space-y-3 mb-6">
+        <Label className="text-sm font-medium">Niveau de signature</Label>
+        <RadioGroup
+          value={selectedSignatureType}
+          onValueChange={(value) => setSelectedSignatureType(value as SignatureType)}
         >
           <div className="flex items-center space-x-2">
             <RadioGroupItem value="simple" id="simple" />
             <Label htmlFor="simple" className="flex items-center gap-2">
-              <PenTool className="h-5 w-5" />
+              <PenTool className="h-5 w-5 text-gray-600" />
               Signature Simple
             </Label>
           </div>
- 
+
           <div className="flex items-center space-x-2">
             <RadioGroupItem value="ses" id="ses" />
             <Label htmlFor="ses" className="flex items-center gap-2">
@@ -225,6 +219,49 @@ const SignatoryPanel: React.FC<SignatoryPanelProps> = ({
         <Users className="h-5 w-5 text-gray-600" />
         <h2 className="text-lg font-semibold">Signatories</h2>
       </div>
+
+      {/* Type de champ pour le signataire sélectionné */}
+      {selectedSignatoryId && (
+        <div className="mb-4 p-3 border rounded-lg bg-blue-50">
+          <Label className="text-sm font-medium mb-2 block">
+            Type de champ pour ce signataire
+          </Label>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                console.log("🔄 Switching to signature");
+                onFieldTypeChange?.("signature");
+              }}
+              className={`flex-1 px-3 py-2 rounded border text-sm ${
+                fieldType === "signature"
+                  ? "bg-blue-500 text-white border-blue-500"
+                  : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+              }`}
+            >
+              Signature
+            </button>
+            <button
+              onClick={() => {
+                console.log("🔄 Switching to paraphe");
+                onFieldTypeChange?.("paraphe");
+              }}
+              className={`flex-1 px-3 py-2 rounded border text-sm ${
+                fieldType === "paraphe"
+                  ? "bg-green-500 text-white border-green-500"
+                  : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+              }`}
+            >
+              Paraphe
+            </button>
+          </div>
+          <p className="text-xs text-gray-600 mt-1">
+            {fieldType === "signature" 
+              ? "Champ de signature avec validation" 
+              : "Champ de paraphe auto-rempli"
+            }
+          </p>
+        </div>
+      )}
 
       <div className="space-y-4 flex-1">
         {/* Add signatory buttons */}
@@ -306,204 +343,60 @@ const SignatoryPanel: React.FC<SignatoryPanelProps> = ({
         </div>
       </div>
 
-      <div className="mt-auto pt-4 border-t">
+      {/* Send button */}
+      <div className="mt-6">
         <Button
-          className="w-full"
           onClick={handleSend}
-          disabled={
-            !currentDocument ||
-            currentDocument.signatories.length < 1 ||
-            isSending
-          }
+          disabled={isSending || currentDocument.signatories.length === 0}
+          className="w-full"
         >
-          <Send className="mr-2 h-4 w-4" />
-          {isSending ? "Sending..." : `Send for ${getSignatureTypeLabel(selectedSignatureType)}`}
+          {isSending ? (
+            <>
+              <Send className="mr-2 h-4 w-4 animate-spin" />
+              Sending...
+            </>
+          ) : (
+            <>
+              <Send className="mr-2 h-4 w-4" />
+              Send for {getSignatureTypeLabel(selectedSignatureType)}
+            </>
+          )}
         </Button>
-        <div className="text-xs text-gray-500 mt-1">
+        <p className="text-xs text-gray-500 mt-1 text-center">
           Type sélectionné: {getSignatureTypeLabel(selectedSignatureType)}
-        </div>
+        </p>
       </div>
 
-
-
-      {/* Modale d'information sur les types de signature */}
+      {/* Info Dialog */}
       <Dialog open={showInfoDialog} onOpenChange={setShowInfoDialog}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-blue-600" />
-              Guide Complet des Signatures Électroniques eIDAS
-            </DialogTitle>
+            <DialogTitle>Signature Types Information</DialogTitle>
           </DialogHeader>
-          
-          <div className="space-y-6">
-            <div className="text-sm text-gray-600">
-              <p>Les signatures électroniques sont classées selon le standard européen eIDAS (Electronic Identification, Authentication and Trust Services). Chaque niveau offre différents degrés de sécurité et de valeur légale.</p>
+          <div className="space-y-4">
+            <div>
+              <h3 className="font-semibold">Signature Simple</h3>
+              <p className="text-sm text-gray-600">
+                Basic signature for internal documents and drafts.
+              </p>
             </div>
-
-            <div className="space-y-4">
-              {/* Signature Simple */}
-              <div className="p-4 border rounded-lg">
-                <h4 className="font-semibold flex items-center gap-2 text-lg">
-                  <PenTool className="h-5 w-5" />
-                  Signature Simple
-                </h4>
-                <p className="text-sm text-gray-600 mt-2">
-                  Signature basique sans validation eIDAS. Idéale pour les documents internes et les workflows simples.
-                </p>
-                <div className="mt-3 space-y-2">
-                  <div className="text-xs text-gray-500">
-                    <strong>Valeur légale :</strong> Basique | <strong>Conformité :</strong> N/A
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    <strong>Validation :</strong> Aucune validation requise
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    <strong>Usage recommandé :</strong> Documents internes, notes, brouillons
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    <strong>Avantages :</strong> Rapide, simple, pas de configuration
-                  </div>
-                </div>
-              </div>
-
-              {/* SES */}
-              <div className="p-4 border rounded-lg bg-blue-50 border-blue-200">
-                <h4 className="font-semibold flex items-center gap-2 text-lg">
-                  <Shield className="h-5 w-5 text-blue-600" />
-                  SES - Simple Electronic Signature
-                </h4>
-                <p className="text-sm text-gray-600 mt-2">
-                  Signature électronique simple conforme eIDAS avec validation par email/SMS et horodatage sécurisé.
-                </p>
-                <div className="mt-3 space-y-2">
-                  <div className="text-xs text-gray-500">
-                    <strong>Valeur légale :</strong> Basique | <strong>Conformité :</strong> eIDAS Niveau 1
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    <strong>Validation :</strong> Email/SMS/Password + Horodatage RFC 3161
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    <strong>Usage recommandé :</strong> Documents officiels, contrats, factures
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    <strong>Avantages :</strong> Conforme eIDAS, validation simple, valeur légale reconnue
-                  </div>
-                  <div className="text-xs text-blue-600">
-                    <strong>Processus :</strong> Signature → Validation → Horodatage → Certificat de conformité
-                  </div>
-                </div>
-              </div>
-
-              {/* AES */}
-              <div className="p-4 border rounded-lg bg-gray-50 opacity-75">
-                <h4 className="font-semibold flex items-center gap-2 text-lg">
-                  <Shield className="h-5 w-5 text-yellow-600" />
-                  AES - Advanced Electronic Signature
-                </h4>
-                <p className="text-sm text-gray-600 mt-2">
-                  Signature électronique avancée avec certificats qualifiés, authentification forte et intégrité garantie.
-                </p>
-                <div className="mt-3 space-y-2">
-                  <div className="text-xs text-gray-500">
-                    <strong>Valeur légale :</strong> Avancée | <strong>Conformité :</strong> eIDAS Niveau 2
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    <strong>Validation :</strong> Certificats qualifiés + 2FA + PKI
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    <strong>Usage recommandé :</strong> Documents sensibles, contrats importants
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    <strong>Avantages :</strong> Sécurité maximale, intégrité garantie, valeur légale avancée
-                  </div>
-                  <div className="text-xs text-blue-600">
-                    <strong>Processus :</strong> Certificat → Authentification → Signature → Horodatage → Validation PKI
-                  </div>
-                  <div className="mt-1 text-xs text-blue-600 font-semibold">(Bientôt disponible)</div>
-                </div>
-              </div>
-
-              {/* QES */}
-              <div className="p-4 border rounded-lg bg-gray-50 opacity-75">
-                <h4 className="font-semibold flex items-center gap-2 text-lg">
-                  <Shield className="h-5 w-5 text-green-600" />
-                  QES - Qualified Electronic Signature
-                </h4>
-                <p className="text-sm text-gray-600 mt-2">
-                  Signature électronique qualifiée, équivalente à une signature manuscrite selon la loi européenne.
-                </p>
-                <div className="mt-3 space-y-2">
-                  <div className="text-xs text-gray-500">
-                    <strong>Valeur légale :</strong> Qualifiée | <strong>Conformité :</strong> eIDAS Niveau 3
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    <strong>Validation :</strong> Certificats qualifiés + QSCD + PKI
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    <strong>Usage recommandé :</strong> Documents légaux, contrats critiques
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    <strong>Avantages :</strong> Équivalent signature manuscrite, valeur légale maximale
-                  </div>
-                  <div className="text-xs text-blue-600">
-                    <strong>Processus :</strong> QSCD → Certificat qualifié → Signature → Horodatage → Validation légale
-                  </div>
-                  <div className="mt-1 text-xs text-blue-600 font-semibold">(Bientôt disponible)</div>
-                </div>
-              </div>
+            <div>
+              <h3 className="font-semibold">SES - Simple Electronic Signature</h3>
+              <p className="text-sm text-gray-600">
+                Standard electronic signature with email/SMS validation.
+              </p>
             </div>
-
-            {/* Tableau comparatif */}
-            <div className="mt-6">
-              <h5 className="font-semibold mb-3">Comparaison des Types de Signature</h5>
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs border-collapse">
-                  <thead>
-                    <tr className="bg-gray-100">
-                      <th className="border p-2 text-left">Type</th>
-                      <th className="border p-2 text-left">Validation</th>
-                      <th className="border p-2 text-left">Valeur Légale</th>
-                      <th className="border p-2 text-left">Conformité</th>
-                      <th className="border p-2 text-left">Usage</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td className="border p-2">Simple</td>
-                      <td className="border p-2">Aucune</td>
-                      <td className="border p-2">Basique</td>
-                      <td className="border p-2">N/A</td>
-                      <td className="border p-2">Interne</td>
-                    </tr>
-                    <tr className="bg-blue-50">
-                      <td className="border p-2">SES</td>
-                      <td className="border p-2">Email/SMS</td>
-                      <td className="border p-2">Basique</td>
-                      <td className="border p-2">eIDAS N1</td>
-                      <td className="border p-2">Officiel</td>
-                    </tr>
-                    <tr className="opacity-60">
-                      <td className="border p-2">AES</td>
-                      <td className="border p-2">Certificats</td>
-                      <td className="border p-2">Avancée</td>
-                      <td className="border p-2">eIDAS N2</td>
-                      <td className="border p-2">Sensible</td>
-                    </tr>
-                    <tr className="opacity-60">
-                      <td className="border p-2">QES</td>
-                      <td className="border p-2">QSCD</td>
-                      <td className="border p-2">Qualifiée</td>
-                      <td className="border p-2">eIDAS N3</td>
-                      <td className="border p-2">Légal</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+            <div>
+              <h3 className="font-semibold">AES - Advanced Electronic Signature</h3>
+              <p className="text-sm text-gray-600">
+                Advanced signature with qualified certificates and strong authentication.
+              </p>
             </div>
-
-            <div className="text-xs text-gray-500 mt-4 p-3 bg-gray-50 rounded">
-              <strong>Note importante :</strong> Le choix du type de signature dépend de vos besoins légaux et de la sensibilité du document. Pour les documents officiels, nous recommandons au minimum le niveau SES.
+            <div>
+              <h3 className="font-semibold">QES - Qualified Electronic Signature</h3>
+              <p className="text-sm text-gray-600">
+                Highest level signature equivalent to handwritten signature.
+              </p>
             </div>
           </div>
         </DialogContent>

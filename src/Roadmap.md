@@ -38,6 +38,10 @@
 5.
  API NeoDrive
  Se pencher sur le QES
+ Module multi user sous une entreprise
+ Pouvoir signer en PO (transfert de la demande à qqn d'autre) -> je transfere la signature, je recois un code à donner au signataire PO
+ In app feat : La delegation de signature
+ Intégrer un systeme de priorisation des signatures pour le workflow
 
 
 **Sécurité & Authentification**

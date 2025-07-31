@@ -36,21 +36,29 @@ import React, { useState, MouseEvent, useEffect, useCallback } from "react";
 import { useSignature } from "@/contexts/SignatureContext";
 import { SignatureField as SignatureFieldType } from "@/types";
 import { calculateSignaturePosition } from "@/lib/utils";
+import { 
+  Type
+} from "lucide-react";
+import ParapheField from "./ParapheField";
+import { Paraphe } from "@/types/paraphe";
 
 interface SignatureFieldProps {
   field: SignatureFieldType;
   onUpdate: (id: string, updates: { x: number; y: number }) => Promise<void>;
   onRemove: (id: string) => Promise<void>;
+  onParapheSelect?: (fieldId: string, paraphe: Paraphe) => void;
 }
 
 export const SignatureFieldComponent: React.FC<SignatureFieldProps> = ({
   field,
   onUpdate,
   onRemove,
+  onParapheSelect,
 }) => {
   const { currentDocument } = useSignature();
   const [isDragging, setIsDragging] = useState(false);
   const [position, setPosition] = useState({ x: field.x, y: field.y });
+  const [showParapheMenu, setShowParapheMenu] = useState(false);
   const dragStartOffset = React.useRef({ x: 0, y: 0 });
 
   const signatory = field.signatoryId
@@ -98,133 +106,74 @@ export const SignatureFieldComponent: React.FC<SignatureFieldProps> = ({
   useEffect(() => {
     const handleMouseMove = (e: globalThis.MouseEvent) => {
       if (!isDragging) return;
-      e.preventDefault();
-      e.stopPropagation();
 
-      console.log("🚀 === DRAG SUR PAGE PDF SPÉCIFIQUE ===");
-
-      // 🚀 ÉTAPE 1: Identifier la page sur laquelle se trouve la signature
-      const pdfContainer = document.querySelector(
-        ".pdf-container",
-      ) as HTMLElement;
-      if (!pdfContainer) {
+      // 🚀 ÉTAPE 2: Obtenir les informations du conteneur
+      const container = document.querySelector(".pdf-container") as HTMLElement;
+      if (!container) {
         console.error("❌ Conteneur PDF non trouvé");
         return;
       }
 
-      // Trouver la page spécifique correspondant au champ de signature
-      const targetPage = pdfContainer.querySelector(
-        `[data-page-number="${field.page}"]`,
-      ) as HTMLElement;
-      if (!targetPage) {
-        console.error(`❌ Page ${field.page} non trouvée`);
-        return;
-      }
+      const containerRect = container.getBoundingClientRect();
+      const containerScroll = {
+        scrollLeft: container.scrollLeft,
+        scrollTop: container.scrollTop,
+      };
 
-      console.log("📄 Page cible trouvée:", field.page);
-
-      // 🚀 ÉTAPE 2: Obtenir les dimensions de cette page spécifique
-      const pageRect = targetPage.getBoundingClientRect();
-      const containerRect = pdfContainer.getBoundingClientRect();
-
-      console.log("📄 Page rect:", {
-        x: pageRect.x,
-        y: pageRect.y,
-        width: pageRect.width,
-        height: pageRect.height,
-      });
-
-      console.log("📦 Container rect:", {
-        x: containerRect.x,
-        y: containerRect.y,
+      console.log("🎯 Container rect:", {
+        left: containerRect.left,
+        top: containerRect.top,
         width: containerRect.width,
         height: containerRect.height,
       });
+      console.log("🎯 Container scroll:", containerScroll);
 
-      // 🚀 ÉTAPE 3: Calculer la position relative à cette page spécifique
-      const desiredPositionRelativeToPage = {
-        x: e.clientX - pageRect.left - dragStartOffset.current.x,
-        y: e.clientY - pageRect.top - dragStartOffset.current.y,
+      // 🚀 ÉTAPE 3: Calculer la nouvelle position
+      const desiredPosition = {
+        x: e.clientX - containerRect.left - dragStartOffset.current.x + containerScroll.scrollLeft,
+        y: e.clientY - containerRect.top - dragStartOffset.current.y + containerScroll.scrollTop,
       };
 
-      console.log(
-        "🎯 Position désirée relative à la page:",
-        desiredPositionRelativeToPage,
-      );
-      console.log("🎯 Mouse position:", {
-        clientX: e.clientX,
-        clientY: e.clientY,
-      });
-      console.log("🎯 Drag offset:", dragStartOffset.current);
-
-      // 🚀 ÉTAPE 4: Utiliser la fonction utilitaire avec les contraintes de la page spécifique
-      const finalPositionRelativeToPage = calculateSignaturePosition({
-        desiredPosition: desiredPositionRelativeToPage,
+      const newPosition = calculateSignaturePosition({
+        desiredPosition,
         fieldDimensions: {
           width: field.width,
           height: field.height,
         },
         containerDimensions: {
-          width: pageRect.width, // Largeur de la page spécifique
-          height: pageRect.height, // Hauteur de la page spécifique
+          width: container.scrollWidth,
+          height: container.scrollHeight,
         },
-        containerPadding: {
-          left: 0, // Pas de padding car on est relatif à la page
-          top: 0,
-        },
-        pdfOffset: { left: 0, top: 0 }, // Pas de décalage car on est relatif à la page
-        useSmartPositioning: false, // Pas de positionnement intelligent pour le drag, juste les contraintes
-        context: "DRAG_PAGE_SPECIFIC",
+        containerPadding: { left: 32, top: 32 },
+        useSmartPositioning: false, // Pas de décalage automatique pendant le drag
+        context: "DRAG",
       });
 
-      console.log(
-        "✅ Position calculée relative à la page:",
-        finalPositionRelativeToPage,
-      );
+      console.log("🎯 Nouvelle position calculée:", newPosition);
 
-      // 🚀 ÉTAPE 5: Convertir en position absolue dans le conteneur global
-      const absolutePosition = {
-        x:
-          finalPositionRelativeToPage.x +
-          (pageRect.left - containerRect.left) +
-          pdfContainer.scrollLeft,
-        y:
-          finalPositionRelativeToPage.y +
-          (pageRect.top - containerRect.top) +
-          pdfContainer.scrollTop,
+      // 🚀 ÉTAPE 4: Appliquer les contraintes
+      const constrainedPosition = {
+        x: Math.max(32, Math.min(newPosition.x, container.scrollWidth - field.width - 32)),
+        y: Math.max(32, Math.min(newPosition.y, container.scrollHeight - field.height - 32)),
       };
 
-      console.log("📜 Scroll du conteneur:", {
-        scrollLeft: pdfContainer.scrollLeft,
-        scrollTop: pdfContainer.scrollTop,
-      });
-      console.log(
-        "📍 Position absolue dans le conteneur global (avec scroll):",
-        absolutePosition,
-      );
-      setPosition(absolutePosition);
+      console.log("🎯 Position avec contraintes:", constrainedPosition);
+
+      setPosition(constrainedPosition);
     };
 
-    const handleMouseUp = (e: globalThis.MouseEvent) => {
+    const handleMouseUp = () => {
       if (!isDragging) return;
-      e.stopPropagation();
-      e.preventDefault();
 
-      console.log("🚀 === FIN DE DRAG SUR PAGE SPÉCIFIQUE ===");
+      console.log("🚀 === FIN DE DRAG ===");
       setIsDragging(false);
 
-      // 🚀 ÉTAPE 4: Vérifier si la position a changé
+      // Vérifier si la position a réellement changé
       const hasPositionChanged =
-        Math.abs(position.x - field.x) > 1 ||
-        Math.abs(position.y - field.y) > 1;
-
-      console.log("📊 Comparaison des positions:");
-      console.log("  Position actuelle:", { x: position.x, y: position.y });
-      console.log("  Position originale:", { x: field.x, y: field.y });
-      console.log("  Position changée:", hasPositionChanged);
+        Math.abs(position.x - field.x) > 1 || Math.abs(position.y - field.y) > 1;
 
       if (!hasPositionChanged) {
-        console.log("📍 Position inchangée, pas de sauvegarde nécessaire");
+        console.log("ℹ️ Position inchangée, pas de sauvegarde");
         return;
       }
 
@@ -285,7 +234,25 @@ export const SignatureFieldComponent: React.FC<SignatureFieldProps> = ({
     onRemove(field.id);
   };
 
+  const handleParapheMenuClick = (e: MouseEvent) => {
+    e.stopPropagation();
+    setShowParapheMenu(!showParapheMenu);
+  };
+
+  const handleParapheSelect = (paraphe: Paraphe) => {
+    if (onParapheSelect) {
+      onParapheSelect(field.id, paraphe);
+    }
+    setShowParapheMenu(false);
+  };
+
   const fieldColor = signatory ? signatory.color : "#A0A0A0";
+
+  // Different styling for paraphe fields
+  const isParapheField = field.type === "paraphe";
+  const displayColor = isParapheField ? "#10b981" : fieldColor;
+  const displayText = isParapheField ? "Paraphe" : (signatory ? signatory.name : "Unassigned");
+  const displaySubtext = isParapheField ? "Auto-rempli" : "Signature";
 
   return (
     <div
@@ -303,16 +270,29 @@ export const SignatureFieldComponent: React.FC<SignatureFieldProps> = ({
         style={{
           width: field.width,
           height: field.height,
-          backgroundColor: `${fieldColor}20`,
-          borderColor: fieldColor,
+          backgroundColor: `${displayColor}20`,
+          borderColor: displayColor,
         }}
       >
         <div className="text-center select-none">
-          <p className="text-sm font-bold" style={{ color: fieldColor }}>
-            {signatory ? signatory.name : "Unassigned"}
+          <p className="text-sm font-bold" style={{ color: displayColor }}>
+            {displayText}
           </p>
-          <p className="text-xs text-gray-500">Signature</p>
+          <p className="text-xs text-gray-500">{displaySubtext}</p>
         </div>
+        
+        {/* Menu paraphe - only for signature fields */}
+        {!isParapheField && (
+          <button
+            onClick={handleParapheMenuClick}
+            className="absolute -top-3 -left-3 bg-blue-500 text-white rounded-full h-6 w-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+            aria-label="Paraphe options"
+          >
+            <Type className="w-3 h-3" />
+          </button>
+        )}
+
+        {/* Bouton supprimer */}
         <button
           onClick={handleDeleteClick}
           className="absolute -top-3 -right-3 bg-red-500 text-white rounded-full h-6 w-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
@@ -321,6 +301,18 @@ export const SignatureFieldComponent: React.FC<SignatureFieldProps> = ({
           X
         </button>
       </div>
+
+      {/* Menu paraphe - only for signature fields */}
+      {!isParapheField && showParapheMenu && (
+        <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg p-3 min-w-64 z-50">
+          <ParapheField
+            onParapheSelect={handleParapheSelect}
+            onCancel={() => setShowParapheMenu(false)}
+            signatoryName={signatory?.name || "Unknown"}
+            className="w-full"
+          />
+        </div>
+      )}
     </div>
   );
 };

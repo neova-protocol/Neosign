@@ -277,6 +277,34 @@ export default function PDFViewer({
 
         // Logic for signing mode
         if (isSigningMode) {
+          // Handle paraphe fields differently
+          if (field.type === "paraphe") {
+            return (
+              <div
+                key={field.id}
+                style={{
+                  position: "absolute",
+                  left: displayX,
+                  top: displayY,
+                  width: displayWidth,
+                  height: displayHeight,
+                  border: "2px dashed #10b981",
+                  backgroundColor: "#10b98120",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  zIndex: 10,
+                }}
+              >
+                <div className="text-center">
+                  <div className="text-xs font-medium text-green-700">Paraphe</div>
+                  <div className="text-xs text-green-600">Auto-rempli</div>
+                </div>
+              </div>
+            );
+          }
+
+          // Handle signature fields
           if (field.signatoryId === activeSignatoryId) {
             return (
               <div
