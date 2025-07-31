@@ -47,18 +47,32 @@ export default function SignDocumentPage() {
     try {
       console.log("🔄 Applying paraphe to field:", fieldId);
       const parapheValue = parapheAutoFillService.convertParapheToFieldValue(paraphe);
+      
+      // Appeler l'API - si ça échoue, l'erreur sera attrapée par le catch
       await updateField(fieldId, { value: parapheValue });
+      
+      // Si on arrive ici, l'API a réussi
       await refreshDocument(documentId);
       console.log("✅ Paraphe applied successfully");
     } catch (error) {
       console.error("❌ Error applying paraphe:", error);
+      // Ne pas appeler refreshDocument en cas d'erreur pour éviter que le paraphe disparaisse
+      throw error; // Re-lancer l'erreur pour que le composant parent puisse la gérer
     }
   };
 
   // Fonction pour gérer la sélection de paraphe
   const handleParapheSelect = async (paraphe: Paraphe) => {
     if (fieldToSign) {
-      await applyParapheToField(fieldToSign.id, paraphe);
+      try {
+        await applyParapheToField(fieldToSign.id, paraphe);
+        // Fermer le dialog seulement si ça a réussi
+        setShowParapheDialog(false);
+      } catch (error) {
+        console.error("❌ Failed to apply paraphe:", error);
+        // Afficher un message d'erreur à l'utilisateur
+        alert("Erreur lors de l'application du paraphe. Veuillez réessayer.");
+      }
     }
   };
 
@@ -198,7 +212,7 @@ export default function SignDocumentPage() {
   }
 
   const myFields = currentDocument.fields.filter(
-    (f) => f.signatoryId === selfAsSignatory.id,
+    (f) => f.signatoryId === selfAsSignatory.id || f.type === "paraphe",
   );
   const signedFields = myFields.filter((f) => !!f.value);
   const allMyFieldsSigned =

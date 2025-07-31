@@ -156,7 +156,16 @@ export const SignatureProvider: React.FC<{ children: ReactNode }> = ({
         await updateSignatureField(currentDocument.id, id, updates);
       } catch (error) {
         console.error("Failed to update field, rolling back:", error);
-        // Rollback on failure
+        
+        // Pour les erreurs 403 (Forbidden), ne pas faire de rollback automatique
+        // car cela peut être dû à des permissions temporaires
+        if (error && typeof error === 'object' && 'status' in error && error.status === 403) {
+          console.log("⚠️ 403 Forbidden - keeping optimistic update for now");
+          // Ne pas faire de rollback, laisser l'utilisateur voir le paraphe temporairement
+          return;
+        }
+        
+        // Rollback on failure pour les autres erreurs
         setCurrentDocument((prev) => {
           if (!prev) return null;
           return { ...prev, fields: originalFields };

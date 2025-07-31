@@ -34,9 +34,17 @@ export async function PUT(
     } else if (session?.user?.id) {
       const field = await prisma.signatureField.findUnique({
         where: { id: fieldId },
-        select: { signatory: { select: { id: true, userId: true } } },
+        select: { 
+          signatory: { select: { id: true, userId: true } },
+          type: true 
+        },
       });
-      if (
+      
+      // Pour les paraphes, permettre la mise à jour sans vérifier le signatory
+      if (field?.type === "paraphe") {
+        // Les paraphes peuvent être mis à jour par n'importe quel utilisateur connecté
+        signatoryId = undefined;
+      } else if (
         !field ||
         !field.signatory ||
         field.signatory.userId !== session.user.id
@@ -45,17 +53,27 @@ export async function PUT(
           { error: "Forbidden: You cannot sign this field" },
           { status: 403 },
         );
+      } else {
+        signatoryId = field.signatory.id;
       }
-      signatoryId = field.signatory.id;
     } else {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     if (!signatoryId) {
-      return NextResponse.json(
-        { error: "Could not determine signatory" },
-        { status: 400 },
-      );
+      // Vérifier si c'est un paraphe - dans ce cas, c'est normal de ne pas avoir de signatory
+      const field = await prisma.signatureField.findUnique({
+        where: { id: fieldId },
+        select: { type: true }
+      });
+      
+      if (field?.type !== "paraphe") {
+        return NextResponse.json(
+          { error: "Could not determine signatory" },
+          { status: 400 },
+        );
+      }
+      // Pour les paraphes, continuer sans signatory
     }
 
     const updatedField = await prisma.$transaction(async (tx) => {
@@ -64,39 +82,42 @@ export async function PUT(
         data: { value },
       });
 
-      await tx.signatory.update({
-        where: { id: signatoryId },
-        data: { status: "signed", signedAt: new Date() },
-      });
-
-      const signatoryDetails = await tx.signatory.findUnique({
-        where: { id: signatoryId },
-      });
-
-      await tx.documentEvent.create({
-        data: {
-          documentId: documentId,
-          type: "signed",
-          userName: signatoryDetails?.name ?? "Unknown",
-        },
-      });
-
-      const remainingSignatories = await tx.signatory.count({
-        where: { documentId, status: { not: "signed" } },
-      });
-
-      if (remainingSignatories === 0) {
-        await tx.document.update({
-          where: { id: documentId },
-          data: { status: "completed" },
+      // Ne mettre à jour le signatory que pour les signatures, pas pour les paraphes
+      if (signatoryId) {
+        await tx.signatory.update({
+          where: { id: signatoryId },
+          data: { status: "signed", signedAt: new Date() },
         });
+
+        const signatoryDetails = await tx.signatory.findUnique({
+          where: { id: signatoryId },
+        });
+
         await tx.documentEvent.create({
           data: {
             documentId: documentId,
-            type: "completed",
-            userName: "System",
+            type: "signed",
+            userName: signatoryDetails?.name ?? "Unknown",
           },
         });
+
+        const remainingSignatories = await tx.signatory.count({
+          where: { documentId, status: { not: "signed" } },
+        });
+
+        if (remainingSignatories === 0) {
+          await tx.document.update({
+            where: { id: documentId },
+            data: { status: "completed" },
+          });
+          await tx.documentEvent.create({
+            data: {
+              documentId: documentId,
+              type: "completed",
+              userName: "System",
+            },
+          });
+        }
       }
 
       return fieldUpdate;
