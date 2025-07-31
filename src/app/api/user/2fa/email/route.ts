@@ -16,6 +16,8 @@ export async function POST(request: NextRequest) {
   try {
     const { email } = await request.json();
     
+    console.log('Email API called with:', { email, sessionEmail: session.user.email });
+    
     if (!email) {
       return NextResponse.json(
         { error: "Email is required" },
@@ -26,6 +28,7 @@ export async function POST(request: NextRequest) {
     // Validation basique de l'email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
+      console.log('Invalid email format:', email);
       return NextResponse.json(
         { error: "Invalid email format" },
         { status: 400 }
@@ -40,7 +43,7 @@ export async function POST(request: NextRequest) {
     // Stocker le code avec expiration en DB
     await storeCode(email, verificationCode, "2fa", 5);
 
-    // Envoyer l'email
+    // Envoyer l'email réel
     await sendEmail({
       to: email,
       subject: "Code de vérification 2FA - Neosign",

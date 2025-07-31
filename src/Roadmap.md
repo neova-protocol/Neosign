@@ -25,6 +25,7 @@
  settings signature à modifier en logique aussi pour utiliser ses propres infos + fonts
  Notifications en dynamique
  Settings notifications à adapter
+ Décalage Sign button
  View & download signed doc avec la signature dessus
 
 4.

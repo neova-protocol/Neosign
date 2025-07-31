@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MoreHorizontal, ExternalLink } from "lucide-react";
+import { MoreHorizontal, ExternalLink, Shield, Clock, Settings, Bug } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from "next/link";
@@ -153,6 +153,99 @@ export default function HomePage() {
               <div className="relative">
                 <DecorativeDashboard />
               </div>
+            </div>
+          </div>
+
+          {/* Tests Section */}
+          <div className="bg-white rounded-2xl shadow-lg p-8 mb-12">
+            <h2 className="text-3xl font-semibold text-blue-500 mb-8 text-center">
+              Tests & Compliance
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Link href="/test-compliance">
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200 hover:border-blue-300 transition-colors cursor-pointer">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <Shield className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900">Test eIDAS Compliance</h3>
+                      <p className="text-sm text-gray-600">Vérifier la conformité SES/AES</p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    Testez la compliance de vos signatures aux standards eIDAS
+                  </p>
+                </div>
+              </Link>
+
+              <Link href="/test-session-timeout">
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border border-green-200 hover:border-green-300 transition-colors cursor-pointer">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                      <Clock className="h-5 w-5 text-green-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900">Test Session Timeout</h3>
+                      <p className="text-sm text-gray-600">Vérifier les timeouts de session</p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    Testez le système de timeout de session et d&apos;authentification
+                  </p>
+                </div>
+              </Link>
+
+              <Link href="/test-aes-dialog">
+                <div className="bg-gradient-to-r from-purple-50 to-violet-50 rounded-xl p-6 border border-purple-200 hover:border-purple-300 transition-colors cursor-pointer">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                      <Shield className="h-5 w-5 text-purple-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900">Test Dialog AES</h3>
+                      <p className="text-sm text-gray-600">Tester le dialog AES</p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    Testez le dialog AES avec différents scénarios 2FA
+                  </p>
+                </div>
+              </Link>
+
+              <Link href="/test-2fa-config">
+                <div className="bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl p-6 border border-orange-200 hover:border-orange-300 transition-colors cursor-pointer">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                      <Settings className="h-5 w-5 text-orange-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900">Test Config 2FA</h3>
+                      <p className="text-sm text-gray-600">Vérifier la config 2FA</p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    Vérifiez la configuration 2FA et son impact sur AES
+                  </p>
+                </div>
+              </Link>
+
+              <Link href="/debug-2fa">
+                <div className="bg-gradient-to-r from-red-50 to-pink-50 rounded-xl p-6 border border-red-200 hover:border-red-300 transition-colors cursor-pointer">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                      <Bug className="h-5 w-5 text-red-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900">Debug 2FA</h3>
+                      <p className="text-sm text-gray-600">Debug détaillé</p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    Debug détaillé de la configuration 2FA
+                  </p>
+                </div>
+              </Link>
             </div>
           </div>
 

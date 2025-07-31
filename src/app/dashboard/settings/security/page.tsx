@@ -370,7 +370,7 @@ export default function SecuritySettingsPage() {
                     <p className="font-medium">Email d&apos;authentification requis</p>
                     <p>Vous devez d&apos;abord ajouter un email et mot de passe à votre compte pour configurer le 2FA email.</p>
                     <a 
-                      href="/dashboard/settings/profile" 
+                      href="/dashboard/settings/account" 
                       className="text-yellow-700 underline hover:text-yellow-800 mt-1 inline-block"
                     >
                       Aller aux paramètres du profil →

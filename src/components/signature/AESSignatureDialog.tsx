@@ -33,9 +33,6 @@ interface AESSignatureDialogProps {
   signatoryName: string;
   signatoryId: string;
   documentId: string;
-  twoFactorMethod: string;
-  userEmail: string;
-  userPhone: string;
 }
 
 interface User2FAConfig {
@@ -46,29 +43,70 @@ interface User2FAConfig {
   twoFactorMethods: string;
 }
 
+interface UserProfile {
+  id: string;
+  email: string;
+  name?: string;
+  phoneNumber?: string;
+  authenticatorEnabled?: boolean;
+  twoFactorMethods?: string;
+}
+
 export const AESSignatureDialog: React.FC<AESSignatureDialogProps> = ({
   open,
   onOpenChange,
   onConfirm,
   signatoryName,
   signatoryId,
-  documentId,
-  userEmail
+  documentId
 }) => {
-  const [step, setStep] = useState<'signature' | 'certificate' | 'twofactor' | 'completed'>('signature');
+  const [step, setStep] = useState<'signature' | 'certificate' | 'twofactor' | 'completed' | 'error'>('signature');
   const [signatureData, setSignatureData] = useState<string>('');
-  const [twoFactorCode, setTwoFactorCode] = useState('');
+  const [twoFactorCodes, setTwoFactorCodes] = useState<Record<string, string>>({});
   const [isValidating, setIsValidating] = useState(false);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
+  const [emailSentTime, setEmailSentTime] = useState<Date | null>(null);
   const [compliance, setCompliance] = useState<SignatureCompliance | null>(null);
   const [error, setError] = useState<string>('');
   const [user2FAConfig, setUser2FAConfig] = useState<User2FAConfig | null>(null);
   const [availableMethods, setAvailableMethods] = useState<string[]>([]);
+  const [selectedMethods, setSelectedMethods] = useState<string[]>([]);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
   useEffect(() => {
     if (open) {
       loadUser2FAConfig();
+      loadUserProfile();
     }
   }, [open]);
+
+  // Mettre à jour le temps restant toutes les secondes
+  useEffect(() => {
+    if (emailSent && emailSentTime) {
+      const interval = setInterval(() => {
+        const remaining = getRemainingTime();
+        if (!remaining) {
+          clearInterval(interval);
+        }
+      }, 1000);
+
+      return () => clearInterval(interval);
+    }
+  }, [emailSent, emailSentTime]);
+
+  const loadUserProfile = async () => {
+    try {
+      const response = await fetch('/api/user/me');
+      if (response.ok) {
+        const profile = await response.json();
+        setUserProfile(profile);
+        console.log('User profile loaded:', profile);
+      }
+    } catch (error) {
+      console.error('Error loading user profile:', error);
+    }
+  };
 
   const loadUser2FAConfig = async () => {
     try {
@@ -80,6 +118,11 @@ export const AESSignatureDialog: React.FC<AESSignatureDialogProps> = ({
         // Parser les méthodes 2FA disponibles
         const methods = JSON.parse(config.twoFactorMethods || '[]');
         setAvailableMethods(methods);
+        
+        // Pour AES, sélectionner automatiquement les 2 premières méthodes
+        // ou toutes si moins de 2
+        const methodsToSelect = methods.length >= 2 ? methods.slice(0, 2) : methods;
+        setSelectedMethods(methodsToSelect);
       } else {
         // Pour la signature publique, utiliser email par défaut
         console.log('Using default 2FA method (email) for public signature');
@@ -99,53 +142,26 @@ export const AESSignatureDialog: React.FC<AESSignatureDialogProps> = ({
   };
 
   const handleCertificateConfirm = async () => {
-    if (availableMethods.length === 0) {
-      setError('Aucune méthode 2FA configurée. Veuillez configurer au moins une méthode dans votre profil.');
+    // Pour AES, on a besoin d'au moins 2 méthodes 2FA
+    if (availableMethods.length < 2) {
+      setError('Signature AES impossible. Merci de configurer au moins deux méthodes 2FA.');
+      setStep('error');
       return;
     }
 
     setStep('twofactor');
     
-    // Envoyer le code 2FA selon la méthode disponible
-    const selectedMethod = availableMethods[0]; // Utiliser la première méthode disponible
+    // Pas d'envoi automatique - l'utilisateur doit demander l'envoi
+    console.log('AES 2FA step initiated. User must request codes manually.');
     
-    try {
-      let response;
-      
-      switch (selectedMethod) {
-        case 'email':
-          response = await fetch('/api/user/2fa/email', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: userEmail })
-          });
-          break;
-        case 'sms':
-          response = await fetch('/api/user/2fa/phone', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ phoneNumber: user2FAConfig?.phoneNumber })
-          });
-          break;
-        default:
-          setError('Méthode 2FA non supportée');
-          return;
-      }
-      
-      if (!response.ok) {
-        // Pour la signature publique, simuler l'envoi du code
-        console.log('Simulating 2FA code send for public signature');
-      }
-    } catch (error) {
-      console.error('Error sending 2FA code:', error);
-      // Pour la signature publique, simuler l'envoi du code
-      console.log('Simulating 2FA code send for public signature');
-    }
+    // Pas d'envoi automatique - l'utilisateur doit demander l'envoi manuellement
   };
 
   const handleTwoFactorSubmit = async () => {
-    if (!twoFactorCode) {
-      setError('Veuillez entrer le code 2FA');
+    // Vérifier que tous les codes sont entrés pour les méthodes sélectionnées
+    const missingCodes = selectedMethods.filter(method => !twoFactorCodes[method]);
+    if (missingCodes.length > 0) {
+      setError(`Veuillez entrer les codes pour : ${missingCodes.join(', ')}`);
       return;
     }
 
@@ -153,59 +169,45 @@ export const AESSignatureDialog: React.FC<AESSignatureDialogProps> = ({
     setError('');
 
     try {
-      const selectedMethod = availableMethods[0];
+      // Valider chaque méthode sélectionnée
+      const validationResults = [];
       
-      const response = await fetch('/api/user/2fa/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          method: selectedMethod,
-          code: twoFactorCode
-        })
-      });
-      
-      if (response.ok) {
-        // Créer une signature AES simulée pour la démonstration
-        const aesService = AESSignatureService.getInstance();
-        const signature = await aesService.createAESSignature(
-          signatoryId,
-          documentId,
-          signatureData,
-          selectedMethod as 'sms' | 'email' | 'authenticator' | 'hardware',
-          navigator.userAgent,
-          '127.0.0.1'
-        );
+      for (const method of selectedMethods) {
+        const code = twoFactorCodes[method];
         
-        const compliance = aesService.getAESCompliance(signature);
-        setCompliance(compliance);
-        setStep('completed');
-      } else {
-        // Pour la signature publique, accepter n'importe quel code pour la démo
-        console.log('Simulating 2FA verification for public signature');
-        const aesService = AESSignatureService.getInstance();
-        const signature = await aesService.createAESSignature(
-          signatoryId,
-          documentId,
-          signatureData,
-          selectedMethod as 'sms' | 'email' | 'authenticator' | 'hardware',
-          navigator.userAgent,
-          '127.0.0.1'
-        );
+        const response = await fetch('/api/user/2fa/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            method,
+            code,
+            email: method === 'email' ? userProfile?.email : undefined,
+            phoneNumber: method === 'sms' ? user2FAConfig?.phoneNumber : undefined
+          })
+        });
         
-        const compliance = aesService.getAESCompliance(signature);
-        setCompliance(compliance);
-        setStep('completed');
+        if (response.ok) {
+          validationResults.push({ method, success: true });
+        } else {
+          const errorData = await response.json();
+          validationResults.push({ method, success: false, error: errorData.error });
+        }
       }
-    } catch (error) {
-      console.error('Error validating 2FA:', error);
-      // Pour la signature publique, accepter n'importe quel code pour la démo
-      console.log('Simulating 2FA verification for public signature');
+
+      // Vérifier que toutes les validations ont réussi
+      const failedValidations = validationResults.filter(result => !result.success);
+      if (failedValidations.length > 0) {
+        setError(`Échec de validation : ${failedValidations.map(f => `${f.method} (${f.error})`).join(', ')}`);
+        return;
+      }
+
+      // Créer une signature AES avec les 2 méthodes validées
       const aesService = AESSignatureService.getInstance();
       const signature = await aesService.createAESSignature(
         signatoryId,
         documentId,
         signatureData,
-        'email' as 'sms' | 'email' | 'authenticator' | 'hardware',
+        selectedMethods.join('+') as 'sms' | 'email' | 'authenticator' | 'hardware',
         navigator.userAgent,
         '127.0.0.1'
       );
@@ -213,17 +215,113 @@ export const AESSignatureDialog: React.FC<AESSignatureDialogProps> = ({
       const compliance = aesService.getAESCompliance(signature);
       setCompliance(compliance);
       setStep('completed');
+      
+    } catch (error) {
+      console.error('Error validating 2FA:', error);
+      setError('Erreur lors de la validation des codes 2FA');
     } finally {
       setIsValidating(false);
     }
   };
+
+  const handleSendEmailCode = async () => {
+    setIsSendingEmail(true);
+    setError('');
+
+    try {
+      // Utiliser l'email du profil utilisateur (email 2FA configuré)
+      const twoFAEmail = userProfile?.email;
+      console.log('Sending email code to 2FA email:', twoFAEmail);
+      
+      if (!twoFAEmail) {
+        setError('Email 2FA non configuré. Veuillez configurer un email dans les paramètres.');
+        return;
+      }
+
+      const response = await fetch('/api/user/2fa/email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: twoFAEmail })
+      });
+
+      const responseData = await response.json();
+      console.log('Email API response:', responseData);
+
+      if (response.ok) {
+        console.log('Email code sent successfully to:', twoFAEmail);
+        setEmailSent(true);
+        setEmailSentTime(new Date());
+        setError(''); // Effacer les erreurs précédentes
+      } else {
+        console.error('Email API error:', responseData);
+        setError(`Erreur envoi email: ${responseData.error}`);
+        setEmailSent(false);
+        setEmailSentTime(null);
+      }
+    } catch (error) {
+      console.error('Error sending email code:', error);
+      setError('Erreur lors de l\'envoi du code email');
+      setEmailSent(false);
+      setEmailSentTime(null);
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
+
+  const handleSendSMSCode = async () => {
+    setIsSendingEmail(true); // Réutiliser le même état pour SMS
+    setError('');
+
+    try {
+      const response = await fetch('/api/user/2fa/phone', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phoneNumber: user2FAConfig?.phoneNumber })
+      });
+
+      if (response.ok) {
+        console.log('SMS code sent successfully');
+      } else {
+        const errorData = await response.json();
+        setError(`Erreur envoi SMS: ${errorData.error}`);
+      }
+    } catch (error) {
+      console.error('Error sending SMS code:', error);
+      setError('Erreur lors de l\'envoi du code SMS');
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
+
+  // Calculer le temps restant avant que le code expire
+  const getRemainingTime = () => {
+    if (!emailSentTime) return null;
+    
+    const now = new Date();
+    const timeDiff = now.getTime() - emailSentTime.getTime();
+    const remainingMs = 5 * 60 * 1000 - timeDiff; // 5 minutes en millisecondes
+    
+    if (remainingMs <= 0) {
+      setEmailSent(false);
+      setEmailSentTime(null);
+      return null;
+    }
+    
+    const remainingMinutes = Math.floor(remainingMs / (60 * 1000));
+    const remainingSeconds = Math.floor((remainingMs % (60 * 1000)) / 1000);
+    
+    return { minutes: remainingMinutes, seconds: remainingSeconds };
+  };
+
+  const remainingTime = getRemainingTime();
+  const isEmailButtonDisabled = emailSent && remainingTime !== null;
 
   const handleConfirm = () => {
     if (compliance) {
       onConfirm({
         signatureData,
         compliance,
-        twoFactorMethod: availableMethods[0] || 'sms',
+        twoFactorMethod: selectedMethods.join('+'),
         validatedAt: new Date().toISOString()
       });
     }
@@ -337,25 +435,88 @@ export const AESSignatureDialog: React.FC<AESSignatureDialogProps> = ({
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="twoFactorCode">Code de vérification</Label>
-                  <Input
-                    id="twoFactorCode"
-                    type="text"
-                    value={twoFactorCode}
-                    onChange={(e) => setTwoFactorCode(e.target.value)}
-                    placeholder="Entrez le code 2FA"
-                    className="font-mono"
-                  />
+                {/* Sélection des méthodes pour AES */}
+                <div className="space-y-3">
+                  <div className="text-sm text-gray-600">
+                    <p>Sélectionnez 2 méthodes pour AES :</p>
+                  </div>
+                  <div className="space-y-2">
+                    {availableMethods.map((method) => (
+                      <div key={method} className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id={`select-${method}`}
+                          checked={selectedMethods.includes(method)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              if (selectedMethods.length < 2) {
+                                setSelectedMethods([...selectedMethods, method]);
+                              }
+                            } else {
+                              setSelectedMethods(selectedMethods.filter(m => m !== method));
+                            }
+                          }}
+                          disabled={!selectedMethods.includes(method) && selectedMethods.length >= 2}
+                        />
+                        <label htmlFor={`select-${method}`} className="flex items-center space-x-2 text-sm">
+                          {getTwoFactorMethodIcon(method)}
+                          <span>{getTwoFactorMethodLabel(method)}</span>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  {selectedMethods.map((method) => (
+                    <div key={method} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor={`code-${method}`}>
+                          Code {getTwoFactorMethodLabel(method)}
+                        </Label>
+                        {(method === 'email' || method === 'sms') && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={method === 'email' ? handleSendEmailCode : handleSendSMSCode}
+                            disabled={isSendingEmail || (method === 'email' && isEmailButtonDisabled)}
+                          >
+                            {isSendingEmail ? 'Envoi...' : 
+                             method === 'email' && isEmailButtonDisabled ? 
+                             `${remainingTime?.minutes}:${remainingTime?.seconds?.toString().padStart(2, '0')}` : 
+                             'Envoyer'}
+                          </Button>
+                        )}
+                      </div>
+                      <Input
+                        id={`code-${method}`}
+                        type="text"
+                        value={twoFactorCodes[method] || ''}
+                        onChange={(e) => setTwoFactorCodes({
+                          ...twoFactorCodes,
+                          [method]: e.target.value
+                        })}
+                        placeholder={`Entrez le code ${getTwoFactorMethodLabel(method)}`}
+                        className="font-mono"
+                      />
+                      {method === 'email' && emailSent && remainingTime && (
+                        <div className="text-sm text-green-600 flex items-center space-x-1">
+                          <CheckCircle className="h-4 w-4" />
+                          <span>Code envoyé avec succès (expire dans {remainingTime.minutes}:{remainingTime.seconds.toString().padStart(2, '0')})</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
 
                 <div className="flex gap-2">
                   <Button
                     onClick={handleTwoFactorSubmit}
-                    disabled={!twoFactorCode || isValidating}
+                    disabled={selectedMethods.length !== 2 || selectedMethods.some(method => !twoFactorCodes[method]) || isValidating}
                     className="flex-1"
                   >
-                    {isValidating ? "Validation..." : "Valider"}
+                    {isValidating ? "Validation..." : "Valider AES"}
                   </Button>
                   <Button
                     variant="outline"
@@ -381,6 +542,48 @@ export const AESSignatureDialog: React.FC<AESSignatureDialogProps> = ({
               <div className="flex gap-2">
                 <Button onClick={handleConfirm} className="flex-1">
                   Confirmer la signature
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                >
+                  Annuler
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {step === 'error' && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-red-600">
+                <AlertCircle className="h-5 w-5" />
+                <span className="font-medium">Configuration 2FA insuffisante</span>
+              </div>
+              
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <h3 className="font-semibold text-red-900 mb-2">
+                  Signature AES impossible
+                </h3>
+                <p className="text-sm text-red-800 mb-4">
+                  Pour signer en AES (Advanced Electronic Signature), vous devez configurer 
+                  au moins deux méthodes d&apos;authentification.
+                </p>
+                <div className="space-y-2">
+                  <p className="text-sm text-red-700">
+                    <strong>Méthodes configurées :</strong> {availableMethods.length}/2
+                  </p>
+                  <p className="text-sm text-red-700">
+                    <strong>Méthodes disponibles :</strong> SMS, Email, Authenticator
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex gap-2">
+                <Button 
+                  onClick={() => window.location.href = '/dashboard/settings/security'}
+                  className="flex-1"
+                >
+                  Configurer 2FA
                 </Button>
                 <Button
                   variant="outline"

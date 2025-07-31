@@ -7,6 +7,7 @@ export class AESSignatureService {
 
   private constructor() {
     this.initializeCertificates();
+    this.initializeTestSignatures();
   }
 
   public static getInstance(): AESSignatureService {
@@ -259,5 +260,42 @@ export class AESSignatureService {
       const now = new Date();
       return cert.validFrom <= now && cert.validTo >= now;
     });
+  }
+
+  /**
+   * Initialise des signatures de test pour la démonstration
+   */
+  private initializeTestSignatures(): void {
+    const testSignature: AESSignature = {
+      id: 'test-aes-signature',
+      signatoryId: 'test-user',
+      documentId: 'test-document',
+      signatureData: 'test-signature-data',
+      certificate: this.certificates[0],
+      timestamp: {
+        timestamp: new Date(),
+        hashAlgorithm: 'SHA-256',
+        signatureAlgorithm: 'RSA-SHA256',
+        tsaUrl: 'https://tsa.european-trust-services.eu',
+        serialNumber: 'TS-TEST-001'
+      },
+      validation: {
+        isValid: true,
+        validationDate: new Date(),
+        validationMethod: 'certificate-validation',
+        certificateStatus: 'valid'
+      },
+      twoFactorMethod: 'sms',
+      twoFactorCode: '123456',
+      isTwoFactorValidated: true,
+      twoFactorValidatedAt: new Date(),
+      userAgent: 'Mozilla/5.0 (Test Browser)',
+      ipAddress: '127.0.0.1',
+      createdAt: new Date(),
+      signedAt: new Date(),
+      revocationStatus: 'active'
+    };
+
+    this.signatures.push(testSignature);
   }
 } 
