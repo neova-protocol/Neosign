@@ -12,6 +12,8 @@ import { useRouter } from "next/navigation";
 import SuccessModal from "@/components/modals/SuccessModal";
 import ParapheSelectionDialog from "@/components/signature/ParapheSelectionDialog";
 import { Paraphe } from "@/types/paraphe";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 const PDFViewer = dynamic(() => import("@/components/pdf/PDFViewer"), {
   ssr: false,
@@ -39,6 +41,7 @@ export default function EditDocumentPage() {
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [showParapheDialog, setShowParapheDialog] = useState(false);
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
 
   console.log("🚀 EditDocumentPage - Component is rendering!");
 
@@ -68,11 +71,27 @@ export default function EditDocumentPage() {
     }
   }, [documentId, currentDocument?.id, setCurrentDocument, status]);
 
+  // Détecter quand le document passe de draft à sent
+  useEffect(() => {
+    if (currentDocument && currentDocument.status === "sent") {
+      console.log("🎉 Document status changed to 'sent', showing success dialog");
+      setShowSuccessDialog(true);
+    }
+  }, [currentDocument?.status]);
+
   const handleCloseModal = () => {
     setIsSuccessModalOpen(false);
     router.push("/dashboard");
   };
 
+  const handleDocumentSent = () => {
+    console.log("🎉 Document sent successfully, showing success dialog");
+    console.log("🔍 showSuccessDialog before set:", showSuccessDialog);
+    setShowSuccessDialog(true);
+    console.log("🔍 showSuccessDialog after set: true");
+  };
+
+  console.log("🔍 EditDocumentPage - showSuccessDialog state:", showSuccessDialog);
 
 
   if (status === "loading") {
@@ -113,8 +132,48 @@ export default function EditDocumentPage() {
 
   if (currentDocument.status !== "draft") {
     return (
-      <div>
-        This document has already been sent and can no longer be edited.
+      <div className="flex h-screen bg-gray-100">
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <header className="bg-white shadow-sm p-4 flex justify-between items-center">
+            <h1 className="text-xl font-semibold">{currentDocument.name}</h1>
+            <div className="flex gap-2">
+              <Button onClick={() => router.push("/dashboard")} variant="outline">
+                Back to Dashboard
+              </Button>
+            </div>
+          </header>
+          <main className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+                Document Already Sent
+              </h2>
+              <p className="text-gray-600 mb-6">
+                This document has already been sent and can no longer be edited.
+              </p>
+              <Button onClick={() => router.push("/dashboard")}>
+                Go to Dashboard
+              </Button>
+            </div>
+          </main>
+        </div>
+        
+        {/* Success Dialog - affiché même pour les documents envoyés */}
+        <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Document Sent Successfully!</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-gray-600">
+              Your document has been sent for signature. You will be redirected to the dashboard.
+            </p>
+            <Button onClick={() => {
+              setShowSuccessDialog(false);
+              router.push('/dashboard');
+            }} className="w-full mt-4">
+              Close
+            </Button>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
@@ -192,6 +251,7 @@ export default function EditDocumentPage() {
               onSelectSignatory={setSelectedSignatoryId}
               selectedFieldType={selectedFieldType}
               onFieldTypeChange={handleFieldTypeChange}
+              onDocumentSent={handleDocumentSent}
             />
           </aside>
         </main>
@@ -202,6 +262,24 @@ export default function EditDocumentPage() {
         onOpenChange={setShowParapheDialog}
         onParapheSelect={handleParapheSelect}
       />
+      
+      {/* Success Dialog */}
+      <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Document Sent Successfully!</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-600">
+            Your document has been sent for signature. You will be redirected to the dashboard.
+          </p>
+          <Button onClick={() => {
+            setShowSuccessDialog(false);
+            router.push('/dashboard');
+          }} className="w-full mt-4">
+            Close
+          </Button>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

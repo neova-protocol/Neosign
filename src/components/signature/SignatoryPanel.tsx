@@ -2,7 +2,6 @@
 import React, { useState } from "react";
 import { useSignature } from "@/contexts/SignatureContext";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,7 +11,6 @@ import { sendDocumentForSignature } from "@/lib/api";
 import { SignatureType } from "./SignatureTypeSelector";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
-
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface SignatoryPanelProps {
@@ -20,6 +18,7 @@ interface SignatoryPanelProps {
   onSelectSignatory: (signatoryId: string | null) => void;
   selectedFieldType?: "signature" | "paraphe";
   onFieldTypeChange: (fieldType: "signature" | "paraphe") => void;
+  onDocumentSent?: () => void;
 }
 
 const SignatoryPanel: React.FC<SignatoryPanelProps> = ({
@@ -27,6 +26,7 @@ const SignatoryPanel: React.FC<SignatoryPanelProps> = ({
   onSelectSignatory,
   selectedFieldType,
   onFieldTypeChange,
+  onDocumentSent,
 }: SignatoryPanelProps) => {
   console.log("🔍 SignatoryPanel - Component initialized with props:", {
     selectedSignatoryId,
@@ -42,7 +42,6 @@ const SignatoryPanel: React.FC<SignatoryPanelProps> = ({
     setCurrentDocument,
   } = useSignature();
   const { data: session } = useSession();
-  const router = useRouter();
 
 
   const [newSignatoryName, setNewSignatoryName] = useState("");
@@ -52,7 +51,8 @@ const SignatoryPanel: React.FC<SignatoryPanelProps> = ({
   const [selectedSignatureType, setSelectedSignatureType] = useState<SignatureType>('simple');
 
   const [showInfoDialog, setShowInfoDialog] = useState(false);
-  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+
+  console.log("🔍 SignatoryPanel - showSuccessDialog state:", false);
 
   const currentUser = session?.user;
   
@@ -159,27 +159,36 @@ const SignatoryPanel: React.FC<SignatoryPanelProps> = ({
 
     setIsSending(true);
     try {
-      console.log("Sending document for signature...");
-      console.log("Document:", currentDocument);
-      console.log("Signatories:", currentDocument.signatories);
-      console.log("Fields:", currentDocument.fields);
+      console.log("🚀 Starting to send document for signature...");
+      console.log("📄 Document:", currentDocument);
+      console.log("👥 Signatories:", currentDocument.signatories);
+      console.log("📍 Fields:", currentDocument.fields);
+      console.log("🎯 Selected signature type:", selectedSignatureType);
       
       // Appeler la vraie API d'envoi
       const updatedDocument = await sendDocumentForSignature(currentDocument.id, selectedSignatureType);
       
+      console.log("📤 API response:", updatedDocument);
+      
       if (updatedDocument) {
+        console.log("✅ Document sent successfully, updating context...");
         // Mettre à jour le document dans le contexte
         setCurrentDocument(updatedDocument);
-        setShowSuccessDialog(true);
+        console.log("🔔 Calling onDocumentSent callback...");
+        if (onDocumentSent) {
+          onDocumentSent();
+        }
         console.log("✅ Document sent successfully:", updatedDocument);
       } else {
-        throw new Error("Failed to send document");
+        console.error("❌ API returned null/undefined");
+        throw new Error("Failed to send document - API returned null");
       }
       
     } catch (error) {
-      console.error("Failed to send document:", error);
+      console.error("💥 Failed to send document:", error);
       alert("Failed to send document");
     } finally {
+      console.log("🏁 Setting isSending to false...");
       setIsSending(false);
     }
   };
@@ -447,24 +456,6 @@ const SignatoryPanel: React.FC<SignatoryPanelProps> = ({
               </p>
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Success Dialog */}
-      <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Document Sent Successfully!</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-gray-600">
-            Your document has been sent for signature. You can now close this panel.
-          </p>
-          <Button onClick={() => {
-            setShowSuccessDialog(false);
-            router.push('/dashboard');
-          }} className="w-full mt-4">
-            Close
-          </Button>
         </DialogContent>
       </Dialog>
     </div>

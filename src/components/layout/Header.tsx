@@ -18,7 +18,7 @@ type Notification = {
 function NotificationBell() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const unreadCount = (notifications || []).filter((n) => !n.read).length;
 
   useEffect(() => {
     const fetchNotifications = () => {
@@ -27,7 +27,17 @@ function NotificationBell() {
         .then((res) => res.json())
         .then((data) => {
           console.log("Notifications reçues :", data);
-          setNotifications(data);
+          // S'assurer que data est un tableau
+          if (Array.isArray(data)) {
+            setNotifications(data);
+          } else {
+            console.warn("API returned non-array data:", data);
+            setNotifications([]);
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching notifications:", error);
+          setNotifications([]);
         });
     };
     fetchNotifications();
