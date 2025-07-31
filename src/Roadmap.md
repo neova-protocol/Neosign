@@ -20,7 +20,7 @@
 3.
  Proteger les pages
 🛠️ Landing Neosign
- Paraphes à ajouter
+✅ Paraphes à ajouter
  settings contact -> connecter avec un récepteur + faire FAQs / Learn more (Demander à Guillaume de le faire)
  settings signature à modifier en logique aussi pour utiliser ses propres infos + fonts
  Notifications en dynamique

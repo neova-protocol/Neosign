@@ -6,18 +6,15 @@ import React, {
   ReactNode,
   useCallback,
 } from "react";
-import { v4 as uuidv4 } from "uuid";
 import {
   getDocumentById,
-  getDocumentsForUser,
-  createDocument as apiCreateDocument,
   deleteSignatureField,
   addSignatureField as apiAddSignatureField,
   updateSignatureField,
   addSignatory as apiAddSignatory,
   updateFieldPosition,
 } from "@/lib/api";
-import { Document, Signatory, SignatureField, DocumentEvent } from "@/types";
+import { Document, Signatory, SignatureField } from "@/types";
 
 type SignatureContextType = {
   documents: Document[];

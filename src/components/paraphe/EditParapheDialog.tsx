@@ -47,6 +47,12 @@ export default function EditParapheDialog({
   const parapheService = ParapheService.getInstance();
   const settings = parapheService.getDefaultSettings();
 
+  const handleTabChange = (value: string) => {
+    if (value === 'text' || value === 'drawing' || value === 'upload') {
+      setActiveTab(value as 'text' | 'drawing' | 'upload');
+    }
+  };
+
   useEffect(() => {
     if (open && paraphe) {
       setName(paraphe.name);
@@ -168,7 +174,7 @@ export default function EditParapheDialog({
           </div>
 
           {/* Type de paraphe */}
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <Tabs value={activeTab} onValueChange={handleTabChange}>
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="text" className="flex items-center space-x-2">
                 <Type className="h-4 w-4" />

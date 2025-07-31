@@ -254,7 +254,7 @@ export async function deleteDocument(id: string): Promise<void> {
   }
 }
 
-export async function updateDocument(id: string, data: any) {
+export async function updateDocument(id: string, data: Record<string, unknown>) {
   const response = await fetch(`/api/documents/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -274,7 +274,7 @@ export async function updateDocument(id: string, data: any) {
   return response.json();
 }
 
-export async function addSignatory(documentId: string, signatory: any) {
+export async function addSignatory(documentId: string, signatory: Record<string, unknown>) {
   const response = await fetch(`/api/documents/${documentId}/signatories`, {
     method: "POST",
     headers: {
