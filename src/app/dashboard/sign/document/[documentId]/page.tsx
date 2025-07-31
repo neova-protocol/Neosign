@@ -5,12 +5,15 @@ import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useSignature } from "@/contexts/SignatureContext";
 import { getDocumentById } from "@/lib/api";
+import { ParapheAutoFillService } from "@/services/paraphe/ParapheAutoFillService";
 import dynamic from "next/dynamic";
 import { SignatureField } from "@/types";
 import { Button } from "@/components/ui/button";
 import SESSignatureDialog from "@/components/signature/SESSignatureDialog";
 import { AESSignatureDialog } from "@/components/signature/AESSignatureDialog";
 import { QESSignatureDialog } from "@/components/signature/QESSignatureDialog";
+import ParapheSelectionDialog from "@/components/signature/ParapheSelectionDialog";
+import { Paraphe } from "@/types/paraphe";
 
 // Dynamically import heavy components
 const PDFViewer = dynamic(() => import("@/components/pdf/PDFViewer"), {
@@ -34,6 +37,32 @@ export default function SignDocumentPage() {
   const [showSESSignature, setShowSESSignature] = useState(false);
   const [showAESSignature, setShowAESSignature] = useState(false);
   const [showQESSignature, setShowQESSignature] = useState(false);
+  const [showParapheDialog, setShowParapheDialog] = useState(false);
+
+  // Service pour l'auto-remplissage des paraphes
+  const parapheAutoFillService = ParapheAutoFillService.getInstance();
+
+  // Fonction pour appliquer un paraphe à un champ
+  const applyParapheToField = async (fieldId: string, paraphe: Paraphe) => {
+    try {
+      console.log("🔄 Applying paraphe to field:", fieldId);
+      const parapheValue = parapheAutoFillService.convertParapheToFieldValue(paraphe);
+      await updateField(fieldId, { value: parapheValue });
+      await refreshDocument(documentId);
+      console.log("✅ Paraphe applied successfully");
+    } catch (error) {
+      console.error("❌ Error applying paraphe:", error);
+    }
+  };
+
+  // Fonction pour gérer la sélection de paraphe
+  const handleParapheSelect = async (paraphe: Paraphe) => {
+    if (fieldToSign) {
+      await applyParapheToField(fieldToSign.id, paraphe);
+    }
+  };
+
+
 
   useEffect(() => {
     if (documentId) {
@@ -54,10 +83,20 @@ export default function SignDocumentPage() {
     // Log pour debug
     console.log(`🔍 === DÉBUT handleSignClick ===`);
     console.log(`📋 Field reçu:`, field);
+    console.log(`📋 Field.type:`, field.type);
     console.log(`📋 Field.signatureType:`, field.signatureType);
     
+    // Vérifier si c'est un champ paraphe
+    if (field.type === "paraphe") {
+      console.log("🔄 Paraphe field clicked - opening paraphe dialog");
+      setFieldToSign(field);
+      setShowParapheDialog(true);
+      return;
+    }
+    
+    // Pour les champs signature, continuer avec la logique normale
     const signatureType = field.signatureType || 'simple';
-    console.log(`🎯 Field clicked - Signature type detected: ${signatureType}`);
+    console.log(`🎯 Signature field clicked - Signature type detected: ${signatureType}`);
     console.log(`🔍 === FIN handleSignClick ===`);
     
     switch (signatureType) {
@@ -238,6 +277,14 @@ export default function SignDocumentPage() {
             onConfirm={handleQESSignatureComplete}
             signatoryName={selfAsSignatory?.name || ''}
             documentId={currentDocument.id}
+          />
+        )}
+        
+        {fieldToSign && showParapheDialog && (
+          <ParapheSelectionDialog
+            open={showParapheDialog}
+            onOpenChange={setShowParapheDialog}
+            onParapheSelect={handleParapheSelect}
           />
         )}
         

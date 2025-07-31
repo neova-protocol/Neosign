@@ -294,11 +294,19 @@ export default function PDFViewer({
                   alignItems: "center",
                   justifyContent: "center",
                   zIndex: 10,
+                  cursor: "pointer", // Curseur pointer pour les paraphes cliquables
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onSignClick) {
+                    onSignClick(field);
+                  }
+                  console.log("🔄 Paraphe field clicked - opening paraphe dialog");
                 }}
               >
                 <div className="text-center">
                   <div className="text-xs font-medium text-green-700">Paraphe</div>
-                  <div className="text-xs text-green-600">Auto-rempli</div>
+                  <div className="text-xs text-green-600">Cliquer pour sélectionner</div>
                 </div>
               </div>
             );

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { useSignature } from "@/contexts/SignatureContext";
 import { useRouter } from "next/navigation";
@@ -16,14 +16,14 @@ const PDFViewerWithNoSSR = dynamic(() => import("@/components/pdf/PDFViewer"), {
   ssr: false,
 });
 
-type FieldType = "signature" | "paraphe";
-
 export default function EditSignaturePage() {
   const { currentDocument, updateField, addField } = useSignature();
   const router = useRouter();
   const [selectedSignatoryId, setSelectedSignatoryId] = useState<string | null>(null);
-  const [fieldTypeBySignatory, setFieldTypeBySignatory] = useState<{ [signatoryId: string]: FieldType }>({});
+  const [selectedFieldType, setSelectedFieldType] = useState<"signature" | "paraphe">("signature");
   const [fieldToSign, setFieldToSign] = useState<string | null>(null);
+
+  console.log("🔍 EditPage - Initial state - selectedFieldType:", selectedFieldType);
 
   useEffect(() => {
     if (!currentDocument || !currentDocument.fileUrl) {
@@ -38,31 +38,30 @@ export default function EditSignaturePage() {
     return null;
   }, [currentDocument?.fileUrl]);
 
-  // Obtenir le type de champ pour le signataire sélectionné
-  const currentFieldType = selectedSignatoryId 
-    ? fieldTypeBySignatory[selectedSignatoryId] || "signature" 
-    : "signature";
+  console.log("🔍 EditPage - selectedSignatoryId:", selectedSignatoryId);
+  console.log("🔍 EditPage - selectedFieldType:", selectedFieldType);
 
-  const handleFieldTypeChange = (fieldType: "signature" | "paraphe") => {
-    console.log("🔄 Field type changed for signatory:", selectedSignatoryId, "to:", fieldType);
-    if (selectedSignatoryId) {
-      setFieldTypeBySignatory(prev => ({
-        ...prev,
-        [selectedSignatoryId]: fieldType
-      }));
-    }
+  const handleFieldTypeChange = useCallback((fieldType: "signature" | "paraphe") => {
+    console.log("🔄 handleFieldTypeChange called with:", fieldType);
+    setSelectedFieldType(fieldType);
+  }, []);
+
+  // Fonction de sécurité pour s'assurer qu'elle est toujours définie
+  const safeHandleFieldTypeChange = (fieldType: "signature" | "paraphe") => {
+    console.log("🔄 safeHandleFieldTypeChange called with:", fieldType);
+    setSelectedFieldType(fieldType);
   };
 
   const handlePageClick = (pageNumber: number, position: { x: number; y: number }) => {
-    console.log("🎯 Page clicked with field type:", currentFieldType);
+    console.log("🎯 Page clicked with field type:", selectedFieldType);
     
-    if (currentFieldType === "signature" && !selectedSignatoryId) {
+    if (selectedFieldType === "signature" && !selectedSignatoryId) {
       alert("Please select a signatory first for signature fields");
       return;
     }
 
     // Add the field using the normalized position
-    if (currentFieldType === "signature") {
+    if (selectedFieldType === "signature") {
       console.log("➕ Adding signature field for signatory:", selectedSignatoryId);
       addField({
         type: "signature" as const,
@@ -109,14 +108,24 @@ export default function EditSignaturePage() {
     return <div>Loading...</div>;
   }
 
+  console.log("🔍 EditPage - About to render with props:", {
+    selectedSignatoryId,
+    selectedFieldType,
+    handleFieldTypeChangeExists: !!handleFieldTypeChange,
+    handleFieldTypeChangeType: typeof handleFieldTypeChange
+  });
+
+  console.log("🔍 EditPage - handleFieldTypeChange function:", handleFieldTypeChange);
+  console.log("🔍 EditPage - handleFieldTypeChange is function:", typeof handleFieldTypeChange === 'function');
+
   return (
     <div className="flex h-screen">
       <div className="w-1/4 bg-white p-4 border-r overflow-y-auto">
         <SignatoryPanel
           selectedSignatoryId={selectedSignatoryId}
           onSelectSignatory={setSelectedSignatoryId}
-          selectedFieldType={currentFieldType}
-          onFieldTypeChange={handleFieldTypeChange}
+          selectedFieldType={selectedFieldType}
+          onFieldTypeChange={safeHandleFieldTypeChange}
         />
       </div>
 
@@ -124,7 +133,7 @@ export default function EditSignaturePage() {
         <div className="p-4 border-b bg-white">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              {currentFieldType === "signature" ? (
+              {selectedFieldType === "signature" ? (
                 <>
                   <PenTool className="w-4 h-4 text-blue-600" />
                   <span className="font-medium">Mode Signature</span>
@@ -136,7 +145,7 @@ export default function EditSignaturePage() {
                 </>
               )}
             </div>
-            {currentFieldType === "signature" && selectedSignatoryId && (
+            {selectedFieldType === "signature" && selectedSignatoryId && (
               <div className="flex items-center gap-2">
                 <User className="w-4 h-4 text-gray-500" />
                 <span className="text-sm text-gray-600">
@@ -150,7 +159,7 @@ export default function EditSignaturePage() {
         <PDFViewerWithNoSSR
           fileUrl={fileUrl}
           document={currentDocument}
-          activeSignatoryId={currentFieldType === "signature" ? selectedSignatoryId : null}
+          activeSignatoryId={selectedFieldType === "signature" ? selectedSignatoryId : null}
           onPageClick={handlePageClick}
         />
       </div>

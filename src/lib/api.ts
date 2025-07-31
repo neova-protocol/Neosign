@@ -159,12 +159,13 @@ export async function addSignatureField(
  */
 export async function sendDocumentForSignature(
   documentId: string,
+  signatureType?: string,
 ): Promise<Document | null> {
   try {
     const response = await fetch(`/api/send-document`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ documentId }),
+      body: JSON.stringify({ documentId, signatureType }),
     });
 
     if (!response.ok) {

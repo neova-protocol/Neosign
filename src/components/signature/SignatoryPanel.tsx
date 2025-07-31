@@ -2,10 +2,12 @@
 import React, { useState } from "react";
 import { useSignature } from "@/contexts/SignatureContext";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Trash2, Send, UserPlus, Users, Shield, PenTool, Info, ShieldCheck, ShieldEllipsis } from "lucide-react";
+import { sendDocumentForSignature } from "@/lib/api";
 
 import { SignatureType } from "./SignatureTypeSelector";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -17,7 +19,7 @@ interface SignatoryPanelProps {
   selectedSignatoryId: string | null;
   onSelectSignatory: (signatoryId: string | null) => void;
   selectedFieldType?: "signature" | "paraphe";
-  onFieldTypeChange?: (fieldType: "signature" | "paraphe") => void;
+  onFieldTypeChange: (fieldType: "signature" | "paraphe") => void;
 }
 
 const SignatoryPanel: React.FC<SignatoryPanelProps> = ({
@@ -25,13 +27,15 @@ const SignatoryPanel: React.FC<SignatoryPanelProps> = ({
   onSelectSignatory,
   selectedFieldType,
   onFieldTypeChange,
-}) => {
+}: SignatoryPanelProps) => {
   const {
     currentDocument,
     addSignatory,
     removeSignatory,
+    setCurrentDocument,
   } = useSignature();
   const { data: session } = useSession();
+  const router = useRouter();
 
 
   const [newSignatoryName, setNewSignatoryName] = useState("");
@@ -41,15 +45,36 @@ const SignatoryPanel: React.FC<SignatoryPanelProps> = ({
   const [selectedSignatureType, setSelectedSignatureType] = useState<SignatureType>('simple');
 
   const [showInfoDialog, setShowInfoDialog] = useState(false);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
 
   const currentUser = session?.user;
   
-  // Valeur par défaut pour selectedFieldType
-  const fieldType = selectedFieldType || "signature";
+  // État local de fallback pour selectedFieldType
+  const [localFieldType, setLocalFieldType] = useState<"signature" | "paraphe">("signature");
   
-  console.log("🔍 SignatoryPanel - selectedFieldType:", selectedFieldType);
-  console.log("🔍 SignatoryPanel - fieldType:", fieldType);
-  console.log("🔍 SignatoryPanel - onFieldTypeChange:", !!onFieldTypeChange);
+  // Utiliser la prop si disponible, sinon l'état local
+  const currentFieldType = selectedFieldType || localFieldType;
+  
+  // Fonction locale pour gérer le changement de type de champ
+  const handleFieldTypeChange = (fieldType: "signature" | "paraphe") => {
+    console.log("🔄 SignatoryPanel handleFieldTypeChange called with:", fieldType);
+    setLocalFieldType(fieldType);
+    if (typeof onFieldTypeChange === 'function') {
+      onFieldTypeChange(fieldType);
+    } else {
+      console.error("❌ onFieldTypeChange is not a function:", onFieldTypeChange);
+    }
+  };
+  
+  console.log("🔍 SignatoryPanel - selectedFieldType prop:", selectedFieldType);
+  console.log("🔍 SignatoryPanel - localFieldType:", localFieldType);
+  console.log("🔍 SignatoryPanel - currentFieldType:", currentFieldType);
+  console.log("🔍 SignatoryPanel - onFieldTypeChange exists:", !!onFieldTypeChange);
+  console.log("🔍 SignatoryPanel - onFieldTypeChange type:", typeof onFieldTypeChange);
+  console.log("🔍 SignatoryPanel - onFieldTypeChange is function:", typeof onFieldTypeChange === 'function');
+  console.log("🔍 SignatoryPanel - onFieldTypeChange value:", onFieldTypeChange);
+  
+
 
   const handleAddSignatory = async () => {
     if (!newSignatoryName.trim() || !newSignatoryEmail.trim()) {
@@ -127,9 +152,23 @@ const SignatoryPanel: React.FC<SignatoryPanelProps> = ({
 
     setIsSending(true);
     try {
-      // Logique d'envoi du document
       console.log("Sending document for signature...");
-      // Ici, vous pouvez ajouter la logique pour envoyer le document
+      console.log("Document:", currentDocument);
+      console.log("Signatories:", currentDocument.signatories);
+      console.log("Fields:", currentDocument.fields);
+      
+      // Appeler la vraie API d'envoi
+      const updatedDocument = await sendDocumentForSignature(currentDocument.id, selectedSignatureType);
+      
+      if (updatedDocument) {
+        // Mettre à jour le document dans le contexte
+        setCurrentDocument(updatedDocument);
+        setShowSuccessDialog(true);
+        console.log("✅ Document sent successfully:", updatedDocument);
+      } else {
+        throw new Error("Failed to send document");
+      }
+      
     } catch (error) {
       console.error("Failed to send document:", error);
       alert("Failed to send document");
@@ -230,10 +269,11 @@ const SignatoryPanel: React.FC<SignatoryPanelProps> = ({
             <button
               onClick={() => {
                 console.log("🔄 Switching to signature");
-                onFieldTypeChange?.("signature");
+                handleFieldTypeChange("signature");
+                console.log("🔄 Calling onFieldTypeChange with signature");
               }}
               className={`flex-1 px-3 py-2 rounded border text-sm ${
-                fieldType === "signature"
+                currentFieldType === "signature"
                   ? "bg-blue-500 text-white border-blue-500"
                   : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
               }`}
@@ -243,10 +283,11 @@ const SignatoryPanel: React.FC<SignatoryPanelProps> = ({
             <button
               onClick={() => {
                 console.log("🔄 Switching to paraphe");
-                onFieldTypeChange?.("paraphe");
+                handleFieldTypeChange("paraphe");
+                console.log("🔄 Calling onFieldTypeChange with paraphe");
               }}
               className={`flex-1 px-3 py-2 rounded border text-sm ${
-                fieldType === "paraphe"
+                currentFieldType === "paraphe"
                   ? "bg-green-500 text-white border-green-500"
                   : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
               }`}
@@ -255,7 +296,7 @@ const SignatoryPanel: React.FC<SignatoryPanelProps> = ({
             </button>
           </div>
           <p className="text-xs text-gray-600 mt-1">
-            {fieldType === "signature" 
+            {currentFieldType === "signature" 
               ? "Champ de signature avec validation" 
               : "Champ de paraphe auto-rempli"
             }
@@ -399,6 +440,24 @@ const SignatoryPanel: React.FC<SignatoryPanelProps> = ({
               </p>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Success Dialog */}
+      <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Document Sent Successfully!</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-600">
+            Your document has been sent for signature. You can now close this panel.
+          </p>
+          <Button onClick={() => {
+            setShowSuccessDialog(false);
+            router.push('/dashboard');
+          }} className="w-full mt-4">
+            Close
+          </Button>
         </DialogContent>
       </Dialog>
     </div>
