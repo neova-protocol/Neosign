@@ -14,7 +14,7 @@
 🛠️ (done en mock up) settings billing a modifier pour intégrer plan actuel / avantages actuels + bloc factures 
 ✅ Bug pdf name -> Randomiser le nom pour upload en DB
 ✅ Session timeout management
- Modifier les signatures AES et QES et SES pour request le 2FA propre pas un envoi automatique
+✅ Modifier les signatures AES et SES pour request le 2FA propre pas un envoi automatique
  Template perso avec modif possible live
 
 3.
@@ -37,6 +37,7 @@
 
 5.
  API NeoDrive
+ Se pencher sur le QES
 
 
 **Sécurité & Authentification**

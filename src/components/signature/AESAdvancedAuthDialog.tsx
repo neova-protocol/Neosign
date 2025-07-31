@@ -29,8 +29,6 @@ interface AESAdvancedAuthDialogProps {
   onSuccess: (sessionToken: string) => void;
   onCancel: () => void;
   userId: string;
-  userEmail?: string;
-  userPhone?: string;
 }
 
 export default function AESAdvancedAuthDialog({
@@ -39,8 +37,6 @@ export default function AESAdvancedAuthDialog({
   onSuccess,
   onCancel,
   userId,
-  userEmail,
-  userPhone,
 }: AESAdvancedAuthDialogProps) {
   const [currentStep, setCurrentStep] = useState<'init' | 'auth' | 'validation' | 'completed'>('init');
   const [authSession, setAuthSession] = useState<AdvancedAuthSession | null>(null);
@@ -78,11 +74,9 @@ export default function AESAdvancedAuthDialog({
       // Méthodes disponibles selon les données utilisateur
       const availableMethods: ('sms' | 'email' | 'authenticator' | 'hardware')[] = [];
       
-      if (userEmail) availableMethods.push('email');
-      if (userPhone) availableMethods.push('sms');
-      availableMethods.push('authenticator'); // Toujours disponible
-      
       // Pour AES, on a besoin d'au moins 2 méthodes
+      availableMethods.push('email', 'authenticator'); // Méthodes par défaut
+      
       const requiredMethods = availableMethods.slice(0, 2);
       
       const session = await authService.createAdvancedAuthSession(
@@ -93,10 +87,9 @@ export default function AESAdvancedAuthDialog({
       );
 
       setAuthSession(session);
-      setSelectedMethods(requiredMethods);
       setCurrentStep('auth');
     } catch (error) {
-      setError('Erreur lors de l\'initialisation de l\'authentification');
+      setError('Erreur lors de l&apos;initialisation de l&apos;authentification');
       console.error('Auth initialization error:', error);
     } finally {
       setIsLoading(false);
@@ -111,6 +104,11 @@ export default function AESAdvancedAuthDialog({
       const code = validationCodes[methodType];
       if (!code) {
         setError('Veuillez entrer le code de validation');
+        return;
+      }
+
+      if (!authSession) {
+        setError('Session d&apos;authentification non trouvée');
         return;
       }
 
@@ -171,12 +169,14 @@ export default function AESAdvancedAuthDialog({
         });
 
         setCurrentStep('completed');
-        onSuccess(authSession.sessionToken);
+        if (authSession) {
+          onSuccess(authSession.sessionToken);
+        }
       } else {
         setError('Exigences eIDAS non remplies pour AES');
       }
     } catch (error) {
-      setError('Erreur lors de la finalisation de l\'authentification');
+      setError('Erreur lors de la finalisation de l&apos;authentification');
       console.error('Auth completion error:', error);
     }
   };

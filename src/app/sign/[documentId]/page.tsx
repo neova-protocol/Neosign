@@ -254,9 +254,6 @@ export default function PublicSignPage() {
           signatoryName={signatory.name}
           signatoryId={signatory.id}
           documentId={document.id}
-          twoFactorMethod="email"
-          userEmail={signatory.email}
-          userPhone=""
         />
       )}
       

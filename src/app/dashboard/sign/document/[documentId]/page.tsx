@@ -228,9 +228,6 @@ export default function SignDocumentPage() {
             signatoryName={selfAsSignatory?.name || ''}
             signatoryId={selfAsSignatory?.id || ''}
             documentId={currentDocument.id}
-            twoFactorMethod="email"
-            userEmail={selfAsSignatory?.email || ''}
-            userPhone=""
           />
         )}
         

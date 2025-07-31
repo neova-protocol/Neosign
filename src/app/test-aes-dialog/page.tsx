@@ -1,40 +1,50 @@
 "use client";
 
-import { useState } from "react";
-import { useSession } from "next-auth/react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { 
   Shield, 
   CheckCircle, 
-  XCircle, 
-  AlertTriangle,
-  Smartphone, 
-  Mail, 
-  Key,
-  Clock,
+  AlertCircle,
   User,
-  Lock
+  AlertTriangle
 } from "lucide-react";
 import { AESSignatureDialog } from "@/components/signature/AESSignatureDialog";
+import { useSession } from "next-auth/react";
+import { SignatureCompliance } from "@/types/signature";
 
 export default function TestAESDialogPage() {
   const { data: session, status } = useSession();
-  const [showAESDialog, setShowAESDialog] = useState(false);
-  const [dialogResult, setDialogResult] = useState<any>(null);
+  const [showDialog, setShowDialog] = useState(false);
+  const [result, setResult] = useState<{
+    signatureData: string;
+    compliance: SignatureCompliance;
+    twoFactorMethod: string;
+    validatedAt: string;
+  } | null>(null);
 
-  const handleAESConfirm = (signatureData: any) => {
-    setDialogResult(signatureData);
-    console.log('AES Signature confirmed:', signatureData);
+  const signatoryName = session?.user?.name || "Test User";
+  const signatoryId = session?.user?.id || "test-user";
+  const documentId = "test-document";
+
+  const handleConfirm = (signatureData: {
+    signatureData: string;
+    compliance: SignatureCompliance;
+    twoFactorMethod: string;
+    validatedAt: string;
+  }) => {
+    setResult(signatureData);
+    setShowDialog(false);
   };
 
   if (status === "loading") {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p>Chargement...</p>
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Chargement...</p>
         </div>
       </div>
     );
@@ -43,19 +53,14 @@ export default function TestAESDialogPage() {
   if (status === "unauthenticated") {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle>Test Dialog AES</CardTitle>
-            <CardDescription>
-              Vous devez être connecté pour tester le dialog AES
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={() => window.location.href = "/login"}>
-              Se connecter
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="text-center">
+          <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Accès refusé</h1>
+          <p className="text-gray-600 mb-4">Vous devez être connecté pour accéder à cette page.</p>
+          <Button asChild>
+            <a href="/auth/signin">Se connecter</a>
+          </Button>
+        </div>
       </div>
     );
   }
@@ -129,7 +134,7 @@ export default function TestAESDialogPage() {
               </div>
 
               <Button 
-                onClick={() => setShowAESDialog(true)}
+                onClick={() => setShowDialog(true)}
                 className="w-full"
                 size="lg"
               >
@@ -140,7 +145,7 @@ export default function TestAESDialogPage() {
         </Card>
 
         {/* Résultats */}
-        {dialogResult && (
+        {result && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
@@ -160,19 +165,19 @@ export default function TestAESDialogPage() {
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">Méthode 2FA:</span>
                     <Badge variant="secondary">
-                      {dialogResult.twoFactorMethod}
+                      {result.twoFactorMethod}
                     </Badge>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">Validé le:</span>
                     <span className="text-sm text-gray-600">
-                      {new Date(dialogResult.validatedAt).toLocaleString()}
+                      {new Date(result.validatedAt).toLocaleString()}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">Niveau eIDAS:</span>
                     <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                      {dialogResult.compliance.eIDASLevel}
+                      {result.compliance.eIDASLevel}
                     </Badge>
                   </div>
                 </div>
@@ -235,15 +240,12 @@ export default function TestAESDialogPage() {
 
         {/* Dialog AES */}
         <AESSignatureDialog
-          open={showAESDialog}
-          onOpenChange={setShowAESDialog}
-          onConfirm={handleAESConfirm}
-          signatoryName={session?.user?.name || "Test User"}
-          signatoryId={session?.user?.id || "test-user"}
-          documentId="test-document"
-          twoFactorMethod="email"
-          userEmail={session?.user?.email || "test@example.com"}
-          userPhone=""
+          open={showDialog}
+          onOpenChange={setShowDialog}
+          onConfirm={handleConfirm}
+          signatoryName={signatoryName}
+          signatoryId={signatoryId}
+          documentId={documentId}
         />
       </div>
     </div>
