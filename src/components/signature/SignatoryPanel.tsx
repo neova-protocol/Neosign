@@ -28,6 +28,13 @@ const SignatoryPanel: React.FC<SignatoryPanelProps> = ({
   selectedFieldType,
   onFieldTypeChange,
 }: SignatoryPanelProps) => {
+  console.log("🔍 SignatoryPanel - Component initialized with props:", {
+    selectedSignatoryId,
+    selectedFieldType,
+    onFieldTypeChangeExists: !!onFieldTypeChange,
+    onFieldTypeChangeType: typeof onFieldTypeChange
+  });
+  
   const {
     currentDocument,
     addSignatory,

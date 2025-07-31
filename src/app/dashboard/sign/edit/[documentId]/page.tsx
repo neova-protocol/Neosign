@@ -10,6 +10,8 @@ import dynamic from "next/dynamic";
 import SignatoryPanel from "@/components/signature/SignatoryPanel";
 import { useRouter } from "next/navigation";
 import SuccessModal from "@/components/modals/SuccessModal";
+import ParapheSelectionDialog from "@/components/signature/ParapheSelectionDialog";
+import { Paraphe } from "@/types/paraphe";
 
 const PDFViewer = dynamic(() => import("@/components/pdf/PDFViewer"), {
   ssr: false,
@@ -28,14 +30,33 @@ export default function EditDocumentPage() {
     currentDocument,
     setCurrentDocument,
     addField,
+    updateField,
     updateFieldPosition,
   } = useSignature();
 
   const [selectedSignatoryId, setSelectedSignatoryId] = useState<string | null>(null);
-
+  const [selectedFieldType, setSelectedFieldType] = useState<"signature" | "paraphe">("signature");
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [showParapheDialog, setShowParapheDialog] = useState(false);
+  const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
+
+  console.log("🚀 EditDocumentPage - Component is rendering!");
 
   const documentId = params.documentId as string;
+
+  const handleFieldTypeChange = (fieldType: "signature" | "paraphe") => {
+    console.log("🔄 handleFieldTypeChange called with:", fieldType);
+    setSelectedFieldType(fieldType);
+  };
+
+  const handleParapheSelect = (paraphe: Paraphe) => {
+    console.log("🔄 Paraphe selected:", paraphe);
+    if (selectedFieldId) {
+      // Mettre à jour le champ avec l'ID du paraphe sélectionné
+      updateField(selectedFieldId, { value: paraphe.id });
+      setSelectedFieldId(null);
+    }
+  };
 
   useEffect(() => {
     if (documentId && (!currentDocument || currentDocument.id !== documentId)) {
@@ -102,8 +123,10 @@ export default function EditDocumentPage() {
     pageNumber: number,
     position: { x: number; y: number },
   ) => {
-    if (!selectedSignatoryId) {
-      alert("Please select a signatory first");
+    console.log("🎯 Page clicked with field type:", selectedFieldType);
+    
+    if (selectedFieldType === "signature" && !selectedSignatoryId) {
+      alert("Please select a signatory first for signature fields");
       return;
     }
 
@@ -111,19 +134,36 @@ export default function EditDocumentPage() {
       pageNumber,
       position,
       selectedSignatoryId,
+      selectedFieldType,
     });
 
-    addField({
-      type: "signature",
-      page: pageNumber,
-      x: position.x,
-      y: position.y,
-      width: 120, // Standard width in pixels
-      height: 75, // Standard height in pixels
-      signatoryId: selectedSignatoryId,
-      value: null,
-      signatureType: "simple", // Ajout de la valeur par défaut
-    });
+    if (selectedFieldType === "signature") {
+      console.log("➕ Adding signature field for signatory:", selectedSignatoryId);
+      addField({
+        type: "signature",
+        page: pageNumber,
+        x: position.x,
+        y: position.y,
+        width: 120,
+        height: 75,
+        signatoryId: selectedSignatoryId,
+        value: null,
+        signatureType: "simple",
+      });
+    } else {
+      console.log("➕ Adding paraphe field");
+      addField({
+        type: "paraphe",
+        page: pageNumber,
+        x: position.x,
+        y: position.y,
+        width: 120,
+        height: 40,
+        signatoryId: null,
+        value: null,
+        signatureType: "simple",
+      });
+    }
   };
 
   return (
@@ -150,10 +190,18 @@ export default function EditDocumentPage() {
             <SignatoryPanel
               selectedSignatoryId={selectedSignatoryId}
               onSelectSignatory={setSelectedSignatoryId}
+              selectedFieldType={selectedFieldType}
+              onFieldTypeChange={handleFieldTypeChange}
             />
           </aside>
         </main>
       </div>
+      
+      <ParapheSelectionDialog
+        open={showParapheDialog}
+        onOpenChange={setShowParapheDialog}
+        onParapheSelect={handleParapheSelect}
+      />
     </div>
   );
 }

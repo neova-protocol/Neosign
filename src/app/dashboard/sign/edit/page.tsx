@@ -17,6 +17,8 @@ const PDFViewerWithNoSSR = dynamic(() => import("@/components/pdf/PDFViewer"), {
 });
 
 export default function EditSignaturePage() {
+  console.log("🚀 EditPage - Component is rendering!");
+  
   const { currentDocument, updateField, addField } = useSignature();
   const router = useRouter();
   const [selectedSignatoryId, setSelectedSignatoryId] = useState<string | null>(null);
@@ -117,6 +119,10 @@ export default function EditSignaturePage() {
 
   console.log("🔍 EditPage - handleFieldTypeChange function:", handleFieldTypeChange);
   console.log("🔍 EditPage - handleFieldTypeChange is function:", typeof handleFieldTypeChange === 'function');
+  console.log("🔍 EditPage - safeHandleFieldTypeChange function:", safeHandleFieldTypeChange);
+  console.log("🔍 EditPage - safeHandleFieldTypeChange is function:", typeof safeHandleFieldTypeChange === 'function');
+
+  console.log("🚀 EditPage - About to render SignatoryPanel with safeHandleFieldTypeChange:", safeHandleFieldTypeChange);
 
   return (
     <div className="flex h-screen">
